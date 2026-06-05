@@ -13,6 +13,16 @@ import os
 import shutil
 from pathlib import Path
 
+os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
+
+from google.protobuf import descriptor as protobuf_descriptor
+
+# TFDS 4.9.x still reads `FieldDescriptor.label`, while newer protobuf Python
+# descriptors expose it as `_label`. Keep this compatibility shim local to data
+# loading so the rest of the stack can keep the pinned protobuf version.
+if not hasattr(protobuf_descriptor.FieldDescriptor, "label"):
+    protobuf_descriptor.FieldDescriptor.label = property(lambda self: self._label)
+
 import grain
 import kagglehub
 import tensorflow_datasets as tfds
@@ -106,13 +116,26 @@ def build_train_val_test(num_batches: int,
     """Materialise (train, val, test) datasets with batching applied."""
     full = get_dataset(train_dir, "train", source).batch(train_micro_batch_size)[:num_batches]
 
+    def _with_dataset_role(role: str):
+        def mapper(batch):
+            out = dict(batch)
+            size = len(out.get("prompts", []))
+            out["dataset_role"] = [role] * size
+            return out
+
+        return mapper
+
     if train_fraction == 1.0:
-        train_ds = full.repeat(num_epochs)
+        train_ds = full.map(_with_dataset_role("train")).repeat(num_epochs)
         val_ds = None
     else:
         cut = int(len(full) * train_fraction)
-        train_ds = full[:cut].repeat(num_epochs)
-        val_ds = full[cut:].repeat(num_epochs)
+        train_ds = full[:cut].map(_with_dataset_role("train")).repeat(num_epochs)
+        val_ds = full[cut:].map(_with_dataset_role("val")).repeat(num_epochs)
 
-    test_ds = get_dataset(test_dir, "test", source).batch(train_micro_batch_size)[:num_test_batches]
+    test_ds = (
+        get_dataset(test_dir, "test", source)
+        .batch(train_micro_batch_size)[:num_test_batches]
+        .map(_with_dataset_role("test"))
+    )
     return train_ds, val_ds, test_ds

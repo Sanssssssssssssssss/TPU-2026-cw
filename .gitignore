@@ -27,6 +27,15 @@ ckpts_backup/
 wandb/
 scripts/wandb/
 scripts/*.log
+artifacts/cloud/
+artifacts/local/
+artifacts/observability/
+artifacts/checkpoint_eval/
+artifacts/analysis/
+artifacts/*.txt
+
+# local cloud orchestration config
+cloud/tpu_config.local.ps1
 
 # editor
 .vscode/

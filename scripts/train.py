@@ -14,16 +14,23 @@ Tunix's RLCluster uses Orbax and will pick up the latest step in CKPT_DIR.
 import argparse
 import os
 
+os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import nest_asyncio
 import optax
 import wandb
-from dotenv import load_dotenv
+from huggingface_hub import login as hf_login
 from orbax import checkpoint as ocp
 from tunix.rl import rl_cluster as rl_cluster_lib
 from tunix.rl.grpo.grpo_learner import GRPOConfig, GRPOLearner
 from tunix.rl.rollout import base_rollout
 from tunix.sft import metrics_logger
 
+import config as config_module
 from config import (
     B1, B2,
     BETA,
@@ -57,17 +64,17 @@ from config import (
     WEIGHT_DECAY,
 )
 from data import build_train_val_test
+from grpo_observability import GRPOObservability, collect_config_snapshot
 from model import build_mesh, download_weights, load_base_model, get_lora_model, load_tokenizer
 from rewards import REWARD_FNS
 
 
 def login_services():
-    load_dotenv()
     nest_asyncio.apply()  # tunix uses async; jupyter-style nesting helps in tmux too
     if os.environ.get("WANDB_API_KEY"):
         wandb.login(key=os.environ["WANDB_API_KEY"])
     if os.environ.get("HF_TOKEN"):
-        os.system(f'hf auth login --token "{os.environ["HF_TOKEN"]}"')
+        hf_login(token=os.environ["HF_TOKEN"], add_to_git_credential=False)
 
 
 def maybe_init_wandb(run_id: str | None):
@@ -99,6 +106,33 @@ def build_optimizer():
     return opt
 
 
+def build_metrics_logging_options():
+    run_name = os.environ.get("WANDB_RUN_ID") or WANDB_RUN_ID or ""
+    kwargs = {
+        "log_dir": TENSORBOARD_DIR,
+        "flush_every_n_steps": 20,
+    }
+    if os.environ.get("WANDB_API_KEY"):
+        kwargs.update({
+            "project_name": WANDB_PROJECT,
+            "run_name": run_name,
+        })
+        return metrics_logger.MetricsLoggerOptions(**kwargs)
+
+    print("WANDB_API_KEY not set - Tunix metrics logger will use TensorBoard only.")
+    return metrics_logger.MetricsLoggerOptions(
+        **kwargs,
+        backend_kwargs={
+            "custom_backend": [
+                lambda: metrics_logger.TensorboardBackend(
+                    log_dir=TENSORBOARD_DIR,
+                    flush_every_n_steps=20,
+                )
+            ]
+        },
+    )
+
+
 def build_cluster_config(mesh, optimizer, eos_tokens):
     return rl_cluster_lib.ClusterConfig(
         role_to_mesh={
@@ -114,9 +148,7 @@ def build_cluster_config(mesh, optimizer, eos_tokens):
             max_steps=MAX_STEPS,
             mini_batch_size=TRAIN_MICRO_BATCH_SIZE,
             train_micro_batch_size=TRAIN_MICRO_BATCH_SIZE,
-            metrics_logging_options=metrics_logger.MetricsLoggerOptions(
-                log_dir=TENSORBOARD_DIR, flush_every_n_steps=20,
-            ),
+            metrics_logging_options=build_metrics_logging_options(),
             checkpoint_root_directory=CKPT_DIR,
             checkpointing_options=ocp.CheckpointManagerOptions(
                 save_interval_steps=SAVE_INTERVAL_STEPS, max_to_keep=MAX_TO_KEEP,
@@ -135,14 +167,25 @@ def build_cluster_config(mesh, optimizer, eos_tokens):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--source", default=DATA_SOURCE, choices=["tfds", "kaggle"])
-    ap.add_argument("--wandb-run-id", default=WANDB_RUN_ID,
-                    help="Pass an existing run id (e.g. bnh9ttlt) to resume.")
+    ap.add_argument("--wandb-run-id", default=WANDB_RUN_ID or os.environ.get("RUN_ID"),
+                    help="Pass an existing W&B run id to resume.")
     args = ap.parse_args()
 
     login_services()
-    # init wandb BEFORE the trainer because tunix sometimes hangs if wandb is
-    # initialised mid-RLCluster construction (known bug).
-    maybe_init_wandb(args.wandb_run_id)
+    if args.wandb_run_id:
+        os.environ["WANDB_RUN_ID"] = args.wandb_run_id
+
+    observability = GRPOObservability.from_env(
+        run_id=args.wandb_run_id,
+        tensorboard_dir=TENSORBOARD_DIR,
+        num_generations=NUM_GENERATIONS,
+        config_snapshot=collect_config_snapshot(config_module),
+    )
+    # Init W&B before RLCluster construction; Tunix can hang if W&B is first
+    # initialized inside the metrics backend during cluster setup.
+    observability.start_wandb(project=WANDB_PROJECT, entity=WANDB_ENTITY)
+    observability.start_tensorboard()
+    observability.write_manifest(status="initializing")
 
     mesh = build_mesh()
     local_path, eos_tokens = download_weights()
@@ -168,11 +211,31 @@ def main():
     rl_cluster = rl_cluster_lib.RLCluster(
         actor=lora, reference=base, tokenizer=tokenizer, cluster_config=cluster_cfg,
     )
-    trainer = GRPOLearner(rl_cluster=rl_cluster, reward_fns=REWARD_FNS, algo_config=grpo_cfg)
+    trainer = GRPOLearner(
+        rl_cluster=rl_cluster,
+        reward_fns=REWARD_FNS,
+        metric_fns=[observability.metric_fn],
+        algo_config=grpo_cfg,
+    )
 
     print(f"Starting GRPO training. CKPT_DIR={CKPT_DIR}  MAX_STEPS={MAX_STEPS}")
-    trainer.train(train_ds, val_ds)
-    print("Training finished.")
+    status = "failed"
+    try:
+        observability.write_manifest(status="running")
+        trainer.train(train_ds, val_ds)
+        status = "completed"
+        print("Training finished.")
+    finally:
+        observability.finish(
+            status=status,
+            extra={
+                "ckpt_dir": CKPT_DIR,
+                "tensorboard_dir": TENSORBOARD_DIR,
+                "max_steps": MAX_STEPS,
+                "eval_every_n_steps": EVAL_EVERY_N_STEPS,
+                "save_interval_steps": SAVE_INTERVAL_STEPS,
+            },
+        )
 
 
 if __name__ == "__main__":

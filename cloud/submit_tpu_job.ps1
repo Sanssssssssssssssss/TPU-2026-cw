@@ -1,0 +1,701 @@
+<#
+.SYNOPSIS
+Local Google TPU VM orchestrator for the GRPO baseline workflow.
+
+.EXAMPLE
+.\cloud\submit_tpu_job.ps1 preflight -DryRun
+.\cloud\submit_tpu_job.ps1 ensure-tpu
+.\cloud\submit_tpu_job.ps1 bootstrap -RunId setup-001
+.\cloud\submit_tpu_job.ps1 submit-baseline -RunId baseline-001
+.\cloud\submit_tpu_job.ps1 eval-checkpoints -RunId baseline-001
+.\cloud\submit_tpu_job.ps1 status -RunId baseline-001
+.\cloud\submit_tpu_job.ps1 ensure-storage
+.\cloud\submit_tpu_job.ps1 sync-storage -RunId baseline-001
+.\cloud\submit_tpu_job.ps1 fetch -RunId baseline-001
+.\cloud\submit_tpu_job.ps1 stop-tpu
+#>
+
+[CmdletBinding()]
+param(
+    [Parameter(Position = 0)]
+    [ValidateSet("preflight", "ensure-tpu", "ensure-storage", "bootstrap", "submit-baseline", "eval-checkpoints", "status", "fetch", "sync-storage", "restore-cache", "start-tpu", "stop-tpu", "delete-tpu")]
+    [string]$Command = "preflight",
+
+    [string]$RunId = ("baseline-" + (Get-Date -Format "yyyyMMdd-HHmmss")),
+    [switch]$DryRun,
+    [switch]$TinySmoke,
+    [switch]$KeepBundle,
+    [string]$ConfigPath = "",
+    [string]$SecretsFileOverride
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+if ([string]::IsNullOrWhiteSpace($ConfigPath)) {
+    $ConfigPath = Join-Path $ScriptDir "tpu_config.local.ps1"
+}
+$RepoRoot = (Resolve-Path (Join-Path $ScriptDir "..")).Path
+
+# Defaults match create_tpu_env.sh. Override by copying
+# cloud/tpu_config.example.ps1 to cloud/tpu_config.local.ps1.
+$ProjectId = "grpo-tpu-play-20260603-z9s5"
+$TpuName = "grpo-play-v6e"
+$Zone = "us-east5-b"
+$Region = "us-east5"
+$AcceleratorType = "v6e-1"
+$RuntimeVersion = "v2-alpha-tpuv6e"
+$UseIapTunnel = $true
+$UseOpenSshIap = $false
+$IapTargetName = ""
+$SshUser = $env:USERNAME
+$SshKeyPath = "$env:USERPROFILE\.ssh\google_compute_engine"
+$SshKnownHostsPath = "$env:USERPROFILE\.ssh\google_compute_known_hosts"
+$RemoteRoot = "~/tpu-runs"
+$RemoteToolsDir = "~/tpu-runs/_tools"
+$RemoteIncomingDir = "~/tpu-runs/_incoming"
+$RemoteVenv = "~/venvs/tunix"
+$SecretsFile = ".env"
+$LocalArtifactsRoot = "artifacts/cloud"
+$StorageBucket = ""
+$StorageLocation = $Region
+$StorageClass = "STANDARD"
+$StoragePrefix = "tpu-runs"
+$StorageCachePrefix = "cache"
+
+if (Test-Path -LiteralPath $ConfigPath) {
+    . $ConfigPath
+}
+if ($SecretsFileOverride) {
+    $SecretsFile = $SecretsFileOverride
+}
+if ([string]::IsNullOrWhiteSpace($StorageBucket)) {
+    $StorageBucket = "$ProjectId-tpu-artifacts"
+}
+
+function Write-Step([string]$Message) {
+    Write-Host ""
+    Write-Host "==> $Message" -ForegroundColor Cyan
+}
+
+function Quote-Arg([string]$Arg) {
+    if ($Arg -match '[\s"`$]') {
+        return '"' + ($Arg -replace '"', '\"') + '"'
+    }
+    return $Arg
+}
+
+function Format-Command([string]$Exe, [string[]]$ArgumentList) {
+    return (@($Exe) + $ArgumentList | ForEach-Object { Quote-Arg $_ }) -join " "
+}
+
+function Invoke-External([string]$Exe, [string[]]$ArgumentList) {
+    $display = Format-Command $Exe $ArgumentList
+    if ($DryRun) {
+        Write-Host "[dry-run] $display"
+        return
+    }
+    Write-Host $display -ForegroundColor DarkGray
+    & $Exe @ArgumentList
+    if ($LASTEXITCODE -ne 0) {
+        throw "Command failed with exit code $LASTEXITCODE`: $display"
+    }
+}
+
+function Test-ExternalSuccess([string]$Exe, [string[]]$ArgumentList) {
+    $display = Format-Command $Exe $ArgumentList
+    if ($DryRun) {
+        Write-Host "[dry-run] $display"
+        return $false
+    }
+    try {
+        & $Exe @ArgumentList *> $null
+        return ($LASTEXITCODE -eq 0)
+    }
+    catch {
+        return $false
+    }
+}
+
+function Get-GCloudExecutable {
+    $cmd = Get-Command "gcloud.cmd" -ErrorAction SilentlyContinue
+    if (-not $cmd) {
+        $cmd = Get-Command "gcloud" -ErrorAction SilentlyContinue
+    }
+    if (-not $cmd) {
+        $default = Join-Path $env:LOCALAPPDATA "Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
+        if (Test-Path -LiteralPath $default) {
+            return $default
+        }
+    }
+    if (-not $cmd) {
+        throw "gcloud is not installed or not on PATH. Install Google Cloud CLI, then run gcloud auth login."
+    }
+    return $cmd.Source
+}
+
+function Invoke-GCloud([string[]]$ArgumentList) {
+    Invoke-External (Get-GCloudExecutable) $ArgumentList
+}
+
+function Test-GCloud([string[]]$ArgumentList) {
+    return Test-ExternalSuccess (Get-GCloudExecutable) $ArgumentList
+}
+
+function Get-FreeTcpPort {
+    $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Parse("127.0.0.1"), 0)
+    $listener.Start()
+    try {
+        return $listener.LocalEndpoint.Port
+    }
+    finally {
+        $listener.Stop()
+    }
+}
+
+function Get-IapTarget {
+    if (-not [string]::IsNullOrWhiteSpace($IapTargetName)) {
+        return $IapTargetName
+    }
+    throw "OpenSSH IAP mode requires `$IapTargetName in cloud/tpu_config.local.ps1. Use the TPU VM hostname, e.g. t1v-...-w-0."
+}
+
+function Wait-LocalPort([int]$Port) {
+    for ($i = 0; $i -lt 180; $i++) {
+        Start-Sleep -Milliseconds 500
+        $client = [System.Net.Sockets.TcpClient]::new()
+        try {
+            $iar = $client.BeginConnect("127.0.0.1", $Port, $null, $null)
+            if ($iar.AsyncWaitHandle.WaitOne(250)) {
+                $client.EndConnect($iar)
+                return
+            }
+        }
+        catch {
+        }
+        finally {
+            $client.Close()
+        }
+    }
+    throw "IAP tunnel did not open on local port $Port."
+}
+
+function Start-OpenSshIapTunnel {
+    $target = Get-IapTarget
+    $port = Get-FreeTcpPort
+    $args = @(
+        "alpha", "compute", "start-iap-tunnel", $target, "22",
+        "--local-host-port=127.0.0.1:$port",
+        "--project=$ProjectId",
+        "--zone=$Zone"
+    )
+    $gcloud = Get-GCloudExecutable
+    $display = Format-Command $gcloud $args
+    if ($DryRun) {
+        Write-Host "[dry-run] $display"
+        return [PSCustomObject]@{ Port = $port; Target = $target }
+    }
+    Write-Host $display -ForegroundColor DarkGray
+    $process = Start-Process -FilePath $gcloud -ArgumentList $args -WindowStyle Hidden -PassThru
+    Wait-LocalPort $port
+    return [PSCustomObject]@{ Port = $port; Target = $target; ProcessId = $process.Id }
+}
+
+function Stop-OpenSshIapTunnel($Tunnel) {
+    if ($DryRun -or -not $Tunnel) {
+        return
+    }
+    $portPattern = [regex]::Escape("--local-host-port=127.0.0.1:$($Tunnel.Port)")
+    Get-CimInstance Win32_Process |
+        Where-Object { $_.CommandLine -and $_.CommandLine -match "start-iap-tunnel" -and $_.CommandLine -match $portPattern } |
+        ForEach-Object {
+            Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+        }
+}
+
+function Get-OpenSshArgs([int]$Port) {
+    return @(
+        "-4",
+        "-p", "$Port",
+        "-i", (Resolve-RepoPath $SshKeyPath),
+        "-o", "IdentitiesOnly=yes",
+        "-o", "StrictHostKeyChecking=no",
+        "-o", "UserKnownHostsFile=$(Resolve-RepoPath $SshKnownHostsPath)",
+        "-o", "ServerAliveInterval=30"
+    )
+}
+
+function Convert-ScpEndpoint([string]$Endpoint) {
+    $prefix = "$TpuName`:"
+    if ($Endpoint.StartsWith($prefix)) {
+        return "$SshUser@127.0.0.1:" + $Endpoint.Substring($prefix.Length)
+    }
+    return $Endpoint
+}
+
+function GCloudTpuBaseArgs([string]$Verb) {
+    $cmdArgs = @("alpha", "compute", "tpus", "tpu-vm", $Verb)
+    return $cmdArgs
+}
+
+function Add-AccessArgs([string[]]$ArgumentList) {
+    $out = @($ArgumentList)
+    $out += @("--project=$ProjectId", "--zone=$Zone")
+    if ($UseIapTunnel) {
+        $out += "--tunnel-through-iap"
+    }
+    return $out
+}
+
+function Invoke-Remote([string]$RemoteCommand) {
+    if ($UseOpenSshIap) {
+        $tunnel = Start-OpenSshIapTunnel
+        try {
+            $args = Get-OpenSshArgs $tunnel.Port
+            $args += @("$SshUser@127.0.0.1", $RemoteCommand)
+            Invoke-External "ssh.exe" $args
+        }
+        finally {
+            Stop-OpenSshIapTunnel $tunnel
+        }
+        return
+    }
+
+    $cmdArgs = GCloudTpuBaseArgs "ssh"
+    $cmdArgs += $TpuName
+    $cmdArgs = Add-AccessArgs $cmdArgs
+    $cmdArgs += "--command=$RemoteCommand"
+    Invoke-GCloud $cmdArgs
+}
+
+function Invoke-RemoteScp([string]$Source, [string]$Destination, [switch]$Recurse) {
+    if ($UseOpenSshIap) {
+        $tunnel = Start-OpenSshIapTunnel
+        try {
+            $args = @("-P", "$($tunnel.Port)")
+            if ($Recurse) {
+                $args += "-r"
+            }
+            $args += @(
+                "-i", (Resolve-RepoPath $SshKeyPath),
+                "-o", "IdentitiesOnly=yes",
+                "-o", "StrictHostKeyChecking=no",
+                "-o", "UserKnownHostsFile=$(Resolve-RepoPath $SshKnownHostsPath)",
+                "-o", "ServerAliveInterval=30",
+                (Convert-ScpEndpoint $Source),
+                (Convert-ScpEndpoint $Destination)
+            )
+            Invoke-External "scp.exe" $args
+        }
+        finally {
+            Stop-OpenSshIapTunnel $tunnel
+        }
+        return
+    }
+
+    $cmdArgs = GCloudTpuBaseArgs "scp"
+    if ($Recurse) {
+        $cmdArgs += "--recurse"
+    }
+    $cmdArgs += @($Source, $Destination)
+    $cmdArgs = Add-AccessArgs $cmdArgs
+    Invoke-GCloud $cmdArgs
+}
+
+function Assert-GCloudAvailable {
+    if ($DryRun) {
+        return
+    }
+    if (-not (Get-Command "gcloud" -ErrorAction SilentlyContinue)) {
+        throw "gcloud is not installed or not on PATH. Install Google Cloud CLI, then run gcloud auth login."
+    }
+}
+
+function Assert-RunId {
+    if ($RunId -notmatch '^[A-Za-z0-9._-]+$') {
+        throw "RunId may only contain letters, numbers, dot, underscore, and dash."
+    }
+}
+
+function Resolve-RepoPath([string]$Path) {
+    if ([System.IO.Path]::IsPathRooted($Path)) {
+        return $Path
+    }
+    return (Join-Path $RepoRoot $Path)
+}
+
+function Get-RemotePath([string]$Base, [string]$Name) {
+    return ($Base.TrimEnd("/") + "/" + $Name)
+}
+
+function New-PortableZipFromDirectory([string]$SourceDir, [string]$DestinationPath) {
+    Add-Type -AssemblyName System.IO.Compression
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    if (Test-Path -LiteralPath $DestinationPath) {
+        Remove-Item -LiteralPath $DestinationPath -Force
+    }
+
+    $sourceFull = [System.IO.Path]::GetFullPath($SourceDir).TrimEnd("\", "/")
+    $archive = [System.IO.Compression.ZipFile]::Open($DestinationPath, [System.IO.Compression.ZipArchiveMode]::Create)
+    try {
+        Get-ChildItem -LiteralPath $sourceFull -Recurse -File | ForEach-Object {
+            $relative = $_.FullName.Substring($sourceFull.Length).TrimStart("\", "/")
+            $entryName = $relative.Replace("\", "/")
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                $archive,
+                $_.FullName,
+                $entryName,
+                [System.IO.Compression.CompressionLevel]::Optimal
+            ) | Out-Null
+        }
+    }
+    finally {
+        $archive.Dispose()
+    }
+}
+
+function New-CodeBundle {
+    Assert-RunId
+    Write-Step "Packaging current working tree"
+    $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("tpu-job-" + $RunId + "-" + [Guid]::NewGuid().ToString("N"))
+    $stage = Join-Path $tempRoot "bundle"
+    $srcStage = Join-Path $stage "src"
+    $metaStage = Join-Path $stage "meta"
+    New-Item -ItemType Directory -Path $srcStage, $metaStage -Force | Out-Null
+
+    $files = & git -C $RepoRoot ls-files --cached --modified --others --exclude-standard
+    if ($LASTEXITCODE -ne 0) {
+        throw "git ls-files failed; run this from a git checkout."
+    }
+
+    foreach ($rel in ($files | Sort-Object -Unique)) {
+        if ([string]::IsNullOrWhiteSpace($rel)) {
+            continue
+        }
+        $source = Join-Path $RepoRoot $rel
+        if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+            continue
+        }
+        $dest = Join-Path $srcStage $rel
+        $destDir = Split-Path -Parent $dest
+        New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+        Copy-Item -LiteralPath $source -Destination $dest -Force
+    }
+
+    (& git -C $RepoRoot rev-parse HEAD) | Set-Content -Path (Join-Path $metaStage "git_commit.txt") -Encoding utf8
+    (& git -C $RepoRoot status --short --branch) | Set-Content -Path (Join-Path $metaStage "git_status.txt") -Encoding utf8
+    (& git -C $RepoRoot diff --binary) | Set-Content -Path (Join-Path $metaStage "dirty.patch") -Encoding utf8
+    (& git -C $RepoRoot diff --cached --binary) | Set-Content -Path (Join-Path $metaStage "staged.patch") -Encoding utf8
+
+    $zip = Join-Path $tempRoot "$RunId.zip"
+    New-PortableZipFromDirectory -SourceDir $stage -DestinationPath $zip
+    Write-Host "Bundle: $zip"
+    return [PSCustomObject]@{
+        TempRoot = $tempRoot
+        Zip = $zip
+    }
+}
+
+function Remove-CodeBundle($Bundle) {
+    if ($KeepBundle -or -not $Bundle) {
+        return
+    }
+    if ($Bundle.TempRoot -and (Test-Path -LiteralPath $Bundle.TempRoot)) {
+        Remove-Item -LiteralPath $Bundle.TempRoot -Recurse -Force
+    }
+}
+
+function Upload-Runner {
+    Write-Step "Uploading remote runner"
+    Invoke-Remote "mkdir -p $RemoteToolsDir $RemoteIncomingDir"
+    $runner = Join-Path $RepoRoot "cloud/remote_tpu_runner.sh"
+    $remoteRunner = Get-RemotePath $RemoteToolsDir "remote_tpu_runner.sh"
+    Invoke-RemoteScp $runner "${TpuName}:$remoteRunner"
+    Invoke-Remote "chmod +x $remoteRunner"
+    return $remoteRunner
+}
+
+function Upload-Bundle($Bundle) {
+    Write-Step "Uploading code bundle"
+    $remoteBundle = Get-RemotePath $RemoteIncomingDir "$RunId.zip"
+    Invoke-RemoteScp $Bundle.Zip "${TpuName}:$remoteBundle"
+    return $remoteBundle
+}
+
+function Upload-SecretsIfPresent {
+    $localSecrets = Resolve-RepoPath $SecretsFile
+    if (-not (Test-Path -LiteralPath $localSecrets -PathType Leaf)) {
+        Write-Warning "Secrets file not found at $localSecrets. Continuing without uploading .env."
+        return ""
+    }
+    Write-Step "Uploading secrets file"
+    $remoteSecrets = Get-RemotePath $RemoteIncomingDir "$RunId.env"
+    Invoke-RemoteScp $localSecrets "${TpuName}:$remoteSecrets"
+    Invoke-Remote "chmod 600 $remoteSecrets"
+    return $remoteSecrets
+}
+
+function Invoke-RemoteRunner([string]$RemoteRunner, [string]$RunnerCommand, [string]$RemoteBundle = "", [string]$RemoteSecrets = "") {
+    $cmd = "bash $RemoteRunner $RunnerCommand --run-id $RunId --remote-root $RemoteRoot --venv $RemoteVenv"
+    $cmd += " --project-id $ProjectId --storage-bucket $StorageBucket --storage-prefix $StoragePrefix --storage-cache-prefix $StorageCachePrefix"
+    if ($RemoteBundle) {
+        $cmd += " --bundle $RemoteBundle"
+    }
+    if ($RemoteSecrets) {
+        $cmd += " --secrets $RemoteSecrets"
+    }
+    if ($TinySmoke) {
+        $cmd += " --tiny-smoke"
+    }
+    Invoke-Remote $cmd
+}
+
+function Preflight {
+    Write-Step "Checking local Google Cloud CLI and project access"
+    Assert-GCloudAvailable
+    Invoke-GCloud @("--version")
+    Invoke-GCloud @("auth", "list", "--filter=status:ACTIVE", "--format=value(account)")
+    Invoke-GCloud @("config", "get-value", "project")
+    Invoke-GCloud @("services", "list", "--enabled", "--filter=name:tpu.googleapis.com", "--project=$ProjectId")
+    Invoke-GCloud @("compute", "tpus", "tpu-vm", "list", "--project=$ProjectId", "--zone=$Zone")
+}
+
+function Ensure-Tpu {
+    Write-Step "Ensuring network prerequisites"
+    Invoke-GCloud @(
+        "compute", "networks", "subnets", "update", "default",
+        "--region=$Region",
+        "--enable-private-ip-google-access",
+        "--project=$ProjectId"
+    )
+
+    if (-not (Test-GCloud @("compute", "routers", "describe", "nat-router", "--network=default", "--region=$Region", "--project=$ProjectId"))) {
+        Invoke-GCloud @("compute", "routers", "create", "nat-router", "--network=default", "--region=$Region", "--project=$ProjectId")
+    } else {
+        Write-Host "Router nat-router already exists."
+    }
+
+    if (-not (Test-GCloud @("compute", "routers", "nats", "describe", "nat-config", "--router=nat-router", "--region=$Region", "--project=$ProjectId"))) {
+        Invoke-GCloud @(
+            "compute", "routers", "nats", "create", "nat-config",
+            "--router=nat-router",
+            "--region=$Region",
+            "--auto-allocate-nat-external-ips",
+            "--nat-all-subnet-ip-ranges",
+            "--project=$ProjectId"
+        )
+    } else {
+        Write-Host "Cloud NAT nat-config already exists."
+    }
+
+    if (-not (Test-GCloud @("compute", "firewall-rules", "describe", "allow-iap-ssh", "--project=$ProjectId"))) {
+        Invoke-GCloud @(
+            "compute", "firewall-rules", "create", "allow-iap-ssh",
+            "--project=$ProjectId",
+            "--network=default",
+            "--source-ranges=35.235.240.0/20",
+            "--allow=tcp:22"
+        )
+    } else {
+        Write-Host "Firewall rule allow-iap-ssh already exists."
+    }
+
+    Write-Step "Ensuring TPU VM exists"
+    if (Test-GCloud @("compute", "tpus", "tpu-vm", "describe", $TpuName, "--project=$ProjectId", "--zone=$Zone")) {
+        Write-Host "TPU VM $TpuName already exists."
+        return
+    }
+
+    Invoke-GCloud @(
+        "compute", "tpus", "tpu-vm", "create", $TpuName,
+        "--project=$ProjectId",
+        "--zone=$Zone",
+        "--accelerator-type=$AcceleratorType",
+        "--version=$RuntimeVersion",
+        "--internal-ips"
+    )
+}
+
+function Get-StorageBucketUri {
+    if ([string]::IsNullOrWhiteSpace($StorageBucket)) {
+        throw "StorageBucket is empty. Set `$StorageBucket in cloud/tpu_config.local.ps1."
+    }
+    return "gs://$StorageBucket"
+}
+
+function Get-StorageRunUri {
+    Assert-RunId
+    return "$(Get-StorageBucketUri)/$StoragePrefix/$RunId"
+}
+
+function Ensure-Storage {
+    Write-Step "Ensuring Cloud Storage bucket exists"
+    Invoke-GCloud @("services", "enable", "storage.googleapis.com", "--project=$ProjectId")
+
+    $bucketUri = Get-StorageBucketUri
+    if (Test-GCloud @("storage", "buckets", "describe", $bucketUri, "--project=$ProjectId")) {
+        Write-Host "Storage bucket $bucketUri already exists."
+        return
+    }
+
+    Invoke-GCloud @(
+        "storage", "buckets", "create", $bucketUri,
+        "--project=$ProjectId",
+        "--location=$StorageLocation",
+        "--default-storage-class=$StorageClass",
+        "--uniform-bucket-level-access"
+    )
+}
+
+function Bootstrap-Remote {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "bootstrap" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
+function Submit-Baseline {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-baseline" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
+function Eval-Checkpoints {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "eval-checkpoints" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
+function Status-Run {
+    Assert-RunId
+    $runner = Upload-Runner
+    Invoke-RemoteRunner $runner "status"
+}
+
+function Fetch-Run {
+    Assert-RunId
+    Write-Step "Preparing remote result archive"
+    $remoteRunDir = Get-RemotePath $RemoteRoot $RunId
+    $remoteArchive = Get-RemotePath $remoteRunDir "$RunId-results.tar.gz"
+    $remoteCommand = @"
+RUN_DIR=$remoteRunDir
+FETCH=`$RUN_DIR/fetch
+ARCHIVE=$remoteArchive
+rm -rf "`$FETCH" "`$ARCHIVE"
+mkdir -p "`$FETCH"
+for path in artifacts meta pipeline.log run_baseline.sh run_eval_checkpoints.sh tensorboard; do
+  if [ -e "`$RUN_DIR/`$path" ]; then
+    cp -r "`$RUN_DIR/`$path" "`$FETCH/"
+  fi
+done
+tar -czf "`$ARCHIVE" -C "`$FETCH" .
+"@
+    Invoke-Remote $remoteCommand
+
+    $localRoot = Resolve-RepoPath $LocalArtifactsRoot
+    $localDest = Join-Path $localRoot $RunId
+    $localArchive = Join-Path $localDest "$RunId-results.tar.gz"
+
+    if (-not $DryRun) {
+        New-Item -ItemType Directory -Path $localDest -Force | Out-Null
+    }
+
+    Write-Step "Downloading result archive"
+    Invoke-RemoteScp "${TpuName}:$remoteArchive" $localArchive
+
+    if (-not $DryRun) {
+        Write-Step "Extracting result archive"
+        if (Get-Command "tar" -ErrorAction SilentlyContinue) {
+            & tar -xzf $localArchive -C $localDest
+            if ($LASTEXITCODE -ne 0) {
+                throw "tar extraction failed: $localArchive"
+            }
+        } else {
+            Write-Warning "tar is not available locally. Archive left at $localArchive"
+        }
+        Write-Host "Fetched run outputs to $localDest"
+    }
+}
+
+function Sync-Storage {
+    Assert-RunId
+    Ensure-Storage
+
+    Write-Step "Syncing remote run outputs and model cache to Cloud Storage"
+    $runner = Upload-Runner
+    Invoke-RemoteRunner $runner "sync-storage"
+}
+
+function Restore-Cache {
+    Ensure-Storage
+
+    Write-Step "Restoring Hugging Face model cache from Cloud Storage to TPU VM"
+    $runner = Upload-Runner
+    Invoke-RemoteRunner $runner "restore-cache"
+}
+
+function Start-Tpu {
+    Write-Step "Starting TPU VM"
+    Invoke-GCloud @(
+        "compute", "tpus", "tpu-vm", "start", $TpuName,
+        "--project=$ProjectId",
+        "--zone=$Zone"
+    )
+}
+
+function Stop-Tpu {
+    Write-Step "Stopping TPU VM"
+    Invoke-GCloud @(
+        "compute", "tpus", "tpu-vm", "stop", $TpuName,
+        "--project=$ProjectId",
+        "--zone=$Zone",
+        "--quiet"
+    )
+}
+
+function Delete-Tpu {
+    Write-Step "Deleting TPU VM"
+    Invoke-GCloud @(
+        "compute", "tpus", "tpu-vm", "delete", $TpuName,
+        "--project=$ProjectId",
+        "--zone=$Zone",
+        "--quiet"
+    )
+}
+
+switch ($Command) {
+    "preflight" { Preflight }
+    "ensure-tpu" { Ensure-Tpu }
+    "ensure-storage" { Ensure-Storage }
+    "bootstrap" { Bootstrap-Remote }
+    "submit-baseline" { Submit-Baseline }
+    "eval-checkpoints" { Eval-Checkpoints }
+    "status" { Status-Run }
+    "fetch" { Fetch-Run }
+    "sync-storage" { Sync-Storage }
+    "restore-cache" { Restore-Cache }
+    "start-tpu" { Start-Tpu }
+    "stop-tpu" { Stop-Tpu }
+    "delete-tpu" { Delete-Tpu }
+}

@@ -129,10 +129,10 @@ Two pieces of state need to be resumed independently:
    ```
 
 2. **W&B run** — to keep the same plots, pass the existing run id. Yours is
-   `bnh9ttlt`:
+   `<your-run-id>`:
    ```bash
-   ./run_tmux.sh resume
-   # equivalent to:  WANDB_RUN_ID=bnh9ttlt python train.py --wandb-run-id bnh9ttlt
+   WANDB_RUN_ID=<your-run-id> ./run_tmux.sh resume
+   # equivalent to: WANDB_RUN_ID=<your-run-id> python train.py --wandb-run-id <your-run-id>
    ```
 
 ## 7. Monitoring
@@ -146,12 +146,12 @@ a Tunix bug where init-during-cluster-construction sometimes hangs). The
 project + entity are read from `config.py`:
 
 ```python
-WANDB_PROJECT = "tunix"
-WANDB_ENTITY  = "milindsarkaryt-iiser-mohali"
+WANDB_PROJECT = "grpo-tpu-2026"
+WANDB_ENTITY  = None  # use authenticated default unless explicitly set
 ```
 
 To **resume** an existing run, pass its id (`./run_tmux.sh resume` does this
-for you with `WANDB_RUN_ID=bnh9ttlt`). To start a fresh run instead, just
+for you with `WANDB_RUN_ID=<your-run-id>`). To start a fresh run instead, just
 launch with no run id. The `entity` and `project` must match the existing
 run, otherwise wandb will say "run does not exist" — that's the bug we hit
 the first time.
