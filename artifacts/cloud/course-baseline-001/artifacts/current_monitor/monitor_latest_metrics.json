@@ -1,0 +1,146 @@
+[
+  {
+    "metric": "train step",
+    "step": 2175,
+    "value": 0.3247126042842865,
+    "display": "2175",
+    "source_tag": "actor/train/kl",
+    "kind": "step"
+  },
+  {
+    "metric": "eval step",
+    "step": 2112,
+    "value": 0.7329337000846863,
+    "display": "2112",
+    "source_tag": "actor/eval/kl",
+    "kind": "step"
+  },
+  {
+    "metric": "train reward mean",
+    "step": 2175,
+    "value": -0.75,
+    "display": "-0.750",
+    "source_tag": "rewards/train/score/mean",
+    "kind": "value"
+  },
+  {
+    "metric": "eval reward mean",
+    "step": 2112,
+    "value": 3.0407752990722656,
+    "display": "3.041",
+    "source_tag": "rewards/eval/score/mean",
+    "kind": "value"
+  },
+  {
+    "metric": "eval reward peak",
+    "step": 448,
+    "value": 6.845253944396973,
+    "display": "6.845",
+    "source_tag": "rewards/eval/score/mean",
+    "kind": "peak"
+  },
+  {
+    "metric": "train KL",
+    "step": 2175,
+    "value": 0.3247126042842865,
+    "display": "0.325",
+    "source_tag": "actor/train/kl",
+    "kind": "value"
+  },
+  {
+    "metric": "eval KL",
+    "step": 2112,
+    "value": 0.7329337000846863,
+    "display": "0.733",
+    "source_tag": "actor/eval/kl",
+    "kind": "value"
+  },
+  {
+    "metric": "eval numeric exact",
+    "step": 2112,
+    "value": 0.25802138447761536,
+    "display": "25.8%",
+    "source_tag": "eval/eval/numeric_exact_rate",
+    "kind": "percent"
+  },
+  {
+    "metric": "eval numeric partial",
+    "step": 2112,
+    "value": 0.29411765933036804,
+    "display": "29.4%",
+    "source_tag": "eval/eval/numeric_partial_rate",
+    "kind": "percent"
+  },
+  {
+    "metric": "eval format accuracy",
+    "step": 2112,
+    "value": 0.5828877091407776,
+    "display": "58.3%",
+    "source_tag": "eval/eval/format_accuracy",
+    "kind": "percent"
+  },
+  {
+    "metric": "eval extracted none",
+    "step": 2112,
+    "value": 0.2245989292860031,
+    "display": "22.5%",
+    "source_tag": "rollout/eval/extracted_none_rate",
+    "kind": "percent"
+  },
+  {
+    "metric": "eval has answer end",
+    "step": 2112,
+    "value": 0.6016042828559875,
+    "display": "60.2%",
+    "source_tag": "rollout/eval/has_solution_end_rate",
+    "kind": "percent"
+  },
+  {
+    "metric": "train extracted none",
+    "step": 2175,
+    "value": 0.5,
+    "display": "50.0%",
+    "source_tag": "rollout/train/extracted_none_rate",
+    "kind": "percent"
+  },
+  {
+    "metric": "train has answer end",
+    "step": 2175,
+    "value": 0.0,
+    "display": "0.0%",
+    "source_tag": "rollout/train/has_solution_end_rate",
+    "kind": "percent"
+  },
+  {
+    "metric": "train mean chars",
+    "step": 2175,
+    "value": 466.0,
+    "display": "466.0",
+    "source_tag": "rollout/train/mean_completion_chars",
+    "kind": "value"
+  },
+  {
+    "metric": "eval mean chars",
+    "step": 2112,
+    "value": 1361.2540283203125,
+    "display": "1361.3",
+    "source_tag": "rollout/eval/mean_completion_chars",
+    "kind": "value"
+  },
+  {
+    "metric": "eval all-wrong group rate",
+    "step": 2112,
+    "value": 0.6122994422912598,
+    "display": "61.2%",
+    "source_tag": "grpo/eval/all_wrong_group_rate",
+    "kind": "percent"
+  },
+  {
+    "metric": "eval zero reward std frac",
+    "step": 2112,
+    "value": 0.3449198007583618,
+    "display": "34.5%",
+    "source_tag": "grpo/eval/frac_reward_zero_std",
+    "kind": "percent"
+  }
+]

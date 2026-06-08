@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GRPO Baseline course-baseline-001 Report</title>
+  <style>
+    :root { color-scheme: light; --ink:#1c2430; --muted:#616e7e; --line:#dbe2ea; --bg:#ffffff; --soft:#f6f8fb; --blue:#2269b8; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.62 "Segoe UI", Arial, sans-serif; }
+    main { max-width:1120px; margin:0 auto; padding:44px 28px 72px; }
+    h1 { font-size:34px; line-height:1.2; margin:0 0 28px; }
+    h2 { font-size:24px; margin:42px 0 14px; border-top:1px solid var(--line); padding-top:26px; }
+    h3 { font-size:19px; margin:28px 0 10px; }
+    p { margin:10px 0; }
+    a { color:var(--blue); }
+    code { background:var(--soft); padding:1px 5px; border-radius:4px; }
+    table { border-collapse:collapse; width:100%; margin:16px 0 24px; font-size:14px; }
+    th, td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+    th { background:var(--soft); }
+    figure { margin:24px 0 30px; }
+    img { width:100%; height:auto; border:1px solid var(--line); }
+    ul { padding-left:24px; }
+  </style>
+</head>
+<body>
+<main>
+<h1>GRPO Baseline `course-baseline-001` 完整结果报告</h1>
+<h2>Technical Summary</h2>
+<p>本报告包整理的是课程 TPU <code>waxvhe</code> 上完成的 baseline full run。复现流程本身已经跑完，产出了 base eval、full training、final LoRA eval、checkpoint-wise eval、TensorBoard scalars、rollout traces 和诊断图；但训练结果显示 baseline 在后期发生 collapse。</p>
+<p>最关键的结果是：base model 在 held-out greedy eval 上为 <strong>51.56%</strong>，final LoRA step <code>3364</code> 只有 <strong>3.13%</strong>，best observed LoRA checkpoint 是 step <code>2000</code> 的 <strong>28.13%</strong>。因此，I.1 可以报告“训练跑通且证据完整”，但不能把 final checkpoint 描述成有效提升。</p>
+<h2>Key Findings With Visual Evidence</h2>
+<figure><img src="figures/01_eval_scorecard.png" alt="Baseline evaluation scorecard"></figure>
+<p><strong>图意</strong>：Base model is strongest; final LoRA collapses to 3.13%, while best LoRA is step 2000 at 28.13%.</p>
+<figure><img src="figures/02_checkpoint_accuracy_ci.png" alt="Checkpoint-wise evaluation accuracy"></figure>
+<p><strong>图意</strong>：LoRA accuracy degrades after step 2000; final checkpoint is not the best model.</p>
+<figure><img src="figures/03_reward_kl_timeline.png" alt="Reward and KL timeline"></figure>
+<p><strong>图意</strong>：Reward and KL patterns support an early peak followed by late instability.</p>
+<figure><img src="figures/04_response_health.png" alt="Response health over training"></figure>
+<p><strong>图意</strong>：Empty/parse-failure indicators rise late, matching the final accuracy collapse.</p>
+<figure><img src="figures/05_grpo_health.png" alt="GRPO reward and advantage health"></figure>
+<p><strong>图意</strong>：Reward diversity and advantage spread should be monitored before another full run.</p>
+<figure><img src="figures/06_reward_components.png" alt="Reward components over training"></figure>
+<p><strong>图意</strong>：Component-level reward makes shaping-vs-task-success tradeoffs visible.</p>
+<figure><img src="figures/07_trace_examples_table.png" alt="Representative rollout examples"></figure>
+<p><strong>图意</strong>：Qualitative traces reveal concrete failure modes behind the aggregate metrics.</p>
+<figure><img src="figures/08_failure_taxonomy.png" alt="Failure taxonomy from rollout traces"></figure>
+<p><strong>图意</strong>：Wrong numeric answers dominate, with late response/parse failures explaining collapse.</p>
+<figure><img src="figures/09_training_runtime.png" alt="Training runtime and checkpoint I/O"></figure>
+<p><strong>图意</strong>：TensorBoard wall-time gives a reproducible runtime estimate and checkpoint I/O context.</p>
+<h2>Scope, Data, And Metric Definitions</h2>
+<p>本报告使用本地已 fetch 的目录 <code>artifacts/cloud/course-baseline-001/</code>，不重新连接 TPU，不重跑训练。评估默认采用 greedy preset、64 个 test batches；checkpoint eval 的置信区间来自已有 summary 中的 Wilson 95% CI。</p>
+<p>核心指标解释：</p>
+<ul>
+<li><code>accuracy</code>: numeric exact match，是任务成功的主指标。</li>
+<li><code>partial_accuracy</code>: numeric partial match，用于观察数字提取是否部分接近。</li>
+<li><code>format_accuracy</code>: 输出格式是否满足要求；它是 shaping/format 指标，不等价于数学正确。</li>
+<li><code>rewards/*</code>: reward components 和总 reward，用于解释训练信号。</li>
+<li><code>actor/*/kl</code>: current policy 与 reference policy 的 KL 约束信号。</li>
+<li><code>grpo/*/reward_std</code> 与 <code>frac_reward_zero_std</code>: group 内 reward 多样性；长期为 0 或过高 zero-std 会削弱 GRPO 学习信号。</li>
+<li><code>rollout/*/empty_response_rate</code> 与 <code>extracted_none_rate</code>: response/parse 健康度，能解释 reward 和 eval accuracy 为什么背离。</li>
+</ul>
+<h2>Baseline Configuration</h2>
+<table>
+<tr><th>Key</th><th>Value</th></tr>
+<tr><td>`MODEL_ID`</td><td>`google/gemma-3-1b-it`</td></tr>
+<tr><td>`DATA_SOURCE`</td><td>`tfds`</td></tr>
+<tr><td>`MAX_STEPS`</td><td>`3364`</td></tr>
+<tr><td>`NUM_BATCHES`</td><td>`3738`</td></tr>
+<tr><td>`NUM_EPOCHS`</td><td>`1`</td></tr>
+<tr><td>`NUM_GENERATIONS`</td><td>`2`</td></tr>
+<tr><td>`NUM_TEST_BATCHES`</td><td>`64`</td></tr>
+<tr><td>`EVAL_EVERY_N_STEPS`</td><td>`64`</td></tr>
+<tr><td>`SAVE_INTERVAL_STEPS`</td><td>`500`</td></tr>
+<tr><td>`BETA`</td><td>`0.08`</td></tr>
+<tr><td>`EPSILON`</td><td>`0.2`</td></tr>
+<tr><td>`LEARNING_RATE`</td><td>`3e-06`</td></tr>
+<tr><td>`RANK`</td><td>`64`</td></tr>
+<tr><td>`ALPHA`</td><td>`64.0`</td></tr>
+<tr><td>`MAX_PROMPT_LENGTH`</td><td>`256`</td></tr>
+<tr><td>`TOTAL_GENERATION_STEPS`</td><td>`768`</td></tr>
+<tr><td>`TRAIN_MICRO_BATCH_SIZE`</td><td>`1`</td></tr>
+<tr><td>`TRAIN_FRACTION`</td><td>`0.9`</td></tr>
+</table>
+<h2>Evaluation Results</h2>
+<table>
+<tr><th>Label</th><th>Policy</th><th>Step</th><th>Accuracy</th><th>Partial</th><th>Format</th><th>Correct</th></tr>
+<tr><td>base_direct_eval</td><td>base</td><td>None</td><td>51.56%</td><td>53.13%</td><td>6.25%</td><td>33/64</td></tr>
+<tr><td>final_lora_direct_eval</td><td>lora</td><td>3364</td><td>3.13%</td><td>6.25%</td><td>12.50%</td><td>2/64</td></tr>
+<tr><td>base</td><td>base</td><td>None</td><td>51.56%</td><td>53.13%</td><td>6.25%</td><td>33/64</td></tr>
+<tr><td>ckpt-2000</td><td>lora</td><td>2000</td><td>28.13%</td><td>29.69%</td><td>35.94%</td><td>18/64</td></tr>
+<tr><td>ckpt-2500</td><td>lora</td><td>2500</td><td>20.31%</td><td>23.44%</td><td>31.25%</td><td>13/64</td></tr>
+<tr><td>ckpt-3000</td><td>lora</td><td>3000</td><td>6.25%</td><td>7.81%</td><td>12.50%</td><td>4/64</td></tr>
+<tr><td>ckpt-3364</td><td>lora</td><td>3364</td><td>3.13%</td><td>6.25%</td><td>12.50%</td><td>2/64</td></tr>
+</table>
+<h2>Collapse Diagnosis</h2>
+<p>这轮训练的主要问题不是“没有产物”，而是 final checkpoint 不代表最优模型。checkpoint-wise eval 显示 step 2000 后性能持续下降；同时 response health 指标显示 late phase 的 parse failure/empty response 明显恶化，eval reward 也转负。GRPO 的 reward shaping 项和真正任务成功指标发生背离时，模型可能学到局部格式或短输出行为，而不是稳定数学求解。</p>
+<h2>GRPO-Specific Interpretation</h2>
+<p>baseline 保持了课程默认设置：<code>NUM_GENERATIONS=2</code>、<code>BETA=0.08</code>、<code>EPSILON=0.2</code>、<code>LEARNING_RATE=3e-6</code>、<code>MAX_STEPS=3364</code>。从成熟 GRPO/RLHF infra 的指标口径看，后续复现实验应同时追踪 reward、KL、clip ratio、completion length、reward_std/zero_std、advantage spread、held-out eval 和 sample tables。单独看 reward 曲线不足以判断训练成功。</p>
+<h2>Evidence Gallery</h2>
+<p>代表性样本已经整理在 <code>samples/sample_examples.csv/json</code>，并在 <code>figures/07_trace_examples_table.png</code> 中可视化。样本按 correct、wrong numeric、parse fail、empty response、reward-hacking candidate、late collapse 分类，方便写报告时引用具体输出。</p>
+<h2>Limitations</h2>
+<ul>
+<li>eval 只有 64 个 test batches，适合课程 baseline 复现，但不是完整 benchmark。</li>
+<li>W&amp;B 未启用；本报告以 TensorBoard、JSON eval、rollout trace 和 pipeline log 为事实来源。</li>
+<li>没有执行 I.3 改进实验，因此 next experiments 只作为设计建议，不作为实验结果。</li>
+<li>rollout trace 是按 observability 采样，不是全量 generation 审计。</li>
+</ul>
+<h2>Recommended Next Experiments</h2>
+<p>1. 使用 checkpoint-wise eval 选择 best checkpoint，而不是默认 final checkpoint。</p>
+<p>2. 加早停或 model selection：当 held-out numeric accuracy 从 peak 明显下降时停止。</p>
+<p>3. 降低学习率或调整 <code>BETA</code>，观察 KL 与 clipfrac 是否更平稳。</p>
+<p>4. 将 format shaping 与 numeric correctness 拆开报告，避免格式奖励掩盖任务失败。</p>
+<p>5. 增加 response health gate：empty response、Extracted None、completion truncation 超阈值时报警。</p>
+<p>6. 继续保留 sample table，因为 qualitative outputs 对 GRPO collapse 诊断非常关键。</p>
+<h2>External Metric/Infra References</h2>
+<ul>
+<li><a href="https://tunix.readthedocs.io/en/stable/metrics.html">Tunix metrics</a>: Tunix collected metrics, TensorBoard/W&amp;B backends, and performance tracing.</li>
+<li><a href="https://huggingface.co/docs/trl/v0.21.0/en/logging">HF TRL GRPO logging</a>: GRPO reward, KL, clip ratio, completion length, and entropy logging guidance.</li>
+<li><a href="https://openrlhf.readthedocs.io/en/latest/agent_training.html">OpenRLHF logging/eval</a>: RLHF logging backends, periodic evaluation, reward/advantage/generation metrics.</li>
+<li><a href="https://verl-omni.readthedocs.io/en/latest/start/metrics.html">VeRL-Omni metrics</a>: GRPO reward diversity, zero-std ratio, clipping, and ratio stability framing.</li>
+<li><a href="https://docs.wandb.ai/models/track/log/log-tables">W&amp;B Tables</a>: Prediction/sample table organization used as a reporting pattern.</li>
+<li><a href="https://docs.wandb.ai/models/artifacts">W&amp;B Artifacts</a>: Versioned run inputs/outputs pattern for report package provenance.</li>
+<li><a href="https://tbparse.readthedocs.io/en/stable/">tbparse</a>: TensorBoard event-to-dataframe pattern mirrored with existing scalar exports.</li>
+</ul>
+</main>
+</body>
+</html>

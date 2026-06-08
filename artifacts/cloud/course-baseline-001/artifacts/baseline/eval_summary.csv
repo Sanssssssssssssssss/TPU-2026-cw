@@ -1,0 +1,3 @@
+file,policy,checkpoint_restored,restored_step,preset,num_passes,correct,total,accuracy,partial_accuracy,format_accuracy
+/home/ext_sansxu1009_gmail_com/tpu-runs/course-baseline-001/artifacts/base_eval.json,base,False,,greedy,1,33,64,51.5625,53.125,6.25
+/home/ext_sansxu1009_gmail_com/tpu-runs/course-baseline-001/artifacts/baseline_lora_eval.json,lora,True,3364,greedy,1,2,64,3.125,6.25,12.5

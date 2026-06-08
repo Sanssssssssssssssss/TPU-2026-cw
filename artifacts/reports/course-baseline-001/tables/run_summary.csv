@@ -1,0 +1,2 @@
+base_accuracy,best_lora_accuracy,best_lora_step,commit,created_at,final_lora_accuracy,final_lora_format_accuracy,final_lora_partial_accuracy,final_step,run_id,scalar_rows_selected,status,trace_rows,trace_summary_rows
+51.5625,28.125,2000,fe63ebd77979a0af9d7d88af05f256a4e2596495,2026-06-08T21:14:51.792713+00:00,3.125,12.5,6.25,3364,course-baseline-001,71759,completed,726,363

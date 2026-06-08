@@ -1,0 +1,41 @@
+[
+  {
+    "completion_chars_mean": 821.4256198347107,
+    "empty_response_rate": 0.0,
+    "extracted_none_rate": 0.11983471074380166,
+    "format_accuracy": 0.6033057851239669,
+    "max_call_index": 7681,
+    "min_call_index": 1,
+    "numeric_exact_rate": 0.3925619834710744,
+    "phase": "early",
+    "reward_mean": 4.429752066115703,
+    "reward_std": 1.0991735537190082,
+    "rows": 121
+  },
+  {
+    "completion_chars_mean": 1378.698347107438,
+    "empty_response_rate": 0.02066115702479339,
+    "extracted_none_rate": 0.28512396694214875,
+    "format_accuracy": 0.30991735537190085,
+    "max_call_index": 15425,
+    "min_call_index": 7745,
+    "numeric_exact_rate": 0.23553719008264462,
+    "phase": "middle",
+    "reward_mean": 1.787190082644628,
+    "reward_std": 1.0929752066115703,
+    "rows": 121
+  },
+  {
+    "completion_chars_mean": 633.7768595041322,
+    "empty_response_rate": 0.5289256198347108,
+    "extracted_none_rate": 0.7107438016528925,
+    "format_accuracy": 0.19834710743801653,
+    "max_call_index": 23169,
+    "min_call_index": 15489,
+    "numeric_exact_rate": 0.1446280991735537,
+    "phase": "late",
+    "reward_mean": -0.1921487603305785,
+    "reward_std": 0.9111570247933884,
+    "rows": 121
+  }
+]

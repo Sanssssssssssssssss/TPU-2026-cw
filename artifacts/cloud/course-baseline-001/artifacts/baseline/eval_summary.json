@@ -1,0 +1,28 @@
+[
+  {
+    "accuracy": 51.5625,
+    "checkpoint_restored": false,
+    "correct": 33,
+    "file": "/home/ext_sansxu1009_gmail_com/tpu-runs/course-baseline-001/artifacts/base_eval.json",
+    "format_accuracy": 6.25,
+    "num_passes": 1,
+    "partial_accuracy": 53.125,
+    "policy": "base",
+    "preset": "greedy",
+    "restored_step": null,
+    "total": 64
+  },
+  {
+    "accuracy": 3.125,
+    "checkpoint_restored": true,
+    "correct": 2,
+    "file": "/home/ext_sansxu1009_gmail_com/tpu-runs/course-baseline-001/artifacts/baseline_lora_eval.json",
+    "format_accuracy": 12.5,
+    "num_passes": 1,
+    "partial_accuracy": 6.25,
+    "policy": "lora",
+    "preset": "greedy",
+    "restored_step": 3364,
+    "total": 64
+  }
+]

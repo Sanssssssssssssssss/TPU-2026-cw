@@ -1,0 +1,74 @@
+[
+  {
+    "key": "MODEL_ID",
+    "value": "google/gemma-3-1b-it"
+  },
+  {
+    "key": "DATA_SOURCE",
+    "value": "tfds"
+  },
+  {
+    "key": "MAX_STEPS",
+    "value": 3364
+  },
+  {
+    "key": "NUM_BATCHES",
+    "value": 3738
+  },
+  {
+    "key": "NUM_EPOCHS",
+    "value": 1
+  },
+  {
+    "key": "NUM_GENERATIONS",
+    "value": 2
+  },
+  {
+    "key": "NUM_TEST_BATCHES",
+    "value": 64
+  },
+  {
+    "key": "EVAL_EVERY_N_STEPS",
+    "value": 64
+  },
+  {
+    "key": "SAVE_INTERVAL_STEPS",
+    "value": 500
+  },
+  {
+    "key": "BETA",
+    "value": 0.08
+  },
+  {
+    "key": "EPSILON",
+    "value": 0.2
+  },
+  {
+    "key": "LEARNING_RATE",
+    "value": 3e-06
+  },
+  {
+    "key": "RANK",
+    "value": 64
+  },
+  {
+    "key": "ALPHA",
+    "value": 64.0
+  },
+  {
+    "key": "MAX_PROMPT_LENGTH",
+    "value": 256
+  },
+  {
+    "key": "TOTAL_GENERATION_STEPS",
+    "value": 768
+  },
+  {
+    "key": "TRAIN_MICRO_BATCH_SIZE",
+    "value": 1
+  },
+  {
+    "key": "TRAIN_FRACTION",
+    "value": 0.9
+  }
+]

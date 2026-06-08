@@ -1,0 +1,6 @@
+category,count,share
+reward_hacking_candidate,233,0.3209366391184573
+correct_numeric,187,0.25757575757575757
+parse_fail,137,0.1887052341597796
+empty_response,133,0.18319559228650137
+format_only_or_shaping,36,0.049586776859504134

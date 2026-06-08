@@ -1,0 +1,33 @@
+{
+  "created_at": "2026-06-08T20:21:47.326179+00:00",
+  "data": {
+    "num_test_batches": 64,
+    "source": "tfds",
+    "train_micro_batch_size": 1
+  },
+  "generation": {
+    "config": {
+      "temperature": null,
+      "top_k": 1,
+      "top_p": null
+    },
+    "max_generation_steps": 768,
+    "num_passes": 1,
+    "preset": "greedy"
+  },
+  "git_commit": null,
+  "metrics": {
+    "accuracy": 6.25,
+    "correct": 4,
+    "format_accuracy": 12.5,
+    "partial_accuracy": 7.8125,
+    "total": 64
+  },
+  "model": {
+    "checkpoint_dir": "/home/ext_sansxu1009_gmail_com/tpu-runs/course-baseline-001/ckpts/actor",
+    "checkpoint_restored": true,
+    "policy": "lora",
+    "requested_step": 3000,
+    "restored_step": 3000
+  }
+}

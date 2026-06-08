@@ -1,0 +1,19 @@
+metric,step,value,display,source_tag,kind
+train step,2175,0.3247126042842865,2175,actor/train/kl,step
+eval step,2112,0.7329337000846863,2112,actor/eval/kl,step
+train reward mean,2175,-0.75,-0.750,rewards/train/score/mean,value
+eval reward mean,2112,3.0407752990722656,3.041,rewards/eval/score/mean,value
+eval reward peak,448,6.845253944396973,6.845,rewards/eval/score/mean,peak
+train KL,2175,0.3247126042842865,0.325,actor/train/kl,value
+eval KL,2112,0.7329337000846863,0.733,actor/eval/kl,value
+eval numeric exact,2112,0.25802138447761536,25.8%,eval/eval/numeric_exact_rate,percent
+eval numeric partial,2112,0.29411765933036804,29.4%,eval/eval/numeric_partial_rate,percent
+eval format accuracy,2112,0.5828877091407776,58.3%,eval/eval/format_accuracy,percent
+eval extracted none,2112,0.2245989292860031,22.5%,rollout/eval/extracted_none_rate,percent
+eval has answer end,2112,0.6016042828559875,60.2%,rollout/eval/has_solution_end_rate,percent
+train extracted none,2175,0.5,50.0%,rollout/train/extracted_none_rate,percent
+train has answer end,2175,0.0,0.0%,rollout/train/has_solution_end_rate,percent
+train mean chars,2175,466.0,466.0,rollout/train/mean_completion_chars,value
+eval mean chars,2112,1361.2540283203125,1361.3,rollout/eval/mean_completion_chars,value
+eval all-wrong group rate,2112,0.6122994422912598,61.2%,grpo/eval/all_wrong_group_rate,percent
+eval zero reward std frac,2112,0.3449198007583618,34.5%,grpo/eval/frac_reward_zero_std,percent

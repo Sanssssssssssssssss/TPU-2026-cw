@@ -1,0 +1,33 @@
+{
+  "created_at": "2026-06-08T20:17:44.398085+00:00",
+  "data": {
+    "num_test_batches": 64,
+    "source": "tfds",
+    "train_micro_batch_size": 1
+  },
+  "generation": {
+    "config": {
+      "temperature": null,
+      "top_k": 1,
+      "top_p": null
+    },
+    "max_generation_steps": 768,
+    "num_passes": 1,
+    "preset": "greedy"
+  },
+  "git_commit": null,
+  "metrics": {
+    "accuracy": 51.5625,
+    "correct": 33,
+    "format_accuracy": 6.25,
+    "partial_accuracy": 53.125,
+    "total": 64
+  },
+  "model": {
+    "checkpoint_dir": null,
+    "checkpoint_restored": false,
+    "policy": "base",
+    "requested_step": null,
+    "restored_step": null
+  }
+}

@@ -1,0 +1,10 @@
+name,question,source_files,takeaway,title
+01_eval_scorecard,Which policy/checkpoint is best?,['checkpoint_eval_summary.json'],"Base model is strongest; final LoRA collapses to 3.13%, while best LoRA is step 2000 at 28.13%.",Baseline evaluation scorecard
+02_checkpoint_accuracy_ci,Did training improve over time?,['checkpoint_eval_summary.json'],LoRA accuracy degrades after step 2000; final checkpoint is not the best model.,Checkpoint-wise evaluation accuracy
+03_reward_kl_timeline,Are reward and KL consistent with stable GRPO training?,['scalar_metrics.csv'],Reward and KL patterns support an early peak followed by late instability.,Reward and KL timeline
+04_response_health,Does the model still produce parseable answers?,"['scalar_metrics.csv', 'trace_summary.csv']","Empty/parse-failure indicators rise late, matching the final accuracy collapse.",Response health over training
+05_grpo_health,Is the group-relative learning signal healthy?,['scalar_metrics.csv'],Reward diversity and advantage spread should be monitored before another full run.,GRPO reward and advantage health
+06_reward_components,Which reward terms drove behavior?,['scalar_metrics.csv'],Component-level reward makes shaping-vs-task-success tradeoffs visible.,Reward components over training
+07_trace_examples_table,What does the model actually say?,['rollout_samples_course-baseline-001.jsonl'],Qualitative traces reveal concrete failure modes behind the aggregate metrics.,Representative rollout examples
+08_failure_taxonomy,Which failures dominate the sampled rollouts?,"['rollout_samples_course-baseline-001.jsonl', 'trace_summary.csv']","Wrong numeric answers dominate, with late response/parse failures explaining collapse.",Failure taxonomy from rollout traces
+09_training_runtime,How long did the observed training timeline take?,['scalar_metrics.csv'],TensorBoard wall-time gives a reproducible runtime estimate and checkpoint I/O context.,Training runtime and checkpoint I/O

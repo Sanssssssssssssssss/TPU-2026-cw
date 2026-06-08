@@ -1,0 +1,16 @@
+{
+  "current_train_step": 2175,
+  "current_eval_step": 2112,
+  "current_eval_reward": 3.0407752990722656,
+  "peak_eval_reward_step": 448,
+  "peak_eval_reward": 6.845253944396973,
+  "current_eval_kl": 0.7329337000846863,
+  "current_train_kl": 0.3247126042842865,
+  "charts": [
+    "artifacts\\cloud\\course-baseline-001\\artifacts\\current_monitor\\monitor_overview.png",
+    "artifacts\\cloud\\course-baseline-001\\artifacts\\current_monitor\\monitor_accuracy_response.png",
+    "artifacts\\cloud\\course-baseline-001\\artifacts\\current_monitor\\monitor_grpo_health.png",
+    "artifacts\\cloud\\course-baseline-001\\artifacts\\current_monitor\\monitor_reward_components.png",
+    "artifacts\\cloud\\course-baseline-001\\artifacts\\current_monitor\\monitor_latest_table.png"
+  ]
+}
