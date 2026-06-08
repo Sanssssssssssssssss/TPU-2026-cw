@@ -4,7 +4,7 @@
 
 本报告包整理的是课程 TPU `waxvhe` 上完成的 baseline full run。复现流程已经跑完，产出了 base eval、full training、final LoRA eval、checkpoint-wise eval、TensorBoard scalars、rollout traces 和诊断图；但训练结果显示 baseline 在后期发生 collapse。
 
-最关键的结果是：base model 在 held-out greedy eval 上为 **51.56%**，final LoRA step `3364` 只有 **3.13%**，best observed LoRA checkpoint 是 step `2000` 的 **28.13%**。因此，I.1 可以报告“训练跑通且证据完整”，但不能把 final checkpoint 描述成有效提升。
+最关键的结果分两层看。checkpoint-wise eval 只覆盖已保存并已 fetch 的 checkpoint：base model 在 held-out greedy eval 上为 **51.56%**，final LoRA step `3364` 只有 **3.13%**，best saved/fetched LoRA checkpoint 是 step `2000` 的 **28.13%**。但是完整 TensorBoard scalar 显示训练信号峰值更早：`eval_reward_score` 在 step 448 达到峰值，`eval_numeric_exact_rate` 在 step 256 达到峰值，`eval_format_accuracy` 在 step 704 达到峰值。因此，I.1 可以报告“训练跑通且证据完整”，但不能把 step 2000 描述成训练过程最优点，也不能把 final checkpoint 描述成有效提升。
 
 ## Key Findings With Visual Evidence
 
@@ -53,6 +53,8 @@
 
 本报告使用本地已 fetch 的目录 `artifacts/cloud/course-baseline-001/`，不重新连接 TPU，不重跑训练。评估默认采用 greedy preset、64 个 test batches；checkpoint eval 的置信区间来自已有 summary 中的 Wilson 95% CI。
 
+完整 scalar 分析在 `full_scalar_analysis/`。其中 `tables/full_scalar_long.csv` 保存所有 report-selected TensorBoard scalar 行，不做 downsampling；`tables/full_scalar_pivot.csv` 按 step 展开；`tables/scalar_peak_summary.csv` 给出每个 metric 的 max/min/latest 和 peak step。图表只是渲染视图，不是唯一数据源。
+
 核心指标解释：
 
 - `accuracy`: numeric exact match，是任务成功的主指标。
@@ -100,7 +102,7 @@
 
 ## Collapse Diagnosis
 
-这轮训练的主要问题不是“没有产物”，而是 final checkpoint 不代表最优模型。checkpoint-wise eval 显示 step 2000 后性能持续下降；同时 response health 指标显示 late phase 的 parse failure/empty response 明显恶化，eval reward 也转负。GRPO 的 reward shaping 项和真正任务成功指标发生背离时，模型可能学到局部格式或短输出行为，而不是稳定数学求解。
+这轮训练的主要问题不是“没有产物”，而是 final checkpoint 不代表最优模型，而且 checkpoint eval 不能覆盖早期 scalar 峰值。checkpoint-wise eval 显示在已保存并 fetch 的 checkpoint 中，step 2000 好于 2500/3000/final；但完整 scalar timeline 显示 eval score、numeric exact、format accuracy 的峰值集中在 step 256-704。由于本地没有这些早期 step 的可恢复 checkpoint，不能直接给出对应模型的 held-out checkpoint eval，只能报告这些 scalar peak。后期 response health 指标显示 parse failure/empty response 明显恶化，eval reward 也转负。GRPO 的 reward shaping 项和真正任务成功指标发生背离时，模型可能学到局部格式或短输出行为，而不是稳定数学求解。
 
 ## GRPO-Specific Interpretation
 
@@ -119,7 +121,7 @@ baseline 保持了课程默认设置：`NUM_GENERATIONS=2`、`BETA=0.08`、`EPSI
 
 ## Recommended Next Experiments
 
-1. 使用 checkpoint-wise eval 选择 best checkpoint，而不是默认 final checkpoint。
+1. 对后续 run 增加早期 checkpoint 保存和评估，尤其覆盖 step 128/256/448/704/1000；当前 run 的 early scalar peak 没有对应可恢复 checkpoint。
 2. 加早停或 model selection：当 held-out numeric accuracy 从 peak 明显下降时停止。
 3. 降低学习率或调整 `BETA`，观察 KL 与 clipfrac 是否更平稳。
 4. 将 format shaping 与 numeric correctness 拆开报告，避免格式奖励掩盖任务失败。

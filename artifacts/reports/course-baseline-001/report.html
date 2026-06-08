@@ -27,7 +27,7 @@
 <h1>GRPO Baseline `course-baseline-001` 完整结果报告</h1>
 <h2>Technical Summary</h2>
 <p>本报告包整理的是课程 TPU <code>waxvhe</code> 上完成的 baseline full run。复现流程已经跑完，产出了 base eval、full training、final LoRA eval、checkpoint-wise eval、TensorBoard scalars、rollout traces 和诊断图；但训练结果显示 baseline 在后期发生 collapse。</p>
-<p>最关键的结果是：base model 在 held-out greedy eval 上为 <strong>51.56%</strong>，final LoRA step <code>3364</code> 只有 <strong>3.13%</strong>，best observed LoRA checkpoint 是 step <code>2000</code> 的 <strong>28.13%</strong>。因此，I.1 可以报告“训练跑通且证据完整”，但不能把 final checkpoint 描述成有效提升。</p>
+<p>最关键的结果分两层看。checkpoint-wise eval 只覆盖已保存并已 fetch 的 checkpoint：base model 在 held-out greedy eval 上为 <strong>51.56%</strong>，final LoRA step <code>3364</code> 只有 <strong>3.13%</strong>，best saved/fetched LoRA checkpoint 是 step <code>2000</code> 的 <strong>28.13%</strong>。但是完整 TensorBoard scalar 显示训练信号峰值更早：<code>eval_reward_score</code> 在 step 448 达到峰值，<code>eval_numeric_exact_rate</code> 在 step 256 达到峰值，<code>eval_format_accuracy</code> 在 step 704 达到峰值。因此，I.1 可以报告“训练跑通且证据完整”，但不能把 step 2000 描述成训练过程最优点，也不能把 final checkpoint 描述成有效提升。</p>
 <h2>Key Findings With Visual Evidence</h2>
 <figure><img src="figures/01_eval_scorecard.png" alt="Evaluation summary table"></figure>
 <p><strong>图意</strong>：Base model is strongest; final LoRA collapses to 3.13%, while best LoRA is step 2000 at 28.13%.</p>
@@ -51,6 +51,7 @@
 <p><strong>图意</strong>：The metric snapshot records latest value and observed range for every report-selected scalar.</p>
 <h2>Scope, Data, And Metric Definitions</h2>
 <p>本报告使用本地已 fetch 的目录 <code>artifacts/cloud/course-baseline-001/</code>，不重新连接 TPU，不重跑训练。评估默认采用 greedy preset、64 个 test batches；checkpoint eval 的置信区间来自已有 summary 中的 Wilson 95% CI。</p>
+<p>完整 scalar 分析在 <code>full_scalar_analysis/</code>。其中 <code>tables/full_scalar_long.csv</code> 保存所有 report-selected TensorBoard scalar 行，不做 downsampling；<code>tables/full_scalar_pivot.csv</code> 按 step 展开；<code>tables/scalar_peak_summary.csv</code> 给出每个 metric 的 max/min/latest 和 peak step。图表只是渲染视图，不是唯一数据源。</p>
 <p>核心指标解释：</p>
 <ul>
 <li><code>accuracy</code>: numeric exact match，是任务成功的主指标。</li>
@@ -95,7 +96,7 @@
 <tr><td>ckpt-3364</td><td>lora</td><td>3364</td><td>3.13%</td><td>6.25%</td><td>12.50%</td><td>2/64</td></tr>
 </table>
 <h2>Collapse Diagnosis</h2>
-<p>这轮训练的主要问题不是“没有产物”，而是 final checkpoint 不代表最优模型。checkpoint-wise eval 显示 step 2000 后性能持续下降；同时 response health 指标显示 late phase 的 parse failure/empty response 明显恶化，eval reward 也转负。GRPO 的 reward shaping 项和真正任务成功指标发生背离时，模型可能学到局部格式或短输出行为，而不是稳定数学求解。</p>
+<p>这轮训练的主要问题不是“没有产物”，而是 final checkpoint 不代表最优模型，而且 checkpoint eval 不能覆盖早期 scalar 峰值。checkpoint-wise eval 显示在已保存并 fetch 的 checkpoint 中，step 2000 好于 2500/3000/final；但完整 scalar timeline 显示 eval score、numeric exact、format accuracy 的峰值集中在 step 256-704。由于本地没有这些早期 step 的可恢复 checkpoint，不能直接给出对应模型的 held-out checkpoint eval，只能报告这些 scalar peak。后期 response health 指标显示 parse failure/empty response 明显恶化，eval reward 也转负。GRPO 的 reward shaping 项和真正任务成功指标发生背离时，模型可能学到局部格式或短输出行为，而不是稳定数学求解。</p>
 <h2>GRPO-Specific Interpretation</h2>
 <p>baseline 保持了课程默认设置：<code>NUM_GENERATIONS=2</code>、<code>BETA=0.08</code>、<code>EPSILON=0.2</code>、<code>LEARNING_RATE=3e-6</code>、<code>MAX_STEPS=3364</code>。从成熟 GRPO/RLHF infra 的指标口径看，后续复现实验应同时追踪 reward、KL、clip ratio、completion length、reward_std/zero_std、advantage spread、held-out eval 和 sample tables。单独看 reward 曲线不足以判断训练成功。</p>
 <h2>Evidence Gallery</h2>
@@ -108,7 +109,7 @@
 <li>rollout trace 是按 observability 采样，不是全量 generation 审计。</li>
 </ul>
 <h2>Recommended Next Experiments</h2>
-<p>1. 使用 checkpoint-wise eval 选择 best checkpoint，而不是默认 final checkpoint。</p>
+<p>1. 对后续 run 增加早期 checkpoint 保存和评估，尤其覆盖 step 128/256/448/704/1000；当前 run 的 early scalar peak 没有对应可恢复 checkpoint。</p>
 <p>2. 加早停或 model selection：当 held-out numeric accuracy 从 peak 明显下降时停止。</p>
 <p>3. 降低学习率或调整 <code>BETA</code>，观察 KL 与 clipfrac 是否更平稳。</p>
 <p>4. 将 format shaping 与 numeric correctness 拆开报告，避免格式奖励掩盖任务失败。</p>

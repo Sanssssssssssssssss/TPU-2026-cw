@@ -729,7 +729,7 @@ def line_chart(
 def kpi_scorecard(path: Path, summary: dict[str, Any]) -> None:
     rows = [
         ["base", "-", "33/64", "51.56%", "39.58-63.37", "53.13%", "6.25%", "frozen reference model"],
-        ["ckpt-2000", "2000", "18/64", "28.13%", "18.59-40.13", "29.69%", "35.94%", "best observed LoRA"],
+        ["ckpt-2000", "2000", "18/64", "28.13%", "18.59-40.13", "29.69%", "35.94%", "best saved/fetched LoRA"],
         ["ckpt-2500", "2500", "13/64", "20.31%", "12.27-31.71", "23.44%", "31.25%", "degrading"],
         ["ckpt-3000", "3000", "4/64", "6.25%", "2.46-15.00", "7.81%", "12.50%", "late collapse"],
         ["ckpt-3364", "3364", "2/64", "3.13%", "0.86-10.70", "6.25%", "12.50%", "final LoRA"],
@@ -798,7 +798,7 @@ def checkpoint_accuracy_chart(path: Path, rows: list[dict[str, Any]]) -> None:
         draw.line((cx - 12, high_y, cx + 12, high_y), fill=INK, width=2)
         draw.text((cx - 42, y - 30), pct(val), fill=INK, font=FONT_MONO)
         draw.text((cx - 55, bottom + 14), labels[idx], fill=MUTED, font=FONT_SMALL)
-    draw_note(draw, 70, 745, "Accuracy drops steadily after the best observed LoRA checkpoint at step 2000, so the final checkpoint is not the right representative of best training performance.", 1360, fill=INK)
+    draw_note(draw, 70, 745, "Accuracy drops across the saved/fetched checkpoint evals after step 2000. Earlier scalar peaks are analyzed separately in full_scalar_analysis/.", 1360, fill=INK)
     save_figure(img, path)
 
 
@@ -1314,7 +1314,7 @@ def build_report_text(
 
 本报告包整理的是课程 TPU `waxvhe` 上完成的 baseline full run。复现流程已经跑完，产出了 base eval、full training、final LoRA eval、checkpoint-wise eval、TensorBoard scalars、rollout traces 和诊断图；但训练结果显示 baseline 在后期发生 collapse。
 
-最关键的结果是：base model 在 held-out greedy eval 上为 **{pct(summary['base_accuracy'])}**，final LoRA step `{summary['final_step']}` 只有 **{pct(summary['final_lora_accuracy'])}**，best observed LoRA checkpoint 是 step `{summary['best_lora_step']}` 的 **{pct(summary['best_lora_accuracy'])}**。因此，I.1 可以报告“训练跑通且证据完整”，但不能把 final checkpoint 描述成有效提升。
+最关键的结果分两层看。checkpoint-wise eval 只覆盖已保存并已 fetch 的 checkpoint：base model 在 held-out greedy eval 上为 **{pct(summary['base_accuracy'])}**，final LoRA step `{summary['final_step']}` 只有 **{pct(summary['final_lora_accuracy'])}**，best saved/fetched LoRA checkpoint 是 step `{summary['best_lora_step']}` 的 **{pct(summary['best_lora_accuracy'])}**。但是完整 TensorBoard scalar 显示训练信号峰值更早：`eval_reward_score` 在 step 448 达到峰值，`eval_numeric_exact_rate` 在 step 256 达到峰值，`eval_format_accuracy` 在 step 704 达到峰值。因此，I.1 可以报告“训练跑通且证据完整”，但不能把 step 2000 描述成训练过程最优点，也不能把 final checkpoint 描述成有效提升。
 
 ## Key Findings With Visual Evidence
 
@@ -1323,6 +1323,8 @@ def build_report_text(
 ## Scope, Data, And Metric Definitions
 
 本报告使用本地已 fetch 的目录 `artifacts/cloud/course-baseline-001/`，不重新连接 TPU，不重跑训练。评估默认采用 greedy preset、64 个 test batches；checkpoint eval 的置信区间来自已有 summary 中的 Wilson 95% CI。
+
+完整 scalar 分析在 `full_scalar_analysis/`。其中 `tables/full_scalar_long.csv` 保存所有 report-selected TensorBoard scalar 行，不做 downsampling；`tables/full_scalar_pivot.csv` 按 step 展开；`tables/scalar_peak_summary.csv` 给出每个 metric 的 max/min/latest 和 peak step。图表只是渲染视图，不是唯一数据源。
 
 核心指标解释：
 
@@ -1348,7 +1350,7 @@ def build_report_text(
 
 ## Collapse Diagnosis
 
-这轮训练的主要问题不是“没有产物”，而是 final checkpoint 不代表最优模型。checkpoint-wise eval 显示 step 2000 后性能持续下降；同时 response health 指标显示 late phase 的 parse failure/empty response 明显恶化，eval reward 也转负。GRPO 的 reward shaping 项和真正任务成功指标发生背离时，模型可能学到局部格式或短输出行为，而不是稳定数学求解。
+这轮训练的主要问题不是“没有产物”，而是 final checkpoint 不代表最优模型，而且 checkpoint eval 不能覆盖早期 scalar 峰值。checkpoint-wise eval 显示在已保存并 fetch 的 checkpoint 中，step 2000 好于 2500/3000/final；但完整 scalar timeline 显示 eval score、numeric exact、format accuracy 的峰值集中在 step 256-704。由于本地没有这些早期 step 的可恢复 checkpoint，不能直接给出对应模型的 held-out checkpoint eval，只能报告这些 scalar peak。后期 response health 指标显示 parse failure/empty response 明显恶化，eval reward 也转负。GRPO 的 reward shaping 项和真正任务成功指标发生背离时，模型可能学到局部格式或短输出行为，而不是稳定数学求解。
 
 ## GRPO-Specific Interpretation
 
@@ -1367,7 +1369,7 @@ baseline 保持了课程默认设置：`NUM_GENERATIONS=2`、`BETA=0.08`、`EPSI
 
 ## Recommended Next Experiments
 
-1. 使用 checkpoint-wise eval 选择 best checkpoint，而不是默认 final checkpoint。
+1. 对后续 run 增加早期 checkpoint 保存和评估，尤其覆盖 step 128/256/448/704/1000；当前 run 的 early scalar peak 没有对应可恢复 checkpoint。
 2. 加早停或 model selection：当 held-out numeric accuracy 从 peak 明显下降时停止。
 3. 降低学习率或调整 `BETA`，观察 KL 与 clipfrac 是否更平稳。
 4. 将 format shaping 与 numeric correctness 拆开报告，避免格式奖励掩盖任务失败。
@@ -1620,9 +1622,10 @@ Open `report.html` for the reader-facing report, or `report.md` for markdown edi
 ## Headline numbers
 
 - Base accuracy: **{pct(summary['base_accuracy'])}**
-- Best LoRA checkpoint: **step {summary['best_lora_step']}**, **{pct(summary['best_lora_accuracy'])}**
+- Best saved/fetched LoRA checkpoint: **step {summary['best_lora_step']}**, **{pct(summary['best_lora_accuracy'])}**
 - Final LoRA checkpoint: **step {summary['final_step']}**, **{pct(summary['final_lora_accuracy'])}**
-- Conclusion: the run completed, but the final checkpoint collapsed and should not be presented as an improvement over base.
+- Complete scalar peak correction: `eval_reward_score` peaks at step **448**, `eval_numeric_exact_rate` peaks at step **256**, and `eval_format_accuracy` peaks at step **704**. These are scalar peaks, not checkpoint evals.
+- Conclusion: the run completed, but the final checkpoint collapsed and should not be presented as an improvement over base. Step 2000 is only the best among saved/fetched LoRA checkpoints, not the best point in the full scalar timeline.
 
 ## Folder map
 
@@ -1631,12 +1634,14 @@ Open `report.html` for the reader-facing report, or `report.md` for markdown edi
 - `samples/`: rollout examples and failure taxonomy.
 - `provenance/`: sanitized manifest, baseline parameter check, source references.
 - `raw_refs/`: copied raw evidence files used by the report.
+- `full_scalar_analysis/`: no-drop scalar analysis with full long CSV, pivot CSV, peak summary, and early-window plots.
 
 ## Suggested citation in the coursework report
 
-Use `figures/02_checkpoint_accuracy_ci.png`, `figures/03_reward_kl_timeline.png`,
-and `figures/04_response_health.png` together: they show that training ran to completion,
-but checkpoint selection matters because late-stage collapse damaged final LoRA accuracy.
+Use `figures/02_checkpoint_accuracy_ci.png` for saved-checkpoint comparison, but cite
+`full_scalar_analysis/figures/03_eval_scalars_early_0_1200.png` and
+`full_scalar_analysis/tables/key_scalar_peak_summary.csv` for the actual early scalar peaks.
+Do not claim step 2000 is the overall training-process optimum; it is only the best saved/fetched checkpoint eval in this package.
 """
     (output_dir / "README.md").write_text(readme, encoding="utf-8")
 
