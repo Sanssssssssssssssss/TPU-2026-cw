@@ -136,6 +136,13 @@ def _git_text(args: list[str]) -> str | None:
     return result.stdout.strip()
 
 
+def _git_env_or_text(env_name: str, args: list[str]) -> str | None:
+    value = os.environ.get(env_name)
+    if value is not None and value.strip():
+        return value.strip()
+    return _git_text(args)
+
+
 def _jsonable(value: Any) -> Any:
     if isinstance(value, (str, int, float, bool)) or value is None:
         return value
@@ -359,8 +366,8 @@ class GRPOObservability:
             "run_id": self.run_id,
             "status": status,
             "git": {
-                "commit": _git_text(["rev-parse", "HEAD"]),
-                "status_short": _git_text(["status", "--short"]),
+                "commit": _git_env_or_text("GIT_COMMIT", ["rev-parse", "HEAD"]),
+                "status_short": _git_env_or_text("GIT_STATUS_SHORT", ["status", "--short"]),
             },
             "paths": {
                 "output_dir": str(self.output_dir),

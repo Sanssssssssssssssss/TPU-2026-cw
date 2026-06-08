@@ -296,6 +296,12 @@ export OBS_TRACE_DIR="\$ARTIFACT_DIR/rollout_traces"
 export OBS_RUN_MANIFEST="\$ARTIFACT_DIR/run_manifest.json"
 export OBS_TRACE_EVERY_N_STEPS="\${OBS_TRACE_EVERY_N_STEPS:-64}"
 export OBS_TRACE_MAX_ROWS="\${OBS_TRACE_MAX_ROWS:-32}"
+if [[ -f "\$RUN_DIR/meta/git_commit.txt" ]]; then
+  export GIT_COMMIT="\$(cat "\$RUN_DIR/meta/git_commit.txt")"
+fi
+if [[ -f "\$RUN_DIR/meta/git_status.txt" ]]; then
+  export GIT_STATUS_SHORT="\$(cat "\$RUN_DIR/meta/git_status.txt")"
+fi
 mkdir -p "\$ARTIFACT_DIR" "\$CKPT_DIR" "\$INTERMEDIATE_CKPT_DIR" "\$TENSORBOARD_DIR" "\$OBS_OUTPUT_DIR" "\$OBS_TRACE_DIR"
 
 if [[ -n "\${WANDB_API_KEY:-}" ]]; then
