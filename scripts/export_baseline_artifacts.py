@@ -346,8 +346,11 @@ def render_plot(rows: list[dict], output_dir: Path, formats: list[str]) -> None:
         print(f"Wrote {path}")
     if "pdf" in formats:
         path = output_dir / "baseline_curves.pdf"
-        img.save(path)
-        print(f"Wrote {path}")
+        try:
+            img.save(path)
+            print(f"Wrote {path}")
+        except Exception as exc:
+            print(f"Could not write PDF plot {path}; PNG is still available: {exc}")
 
 
 def main():

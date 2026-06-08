@@ -158,7 +158,9 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
 
 def render_plot(path: Path, rows: list[dict[str, Any]]) -> None:
     try:
-        from PIL import Image, ImageDraw
+        from PIL import Image, ImageDraw, JpegImagePlugin  # noqa: F401
+
+        Image.init()
     except Exception as exc:
         print(f"Pillow unavailable, skipping checkpoint plot: {exc}")
         return
@@ -219,8 +221,11 @@ def render_plot(path: Path, rows: list[dict[str, Any]]) -> None:
     img.save(path)
     print(f"Wrote {path}")
     pdf = path.with_suffix(".pdf")
-    img.save(pdf)
-    print(f"Wrote {pdf}")
+    try:
+        img.save(pdf)
+        print(f"Wrote {pdf}")
+    except Exception as exc:
+        print(f"Could not write PDF plot {pdf}; PNG is still available: {exc}")
 
 
 def main() -> int:

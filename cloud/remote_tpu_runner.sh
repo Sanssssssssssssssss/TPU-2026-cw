@@ -301,7 +301,11 @@ mkdir -p "\$ARTIFACT_DIR" "\$CKPT_DIR" "\$INTERMEDIATE_CKPT_DIR" "\$TENSORBOARD_
 if [[ -n "\${WANDB_API_KEY:-}" ]]; then
   echo "==> W&B enabled: project=\$WANDB_PROJECT entity=\${WANDB_ENTITY:-<default>}"
 else
-  echo "==> W&B disabled: WANDB_API_KEY is not set; using TensorBoard + GCS."
+  if [[ -n "\$STORAGE_BUCKET" ]]; then
+    echo "==> W&B disabled: WANDB_API_KEY is not set; using TensorBoard + GCS."
+  else
+    echo "==> W&B disabled: WANDB_API_KEY is not set; using TensorBoard + local artifacts."
+  fi
 fi
 
 sync_on_exit() {

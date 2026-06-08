@@ -160,8 +160,11 @@ def render(output_dir: Path, score: dict[str, list[tuple[int, float]]], kl: dict
         print(f"Wrote {path}")
     if "pdf" in formats:
         path = output_dir / "current_training_curves.pdf"
-        image.save(path)
-        print(f"Wrote {path}")
+        try:
+            image.save(path)
+            print(f"Wrote {path}")
+        except Exception as exc:
+            print(f"Could not write PDF plot {path}; PNG is still available: {exc}")
 
 
 def main() -> None:

@@ -33,9 +33,11 @@ $SecretsFile = ".env"
 # Local destination for fetched run outputs.
 $LocalArtifactsRoot = "artifacts/cloud"
 
-# Cloud Storage backup/cache. Leave StorageBucket empty to default to
-# <project-id>-tpu-artifacts. Use the same region as the TPU for cheaper,
-# colocated transfers.
+# Cloud Storage backup/cache. Set UseStorage to false when working on a shared
+# course project where you should not create or depend on buckets. With
+# UseStorage true, leaving StorageBucket empty defaults to
+# <project-id>-tpu-artifacts.
+$UseStorage = $true
 $StorageBucket = ""
 $StorageLocation = $Region
 $StorageClass = "STANDARD"

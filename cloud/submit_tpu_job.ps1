@@ -58,6 +58,7 @@ $RemoteIncomingDir = "~/tpu-runs/_incoming"
 $RemoteVenv = "~/venvs/tunix"
 $SecretsFile = ".env"
 $LocalArtifactsRoot = "artifacts/cloud"
+$UseStorage = $true
 $StorageBucket = ""
 $StorageLocation = $Region
 $StorageClass = "STANDARD"
@@ -70,7 +71,10 @@ if (Test-Path -LiteralPath $ConfigPath) {
 if ($SecretsFileOverride) {
     $SecretsFile = $SecretsFileOverride
 }
-if ([string]::IsNullOrWhiteSpace($StorageBucket)) {
+if (-not $UseStorage) {
+    $StorageBucket = ""
+}
+elseif ([string]::IsNullOrWhiteSpace($StorageBucket)) {
     $StorageBucket = "$ProjectId-tpu-artifacts"
 }
 
@@ -438,7 +442,10 @@ function Upload-SecretsIfPresent {
 
 function Invoke-RemoteRunner([string]$RemoteRunner, [string]$RunnerCommand, [string]$RemoteBundle = "", [string]$RemoteSecrets = "") {
     $cmd = "bash $RemoteRunner $RunnerCommand --run-id $RunId --remote-root $RemoteRoot --venv $RemoteVenv"
-    $cmd += " --project-id $ProjectId --storage-bucket $StorageBucket --storage-prefix $StoragePrefix --storage-cache-prefix $StorageCachePrefix"
+    $cmd += " --project-id $ProjectId --storage-prefix $StoragePrefix --storage-cache-prefix $StorageCachePrefix"
+    if (-not [string]::IsNullOrWhiteSpace($StorageBucket)) {
+        $cmd += " --storage-bucket $StorageBucket"
+    }
     if ($RemoteBundle) {
         $cmd += " --bundle $RemoteBundle"
     }
