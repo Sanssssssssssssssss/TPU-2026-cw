@@ -534,9 +534,9 @@ PALETTE = [BLUE, ORANGE, OLIVE, PINK, GOLD, PURPLE, RED, GREEN]
 def new_canvas(width: int, height: int, title: str, subtitle: str = "") -> tuple[Image.Image, ImageDraw.ImageDraw]:
     img = Image.new("RGB", (width, height), "white")
     draw = ImageDraw.Draw(img)
-    draw.text((40, 28), title, fill=INK, font=FONT_TITLE)
+    draw.text((36, 24), title, fill=INK, font=FONT_REG)
     if subtitle:
-        draw.text((42, 72), subtitle, fill=MUTED, font=FONT_SMALL)
+        draw.text((38, 58), subtitle, fill=MUTED, font=FONT_SMALL)
     return img, draw
 
 
@@ -545,6 +545,51 @@ def save_figure(img: Image.Image, path_png: Path) -> None:
     img.save(path_png)
     pdf_path = path_png.with_suffix(".pdf")
     img.save(pdf_path)
+
+
+def sample_points(points: list[tuple[float, float]], max_points: int = 360) -> list[tuple[float, float]]:
+    clean = [(float(x), float(y)) for x, y in points if y is not None and math.isfinite(float(y))]
+    if len(clean) <= max_points:
+        return clean
+    bucket = max(1, math.ceil(len(clean) / max_points))
+    out = []
+    for idx in range(0, len(clean), bucket):
+        chunk = clean[idx : idx + bucket]
+        if not chunk:
+            continue
+        out.append((sum(x for x, _ in chunk) / len(chunk), sum(y for _, y in chunk) / len(chunk)))
+    return out
+
+
+def render_table_image(
+    path: Path,
+    title: str,
+    subtitle: str,
+    columns: list[tuple[str, int]],
+    rows: list[list[Any]],
+    width: int | None = None,
+    row_height: int = 42,
+) -> None:
+    width = width or sum(col_width for _, col_width in columns) + 80
+    height = 112 + row_height * (len(rows) + 1) + 36
+    img, draw = new_canvas(width, height, title, subtitle)
+    x0, y0 = 40, 100
+    x = x0
+    for label, col_width in columns:
+        draw.rectangle((x, y0, x + col_width, y0 + row_height), fill=(246, 248, 251), outline=(210, 216, 224))
+        draw.text((x + 8, y0 + 11), label, fill=INK, font=FONT_SMALL)
+        x += col_width
+    y = y0 + row_height
+    for row_idx, row in enumerate(rows):
+        fill = "white" if row_idx % 2 == 0 else (250, 251, 253)
+        x = x0
+        for cell, (_, col_width) in zip(row, columns):
+            draw.rectangle((x, y, x + col_width, y + row_height), fill=fill, outline=(226, 231, 237))
+            text = compact(cell, 80)
+            draw.text((x + 8, y + 11), text, fill=INK, font=FONT_MONO if isinstance(cell, (int, float)) else FONT_SMALL)
+            x += col_width
+        y += row_height
+    save_figure(img, path)
 
 
 def text_size(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont) -> tuple[int, int]:
@@ -643,8 +688,8 @@ def line_chart(
     markers: dict[float, str] | None = None,
     include_zero: bool = False,
 ) -> None:
-    img, draw = new_canvas(1500, 900, title, subtitle)
-    box = (40, 110, 1460, 690)
+    img, draw = new_canvas(1500, 860, title, subtitle)
+    box = (40, 96, 1460, 660)
     all_points = [point for points in series_map.values() for point in points if point[1] is not None]
     xs = [p[0] for p in all_points]
     ys = [p[1] for p in all_points]
@@ -654,15 +699,15 @@ def line_chart(
         return
     sx, sy, _, yrange = draw_axes(draw, box, xs, ys, y_label=y_label, include_zero=include_zero)
     for idx, (label, points) in enumerate(series_map.items()):
-        clean = [(float(x), float(y)) for x, y in points if y is not None and math.isfinite(float(y))]
+        clean = sample_points(points)
         if not clean:
             continue
         scaled = [(sx(x), sy(y)) for x, y in clean]
         color = PALETTE[idx % len(PALETTE)]
         if len(scaled) > 1:
-            draw.line(scaled, fill=color, width=4)
-        for x, y in scaled[-16:]:
-            draw.ellipse((x - 4, y - 4, x + 4, y + 4), fill=color)
+            draw.line(scaled, fill=color, width=2)
+        for x, y in scaled[-8:]:
+            draw.ellipse((x - 2, y - 2, x + 2, y + 2), fill=color)
         legend_x = 100 + (idx % 3) * 420
         legend_y = 720 + (idx // 3) * 28
         draw.rectangle((legend_x, legend_y + 4, legend_x + 18, legend_y + 18), fill=color)
@@ -675,43 +720,38 @@ def line_chart(
             draw.line((px, top, px, bottom), fill=(122, 130, 140), width=2)
             draw.text((px + 8, top + 8), label, fill=MUTED, font=FONT_SMALL)
     if notes:
-        y = 785
-        for note in notes[:3]:
+        y = 738
+        for note in notes[:2]:
             y = draw_note(draw, 50, y, note, 1400)
     save_figure(img, path)
 
 
 def kpi_scorecard(path: Path, summary: dict[str, Any]) -> None:
-    img, draw = new_canvas(
-        1500,
-        780,
-        "Baseline evaluation scorecard",
-        "Held-out eval uses greedy preset and 64 test batches. Accuracy values are percentages.",
+    rows = [
+        ["base", "-", "33/64", "51.56%", "39.58-63.37", "53.13%", "6.25%", "frozen reference model"],
+        ["ckpt-2000", "2000", "18/64", "28.13%", "18.59-40.13", "29.69%", "35.94%", "best observed LoRA"],
+        ["ckpt-2500", "2500", "13/64", "20.31%", "12.27-31.71", "23.44%", "31.25%", "degrading"],
+        ["ckpt-3000", "3000", "4/64", "6.25%", "2.46-15.00", "7.81%", "12.50%", "late collapse"],
+        ["ckpt-3364", "3364", "2/64", "3.13%", "0.86-10.70", "6.25%", "12.50%", "final LoRA"],
+    ]
+    render_table_image(
+        path,
+        "Evaluation summary table",
+        "Greedy held-out eval, n=64. CI column is Wilson 95% interval for exact accuracy.",
+        [
+            ("model", 150),
+            ("step", 90),
+            ("correct", 105),
+            ("accuracy", 120),
+            ("acc CI95", 150),
+            ("partial", 110),
+            ("format", 110),
+            ("note", 260),
+        ],
+        rows,
+        width=1125,
+        row_height=44,
     )
-    cards = [
-        ("Base model", pct(summary["base_accuracy"]), "33/64 correct", BLUE),
-        ("Best LoRA ckpt", pct(summary["best_lora_accuracy"]), "step 2000, 18/64 correct", ORANGE),
-        ("Final LoRA", pct(summary["final_lora_accuracy"]), "step 3364, 2/64 correct", RED),
-    ]
-    x = 60
-    for title, value, detail, color in cards:
-        draw.rounded_rectangle((x, 130, x + 430, 355), radius=8, outline=(215, 221, 230), width=2, fill=(249, 251, 253))
-        draw.text((x + 26, 155), title, fill=INK, font=FONT_REG)
-        draw.text((x + 26, 205), value, fill=color, font=ImageFont.truetype("C:/Windows/Fonts/segoeuib.ttf", 58) if Path("C:/Windows/Fonts/segoeuib.ttf").exists() else FONT_TITLE)
-        draw.text((x + 28, 295), detail, fill=MUTED, font=FONT_SMALL)
-        x += 470
-    draw.text((60, 420), "Main result", fill=INK, font=FONT_REG)
-    y = 470
-    bullets = [
-        "The final trained LoRA checkpoint is worse than the frozen base model and worse than the best early LoRA checkpoint.",
-        "Checkpoint-wise eval shows degradation after step 2000: 28.13% -> 20.31% -> 6.25% -> 3.13%.",
-        "The report treats step 2000 as the best observed LoRA checkpoint and step 3364 as evidence of late-stage collapse.",
-    ]
-    for bullet in bullets:
-        draw.text((68, y), "-", fill=INK, font=FONT_SMALL)
-        y = draw_note(draw, 90, y, bullet, 1320, fill=INK)
-        y += 8
-    save_figure(img, path)
 
 
 def checkpoint_accuracy_chart(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -912,24 +952,334 @@ def line_chart_body(
         draw.text((lx + 26, ly), label, fill=INK, font=FONT_SMALL)
 
 
-def reward_kl_chart(path: Path, series: dict[str, list[dict[str, float]]], best_step: int, final_step: int) -> None:
-    line_chart(
+def draw_panel_series(
+    draw: ImageDraw.ImageDraw,
+    box: tuple[int, int, int, int],
+    title: str,
+    series_map: dict[str, list[tuple[float, float]]],
+    y_label: str,
+    include_zero: bool = True,
+    markers: dict[float, str] | None = None,
+) -> None:
+    x0, y0, x1, y1 = box
+    draw.rectangle(box, outline=(218, 224, 232), width=1)
+    draw.text((x0 + 12, y0 + 8), title, fill=INK, font=FONT_SMALL)
+    inner = (x0 + 8, y0 + 30, x1 - 8, y1 - 8)
+    all_points = [point for points in series_map.values() for point in points if point[1] is not None]
+    if not all_points:
+        draw.text((x0 + 24, y0 + 95), "no data", fill=MUTED, font=FONT_SMALL)
+        return
+    sampled_map = {name: sample_points(points, max_points=240) for name, points in series_map.items()}
+    all_sampled = [point for points in sampled_map.values() for point in points]
+    sx, sy, _, _ = draw_axes(
+        draw,
+        inner,
+        [p[0] for p in all_sampled],
+        [p[1] for p in all_sampled],
+        y_label=y_label,
+        include_zero=include_zero,
+    )
+    for idx, (name, points) in enumerate(sampled_map.items()):
+        if not points:
+            continue
+        color = PALETTE[idx % len(PALETTE)]
+        scaled = [(sx(x), sy(y)) for x, y in points]
+        if len(scaled) > 1:
+            draw.line(scaled, fill=color, width=2)
+        for x, y in scaled[-4:]:
+            draw.ellipse((x - 2, y - 2, x + 2, y + 2), fill=color)
+        legend_x = x0 + 18 + (idx % 2) * 250
+        legend_y = y1 - 26 - (idx // 2) * 22
+        draw.rectangle((legend_x, legend_y + 4, legend_x + 12, legend_y + 16), fill=color)
+        draw.text((legend_x + 18, legend_y), name, fill=INK, font=FONT_SMALL)
+    if markers:
+        xs = [p[0] for p in all_sampled]
+        xmin, xmax = min(xs), max(xs)
+        if not math.isclose(xmin, xmax):
+            left, right = inner[0] + 78, inner[2] - 28
+            top, bottom = inner[1] + 38, inner[3] - 58
+            for marker_x, label in markers.items():
+                if marker_x < xmin or marker_x > xmax:
+                    continue
+                px = left + (marker_x - xmin) / (xmax - xmin) * (right - left)
+                draw.line((px, top, px, bottom), fill=(142, 150, 160), width=1)
+                draw.text((px + 4, top + 4), label, fill=MUTED, font=FONT_SMALL)
+
+
+def multi_panel_chart(
+    path: Path,
+    title: str,
+    subtitle: str,
+    panels: list[dict[str, Any]],
+    markers: dict[float, str] | None = None,
+) -> None:
+    cols = 2
+    panel_w, panel_h = 730, 365
+    rows = math.ceil(len(panels) / cols)
+    width = 40 + cols * panel_w + (cols - 1) * 22 + 40
+    height = 96 + rows * panel_h + (rows - 1) * 22 + 36
+    img, draw = new_canvas(width, height, title, subtitle)
+    for idx, panel in enumerate(panels):
+        row, col = divmod(idx, cols)
+        x0 = 40 + col * (panel_w + 22)
+        y0 = 96 + row * (panel_h + 22)
+        draw_panel_series(
+            draw,
+            (x0, y0, x0 + panel_w, y0 + panel_h),
+            panel["title"],
+            panel["series"],
+            panel.get("y_label", "value"),
+            include_zero=panel.get("include_zero", True),
+            markers=markers,
+        )
+    save_figure(img, path)
+
+
+def response_health_chart(path: Path, series: dict[str, list[dict[str, float]]]) -> None:
+    multi_panel_chart(
         path,
-        "Reward and KL timeline",
-        "Reward should improve while KL stays controlled; this run improves early then collapses late.",
-        {
-            "train reward score": series_xy(series, "train_reward_score"),
-            "eval reward score": series_xy(series, "eval_reward_score"),
-            "train KL": series_xy(series, "train_kl"),
-            "eval KL": series_xy(series, "eval_kl"),
-        },
-        notes=[
-            "The best checkpoint by held-out accuracy is step 2000; final step 3364 is substantially worse.",
-            "Late eval reward is negative while response failure rates rise, consistent with training collapse rather than successful alignment.",
+        "Response health metrics",
+        "Each panel has its own y-axis. Data are downsampled averages from TensorBoard scalars.",
+        [
+            {
+                "title": "empty_response_rate",
+                "series": {
+                    "train": series_xy(series, "train_empty_response_rate"),
+                    "eval": series_xy(series, "eval_empty_response_rate"),
+                },
+                "y_label": "rate",
+            },
+            {
+                "title": "extracted_none_rate",
+                "series": {
+                    "train": series_xy(series, "train_extracted_none_rate"),
+                    "eval": series_xy(series, "eval_extracted_none_rate"),
+                },
+                "y_label": "rate",
+            },
+            {
+                "title": "has_solution_end_rate",
+                "series": {
+                    "train": series_xy(series, "train_has_solution_end_rate"),
+                    "eval": series_xy(series, "eval_has_solution_end_rate"),
+                },
+                "y_label": "rate",
+            },
+            {
+                "title": "mean_completion_length",
+                "series": {
+                    "train": series_xy(series, "train_completion_length"),
+                    "eval": series_xy(series, "eval_completion_length"),
+                },
+                "y_label": "tokens",
+            },
         ],
-        y_label="reward / KL",
-        markers={float(best_step): "best ckpt", float(final_step): "final"},
-        include_zero=True,
+    )
+
+
+def grpo_health_chart(path: Path, series: dict[str, list[dict[str, float]]]) -> None:
+    multi_panel_chart(
+        path,
+        "GRPO health metrics",
+        "Group-relative reward spread, zero-std rate, advantage spread, and group correctness rates.",
+        [
+            {
+                "title": "reward_std",
+                "series": {
+                    "train": series_xy(series, "train_reward_std"),
+                    "eval": series_xy(series, "eval_reward_std"),
+                },
+                "y_label": "std",
+            },
+            {
+                "title": "frac_reward_zero_std",
+                "series": {
+                    "train": series_xy(series, "train_frac_reward_zero_std"),
+                    "eval": series_xy(series, "eval_frac_reward_zero_std"),
+                },
+                "y_label": "rate",
+            },
+            {
+                "title": "advantage_std",
+                "series": {
+                    "train": series_xy(series, "train_advantage_std"),
+                    "eval": series_xy(series, "eval_advantage_std"),
+                },
+                "y_label": "std",
+            },
+            {
+                "title": "all_correct_group_rate",
+                "series": {
+                    "train": series_xy(series, "train_all_correct_group_rate"),
+                    "eval": series_xy(series, "eval_all_correct_group_rate"),
+                },
+                "y_label": "rate",
+            },
+            {
+                "title": "all_wrong_group_rate",
+                "series": {
+                    "train": series_xy(series, "train_all_wrong_group_rate"),
+                    "eval": series_xy(series, "eval_all_wrong_group_rate"),
+                },
+                "y_label": "rate",
+            },
+        ],
+    )
+
+
+def reward_components_chart(path: Path, series: dict[str, list[dict[str, float]]]) -> None:
+    multi_panel_chart(
+        path,
+        "Reward component metrics",
+        "Correctness rewards and format-shaping rewards are separated for auditability.",
+        [
+            {
+                "title": "check_answer",
+                "series": {
+                    "train": series_xy(series, "train_check_answer"),
+                    "eval": series_xy(series, "eval_check_answer"),
+                },
+                "y_label": "reward",
+            },
+            {
+                "title": "check_numbers",
+                "series": {
+                    "train": series_xy(series, "train_check_numbers"),
+                    "eval": series_xy(series, "eval_check_numbers"),
+                },
+                "y_label": "reward",
+            },
+            {
+                "title": "match_format_approximately",
+                "series": {
+                    "train": series_xy(series, "train_match_format_approx"),
+                    "eval": series_xy(series, "eval_match_format_approx"),
+                },
+                "y_label": "reward",
+            },
+            {
+                "title": "match_format_exactly",
+                "series": {
+                    "train": series_xy(series, "train_match_format_exact"),
+                    "eval": series_xy(series, "eval_match_format_exact"),
+                },
+                "y_label": "reward",
+            },
+        ],
+    )
+
+
+def metric_snapshot_rows(series: dict[str, list[dict[str, float]]]) -> list[dict[str, Any]]:
+    rows = []
+    for name in sorted(series):
+        values = series.get(name) or []
+        numeric_values = [float(item["value"]) for item in values if math.isfinite(float(item["value"]))]
+        if not numeric_values:
+            continue
+        last = values[-1]
+        rows.append(
+            {
+                "metric": name,
+                "tag": SELECTED_TAGS.get(name, ""),
+                "last_step": int(last["step"]),
+                "latest": float(last["value"]),
+                "min": min(numeric_values),
+                "max": max(numeric_values),
+                "count": len(numeric_values),
+            }
+        )
+    return rows
+
+
+def metric_snapshot_table_image(path: Path, rows: list[dict[str, Any]]) -> None:
+    display_rows = []
+    for row in rows:
+        display_rows.append(
+            [
+                row["metric"],
+                row["last_step"],
+                num(row["latest"]),
+                num(row["min"]),
+                num(row["max"]),
+                row["count"],
+                row["tag"],
+            ]
+        )
+    render_table_image(
+        path,
+        "Selected scalar metric snapshot",
+        "Latest/min/max/count for report-selected TensorBoard metrics. Full values are in tables/selected_scalar_metrics.csv.",
+        [
+            ("metric", 275),
+            ("last_step", 95),
+            ("latest", 95),
+            ("min", 95),
+            ("max", 95),
+            ("count", 80),
+            ("tensorboard tag", 510),
+        ],
+        display_rows,
+        width=1325,
+        row_height=34,
+    )
+
+
+def reward_kl_chart(path: Path, series: dict[str, list[dict[str, float]]], best_step: int, final_step: int) -> None:
+    multi_panel_chart(
+        path,
+        "Core training metrics",
+        "Small multiples use separate y-axes. Vertical markers show best observed checkpoint and final step.",
+        [
+            {
+                "title": "reward_score_mean",
+                "series": {
+                    "train": series_xy(series, "train_reward_score"),
+                    "eval": series_xy(series, "eval_reward_score"),
+                },
+                "y_label": "score",
+            },
+            {
+                "title": "KL",
+                "series": {
+                    "train": series_xy(series, "train_kl"),
+                    "eval": series_xy(series, "eval_kl"),
+                },
+                "y_label": "KL",
+            },
+            {
+                "title": "loss",
+                "series": {
+                    "train": series_xy(series, "train_loss"),
+                    "eval": series_xy(series, "eval_loss"),
+                },
+                "y_label": "loss",
+            },
+            {
+                "title": "pg_clipfrac",
+                "series": {
+                    "train": series_xy(series, "train_pg_clipfrac"),
+                    "eval": series_xy(series, "eval_pg_clipfrac"),
+                },
+                "y_label": "rate",
+            },
+            {
+                "title": "numeric_exact_rate",
+                "series": {
+                    "train": series_xy(series, "train_numeric_exact_rate"),
+                    "eval": series_xy(series, "eval_numeric_exact_rate"),
+                },
+                "y_label": "rate",
+            },
+            {
+                "title": "format_accuracy",
+                "series": {
+                    "train": series_xy(series, "train_format_accuracy"),
+                    "eval": series_xy(series, "eval_format_accuracy"),
+                },
+                "y_label": "rate",
+            },
+        ],
+        markers={float(best_step): "best", float(final_step): "final"},
     )
 
 
@@ -962,7 +1312,7 @@ def build_report_text(
 
 ## Technical Summary
 
-本报告包整理的是课程 TPU `waxvhe` 上完成的 baseline full run。复现流程本身已经跑完，产出了 base eval、full training、final LoRA eval、checkpoint-wise eval、TensorBoard scalars、rollout traces 和诊断图；但训练结果显示 baseline 在后期发生 collapse。
+本报告包整理的是课程 TPU `waxvhe` 上完成的 baseline full run。复现流程已经跑完，产出了 base eval、full training、final LoRA eval、checkpoint-wise eval、TensorBoard scalars、rollout traces 和诊断图；但训练结果显示 baseline 在后期发生 collapse。
 
 最关键的结果是：base model 在 held-out greedy eval 上为 **{pct(summary['base_accuracy'])}**，final LoRA step `{summary['final_step']}` 只有 **{pct(summary['final_lora_accuracy'])}**，best observed LoRA checkpoint 是 step `{summary['best_lora_step']}` 的 **{pct(summary['best_lora_accuracy'])}**。因此，I.1 可以报告“训练跑通且证据完整”，但不能把 final checkpoint 描述成有效提升。
 
@@ -1170,6 +1520,7 @@ def main() -> None:
     trace_rows = load_trace_rows(paths["trace_jsonl"])
     sample_rows, taxonomy_rows = pick_samples(trace_rows)
     phase_rows = summarize_trace_phases(trace_summary)
+    metric_snapshot = metric_snapshot_rows(scalar_series)
 
     best = checkpoint_summary["best_lora_checkpoint"]
     final_row = next(row for row in checkpoint_rows if row.get("restored_step") == 3364)
@@ -1205,6 +1556,8 @@ def main() -> None:
     write_csv(dirs["tables"] / "baseline_config.csv", config_rows)
     write_json(dirs["tables"] / "selected_scalar_metrics.json", selected_scalar_rows)
     write_csv(dirs["tables"] / "selected_scalar_metrics.csv", selected_scalar_rows, ["metric", "tag", "step", "wall_time", "value"])
+    write_json(dirs["tables"] / "metric_snapshot.json", metric_snapshot)
+    write_csv(dirs["tables"] / "metric_snapshot.csv", metric_snapshot)
     write_json(dirs["tables"] / "trace_phase_summary.json", phase_rows)
     write_csv(dirs["tables"] / "trace_phase_summary.csv", phase_rows)
     write_json(dirs["samples"] / "sample_examples.json", sample_rows)
@@ -1215,63 +1568,25 @@ def main() -> None:
     figures: list[Figure] = []
     fig_dir = dirs["figures"]
     kpi_scorecard(fig_dir / "01_eval_scorecard.png", summary)
-    figures.append(Figure("01_eval_scorecard", "Baseline evaluation scorecard", "Which policy/checkpoint is best?", "Base model is strongest; final LoRA collapses to 3.13%, while best LoRA is step 2000 at 28.13%.", ["checkpoint_eval_summary.json"]))
+    figures.append(Figure("01_eval_scorecard", "Evaluation summary table", "Which policy/checkpoint is best?", "Base model is strongest; final LoRA collapses to 3.13%, while best LoRA is step 2000 at 28.13%.", ["checkpoint_eval_summary.json"]))
     checkpoint_accuracy_chart(fig_dir / "02_checkpoint_accuracy_ci.png", checkpoint_rows)
     figures.append(Figure("02_checkpoint_accuracy_ci", "Checkpoint-wise evaluation accuracy", "Did training improve over time?", "LoRA accuracy degrades after step 2000; final checkpoint is not the best model.", ["checkpoint_eval_summary.json"]))
     reward_kl_chart(fig_dir / "03_reward_kl_timeline.png", scalar_series, int(best["restored_step"]), int(final_row["restored_step"]))
-    figures.append(Figure("03_reward_kl_timeline", "Reward and KL timeline", "Are reward and KL consistent with stable GRPO training?", "Reward and KL patterns support an early peak followed by late instability.", ["scalar_metrics.csv"]))
-    simple_line(
-        fig_dir / "04_response_health.png",
-        "Response health over training",
-        "Parse and termination metrics explain why final held-out accuracy falls.",
-        {
-            "train empty response": series_xy(scalar_series, "train_empty_response_rate"),
-            "eval empty response": series_xy(scalar_series, "eval_empty_response_rate"),
-            "train Extracted None": series_xy(scalar_series, "train_extracted_none_rate"),
-            "eval Extracted None": series_xy(scalar_series, "eval_extracted_none_rate"),
-            "eval has solution end": series_xy(scalar_series, "eval_has_solution_end_rate"),
-        },
-        "Late response failure rates are a direct diagnostic for the observed checkpoint collapse.",
-        y_label="rate",
-    )
-    figures.append(Figure("04_response_health", "Response health over training", "Does the model still produce parseable answers?", "Empty/parse-failure indicators rise late, matching the final accuracy collapse.", ["scalar_metrics.csv", "trace_summary.csv"]))
-    simple_line(
-        fig_dir / "05_grpo_health.png",
-        "GRPO reward and advantage health",
-        "Group reward diversity and advantage spread are core GRPO diagnostics.",
-        {
-            "train reward std": series_xy(scalar_series, "train_reward_std"),
-            "eval reward std": series_xy(scalar_series, "eval_reward_std"),
-            "train frac zero std": series_xy(scalar_series, "train_frac_reward_zero_std"),
-            "eval frac zero std": series_xy(scalar_series, "eval_frac_reward_zero_std"),
-            "train advantage std": series_xy(scalar_series, "train_advantage_std"),
-        },
-        "GRPO needs within-group reward contrast; zero-std or collapsing advantage spread weakens useful policy-gradient signal.",
-        y_label="value / rate",
-    )
-    figures.append(Figure("05_grpo_health", "GRPO reward and advantage health", "Is the group-relative learning signal healthy?", "Reward diversity and advantage spread should be monitored before another full run.", ["scalar_metrics.csv"]))
-    simple_line(
-        fig_dir / "06_reward_components.png",
-        "Reward components over training",
-        "Correctness and format shaping are separated to expose reward hacking risk.",
-        {
-            "train check_answer": series_xy(scalar_series, "train_check_answer"),
-            "eval check_answer": series_xy(scalar_series, "eval_check_answer"),
-            "train check_numbers": series_xy(scalar_series, "train_check_numbers"),
-            "eval check_numbers": series_xy(scalar_series, "eval_check_numbers"),
-            "train format approx": series_xy(scalar_series, "train_match_format_approx"),
-            "eval format approx": series_xy(scalar_series, "eval_match_format_approx"),
-        },
-        "A format or partial-number signal can diverge from true numeric correctness, so report both separately.",
-        y_label="reward component",
-    )
-    figures.append(Figure("06_reward_components", "Reward components over training", "Which reward terms drove behavior?", "Component-level reward makes shaping-vs-task-success tradeoffs visible.", ["scalar_metrics.csv"]))
+    figures.append(Figure("03_reward_kl_timeline", "Core training metrics", "Are reward, KL, loss, clipfrac, and eval rates stable?", "Small multiples show the late degradation without mixing incompatible scales.", ["scalar_metrics.csv"]))
+    response_health_chart(fig_dir / "04_response_health.png", scalar_series)
+    figures.append(Figure("04_response_health", "Response health metrics", "Does the model still produce parseable answers?", "Empty/parse-failure indicators rise late, matching the final accuracy collapse.", ["scalar_metrics.csv", "trace_summary.csv"]))
+    grpo_health_chart(fig_dir / "05_grpo_health.png", scalar_series)
+    figures.append(Figure("05_grpo_health", "GRPO health metrics", "Is the group-relative learning signal healthy?", "Reward diversity, zero-std rate, advantage spread, and group correctness are recorded separately.", ["scalar_metrics.csv"]))
+    reward_components_chart(fig_dir / "06_reward_components.png", scalar_series)
+    figures.append(Figure("06_reward_components", "Reward component metrics", "Which reward terms drove behavior?", "Correctness and format-shaping reward components are separated for auditability.", ["scalar_metrics.csv"]))
     response_table_image(fig_dir / "07_trace_examples_table.png", sample_rows)
     figures.append(Figure("07_trace_examples_table", "Representative rollout examples", "What does the model actually say?", "Qualitative traces reveal concrete failure modes behind the aggregate metrics.", ["rollout_samples_course-baseline-001.jsonl"]))
     failure_taxonomy_chart(fig_dir / "08_failure_taxonomy.png", taxonomy_rows, phase_rows)
     figures.append(Figure("08_failure_taxonomy", "Failure taxonomy from rollout traces", "Which failures dominate the sampled rollouts?", "Wrong numeric answers dominate, with late response/parse failures explaining collapse.", ["rollout_samples_course-baseline-001.jsonl", "trace_summary.csv"]))
     runtime_chart(fig_dir / "09_training_runtime.png", scalar_series)
     figures.append(Figure("09_training_runtime", "Training runtime and checkpoint I/O", "How long did the observed training timeline take?", "TensorBoard wall-time gives a reproducible runtime estimate and checkpoint I/O context.", ["scalar_metrics.csv"]))
+    metric_snapshot_table_image(fig_dir / "10_metric_snapshot_table.png", metric_snapshot)
+    figures.append(Figure("10_metric_snapshot_table", "Selected scalar metric snapshot", "What are the latest/min/max/count values for tracked metrics?", "The metric snapshot records latest value and observed range for every report-selected scalar.", ["selected_scalar_metrics.csv"]))
 
     chart_rows = [fig.__dict__ for fig in figures]
     write_json(dirs["tables"] / "chart_map.json", chart_rows)

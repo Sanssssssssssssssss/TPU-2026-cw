@@ -2,13 +2,13 @@
 
 ## Technical Summary
 
-本报告包整理的是课程 TPU `waxvhe` 上完成的 baseline full run。复现流程本身已经跑完，产出了 base eval、full training、final LoRA eval、checkpoint-wise eval、TensorBoard scalars、rollout traces 和诊断图；但训练结果显示 baseline 在后期发生 collapse。
+本报告包整理的是课程 TPU `waxvhe` 上完成的 baseline full run。复现流程已经跑完，产出了 base eval、full training、final LoRA eval、checkpoint-wise eval、TensorBoard scalars、rollout traces 和诊断图；但训练结果显示 baseline 在后期发生 collapse。
 
 最关键的结果是：base model 在 held-out greedy eval 上为 **51.56%**，final LoRA step `3364` 只有 **3.13%**，best observed LoRA checkpoint 是 step `2000` 的 **28.13%**。因此，I.1 可以报告“训练跑通且证据完整”，但不能把 final checkpoint 描述成有效提升。
 
 ## Key Findings With Visual Evidence
 
-![Baseline evaluation scorecard](figures/01_eval_scorecard.png)
+![Evaluation summary table](figures/01_eval_scorecard.png)
 
 **图意**：Base model is strongest; final LoRA collapses to 3.13%, while best LoRA is step 2000 at 28.13%.
 
@@ -16,21 +16,21 @@
 
 **图意**：LoRA accuracy degrades after step 2000; final checkpoint is not the best model.
 
-![Reward and KL timeline](figures/03_reward_kl_timeline.png)
+![Core training metrics](figures/03_reward_kl_timeline.png)
 
-**图意**：Reward and KL patterns support an early peak followed by late instability.
+**图意**：Small multiples show the late degradation without mixing incompatible scales.
 
-![Response health over training](figures/04_response_health.png)
+![Response health metrics](figures/04_response_health.png)
 
 **图意**：Empty/parse-failure indicators rise late, matching the final accuracy collapse.
 
-![GRPO reward and advantage health](figures/05_grpo_health.png)
+![GRPO health metrics](figures/05_grpo_health.png)
 
-**图意**：Reward diversity and advantage spread should be monitored before another full run.
+**图意**：Reward diversity, zero-std rate, advantage spread, and group correctness are recorded separately.
 
-![Reward components over training](figures/06_reward_components.png)
+![Reward component metrics](figures/06_reward_components.png)
 
-**图意**：Component-level reward makes shaping-vs-task-success tradeoffs visible.
+**图意**：Correctness and format-shaping reward components are separated for auditability.
 
 ![Representative rollout examples](figures/07_trace_examples_table.png)
 
@@ -43,6 +43,10 @@
 ![Training runtime and checkpoint I/O](figures/09_training_runtime.png)
 
 **图意**：TensorBoard wall-time gives a reproducible runtime estimate and checkpoint I/O context.
+
+![Selected scalar metric snapshot](figures/10_metric_snapshot_table.png)
+
+**图意**：The metric snapshot records latest value and observed range for every report-selected scalar.
 
 
 ## Scope, Data, And Metric Definitions

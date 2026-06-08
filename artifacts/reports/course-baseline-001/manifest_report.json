@@ -7,7 +7,7 @@
         "checkpoint_eval_summary.json"
       ],
       "takeaway": "Base model is strongest; final LoRA collapses to 3.13%, while best LoRA is step 2000 at 28.13%.",
-      "title": "Baseline evaluation scorecard"
+      "title": "Evaluation summary table"
     },
     {
       "name": "02_checkpoint_accuracy_ci",
@@ -20,12 +20,12 @@
     },
     {
       "name": "03_reward_kl_timeline",
-      "question": "Are reward and KL consistent with stable GRPO training?",
+      "question": "Are reward, KL, loss, clipfrac, and eval rates stable?",
       "source_files": [
         "scalar_metrics.csv"
       ],
-      "takeaway": "Reward and KL patterns support an early peak followed by late instability.",
-      "title": "Reward and KL timeline"
+      "takeaway": "Small multiples show the late degradation without mixing incompatible scales.",
+      "title": "Core training metrics"
     },
     {
       "name": "04_response_health",
@@ -35,7 +35,7 @@
         "trace_summary.csv"
       ],
       "takeaway": "Empty/parse-failure indicators rise late, matching the final accuracy collapse.",
-      "title": "Response health over training"
+      "title": "Response health metrics"
     },
     {
       "name": "05_grpo_health",
@@ -43,8 +43,8 @@
       "source_files": [
         "scalar_metrics.csv"
       ],
-      "takeaway": "Reward diversity and advantage spread should be monitored before another full run.",
-      "title": "GRPO reward and advantage health"
+      "takeaway": "Reward diversity, zero-std rate, advantage spread, and group correctness are recorded separately.",
+      "title": "GRPO health metrics"
     },
     {
       "name": "06_reward_components",
@@ -52,8 +52,8 @@
       "source_files": [
         "scalar_metrics.csv"
       ],
-      "takeaway": "Component-level reward makes shaping-vs-task-success tradeoffs visible.",
-      "title": "Reward components over training"
+      "takeaway": "Correctness and format-shaping reward components are separated for auditability.",
+      "title": "Reward component metrics"
     },
     {
       "name": "07_trace_examples_table",
@@ -82,9 +82,18 @@
       ],
       "takeaway": "TensorBoard wall-time gives a reproducible runtime estimate and checkpoint I/O context.",
       "title": "Training runtime and checkpoint I/O"
+    },
+    {
+      "name": "10_metric_snapshot_table",
+      "question": "What are the latest/min/max/count values for tracked metrics?",
+      "source_files": [
+        "selected_scalar_metrics.csv"
+      ],
+      "takeaway": "The metric snapshot records latest value and observed range for every report-selected scalar.",
+      "title": "Selected scalar metric snapshot"
     }
   ],
-  "created_at": "2026-06-08T21:14:51.792713+00:00",
+  "created_at": "2026-06-08T21:30:36.162876+00:00",
   "outputs": {
     "figures": [
       "artifacts\\reports\\course-baseline-001\\figures\\01_eval_scorecard.png",
@@ -95,7 +104,8 @@
       "artifacts\\reports\\course-baseline-001\\figures\\06_reward_components.png",
       "artifacts\\reports\\course-baseline-001\\figures\\07_trace_examples_table.png",
       "artifacts\\reports\\course-baseline-001\\figures\\08_failure_taxonomy.png",
-      "artifacts\\reports\\course-baseline-001\\figures\\09_training_runtime.png"
+      "artifacts\\reports\\course-baseline-001\\figures\\09_training_runtime.png",
+      "artifacts\\reports\\course-baseline-001\\figures\\10_metric_snapshot_table.png"
     ],
     "provenance": [
       "artifacts\\reports\\course-baseline-001\\provenance\\baseline_parameter_check.csv",
@@ -120,6 +130,8 @@
       "artifacts\\reports\\course-baseline-001\\tables\\checkpoint_eval_summary.json",
       "artifacts\\reports\\course-baseline-001\\tables\\eval_summary.csv",
       "artifacts\\reports\\course-baseline-001\\tables\\eval_summary.json",
+      "artifacts\\reports\\course-baseline-001\\tables\\metric_snapshot.csv",
+      "artifacts\\reports\\course-baseline-001\\tables\\metric_snapshot.json",
       "artifacts\\reports\\course-baseline-001\\tables\\run_summary.csv",
       "artifacts\\reports\\course-baseline-001\\tables\\run_summary.json",
       "artifacts\\reports\\course-baseline-001\\tables\\selected_scalar_metrics.csv",
@@ -134,7 +146,7 @@
     "best_lora_accuracy": 28.125,
     "best_lora_step": 2000,
     "commit": "fe63ebd77979a0af9d7d88af05f256a4e2596495",
-    "created_at": "2026-06-08T21:14:51.792713+00:00",
+    "created_at": "2026-06-08T21:30:36.162876+00:00",
     "final_lora_accuracy": 3.125,
     "final_lora_format_accuracy": 12.5,
     "final_lora_partial_accuracy": 6.25,

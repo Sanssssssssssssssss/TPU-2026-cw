@@ -6,7 +6,7 @@
       "checkpoint_eval_summary.json"
     ],
     "takeaway": "Base model is strongest; final LoRA collapses to 3.13%, while best LoRA is step 2000 at 28.13%.",
-    "title": "Baseline evaluation scorecard"
+    "title": "Evaluation summary table"
   },
   {
     "name": "02_checkpoint_accuracy_ci",
@@ -19,12 +19,12 @@
   },
   {
     "name": "03_reward_kl_timeline",
-    "question": "Are reward and KL consistent with stable GRPO training?",
+    "question": "Are reward, KL, loss, clipfrac, and eval rates stable?",
     "source_files": [
       "scalar_metrics.csv"
     ],
-    "takeaway": "Reward and KL patterns support an early peak followed by late instability.",
-    "title": "Reward and KL timeline"
+    "takeaway": "Small multiples show the late degradation without mixing incompatible scales.",
+    "title": "Core training metrics"
   },
   {
     "name": "04_response_health",
@@ -34,7 +34,7 @@
       "trace_summary.csv"
     ],
     "takeaway": "Empty/parse-failure indicators rise late, matching the final accuracy collapse.",
-    "title": "Response health over training"
+    "title": "Response health metrics"
   },
   {
     "name": "05_grpo_health",
@@ -42,8 +42,8 @@
     "source_files": [
       "scalar_metrics.csv"
     ],
-    "takeaway": "Reward diversity and advantage spread should be monitored before another full run.",
-    "title": "GRPO reward and advantage health"
+    "takeaway": "Reward diversity, zero-std rate, advantage spread, and group correctness are recorded separately.",
+    "title": "GRPO health metrics"
   },
   {
     "name": "06_reward_components",
@@ -51,8 +51,8 @@
     "source_files": [
       "scalar_metrics.csv"
     ],
-    "takeaway": "Component-level reward makes shaping-vs-task-success tradeoffs visible.",
-    "title": "Reward components over training"
+    "takeaway": "Correctness and format-shaping reward components are separated for auditability.",
+    "title": "Reward component metrics"
   },
   {
     "name": "07_trace_examples_table",
@@ -81,5 +81,14 @@
     ],
     "takeaway": "TensorBoard wall-time gives a reproducible runtime estimate and checkpoint I/O context.",
     "title": "Training runtime and checkpoint I/O"
+  },
+  {
+    "name": "10_metric_snapshot_table",
+    "question": "What are the latest/min/max/count values for tracked metrics?",
+    "source_files": [
+      "selected_scalar_metrics.csv"
+    ],
+    "takeaway": "The metric snapshot records latest value and observed range for every report-selected scalar.",
+    "title": "Selected scalar metric snapshot"
   }
 ]

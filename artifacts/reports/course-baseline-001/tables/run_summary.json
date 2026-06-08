@@ -3,7 +3,7 @@
   "best_lora_accuracy": 28.125,
   "best_lora_step": 2000,
   "commit": "fe63ebd77979a0af9d7d88af05f256a4e2596495",
-  "created_at": "2026-06-08T21:14:51.792713+00:00",
+  "created_at": "2026-06-08T21:30:36.162876+00:00",
   "final_lora_accuracy": 3.125,
   "final_lora_format_accuracy": 12.5,
   "final_lora_partial_accuracy": 6.25,

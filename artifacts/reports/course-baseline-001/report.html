@@ -26,27 +26,29 @@
 <main>
 <h1>GRPO Baseline `course-baseline-001` 完整结果报告</h1>
 <h2>Technical Summary</h2>
-<p>本报告包整理的是课程 TPU <code>waxvhe</code> 上完成的 baseline full run。复现流程本身已经跑完，产出了 base eval、full training、final LoRA eval、checkpoint-wise eval、TensorBoard scalars、rollout traces 和诊断图；但训练结果显示 baseline 在后期发生 collapse。</p>
+<p>本报告包整理的是课程 TPU <code>waxvhe</code> 上完成的 baseline full run。复现流程已经跑完，产出了 base eval、full training、final LoRA eval、checkpoint-wise eval、TensorBoard scalars、rollout traces 和诊断图；但训练结果显示 baseline 在后期发生 collapse。</p>
 <p>最关键的结果是：base model 在 held-out greedy eval 上为 <strong>51.56%</strong>，final LoRA step <code>3364</code> 只有 <strong>3.13%</strong>，best observed LoRA checkpoint 是 step <code>2000</code> 的 <strong>28.13%</strong>。因此，I.1 可以报告“训练跑通且证据完整”，但不能把 final checkpoint 描述成有效提升。</p>
 <h2>Key Findings With Visual Evidence</h2>
-<figure><img src="figures/01_eval_scorecard.png" alt="Baseline evaluation scorecard"></figure>
+<figure><img src="figures/01_eval_scorecard.png" alt="Evaluation summary table"></figure>
 <p><strong>图意</strong>：Base model is strongest; final LoRA collapses to 3.13%, while best LoRA is step 2000 at 28.13%.</p>
 <figure><img src="figures/02_checkpoint_accuracy_ci.png" alt="Checkpoint-wise evaluation accuracy"></figure>
 <p><strong>图意</strong>：LoRA accuracy degrades after step 2000; final checkpoint is not the best model.</p>
-<figure><img src="figures/03_reward_kl_timeline.png" alt="Reward and KL timeline"></figure>
-<p><strong>图意</strong>：Reward and KL patterns support an early peak followed by late instability.</p>
-<figure><img src="figures/04_response_health.png" alt="Response health over training"></figure>
+<figure><img src="figures/03_reward_kl_timeline.png" alt="Core training metrics"></figure>
+<p><strong>图意</strong>：Small multiples show the late degradation without mixing incompatible scales.</p>
+<figure><img src="figures/04_response_health.png" alt="Response health metrics"></figure>
 <p><strong>图意</strong>：Empty/parse-failure indicators rise late, matching the final accuracy collapse.</p>
-<figure><img src="figures/05_grpo_health.png" alt="GRPO reward and advantage health"></figure>
-<p><strong>图意</strong>：Reward diversity and advantage spread should be monitored before another full run.</p>
-<figure><img src="figures/06_reward_components.png" alt="Reward components over training"></figure>
-<p><strong>图意</strong>：Component-level reward makes shaping-vs-task-success tradeoffs visible.</p>
+<figure><img src="figures/05_grpo_health.png" alt="GRPO health metrics"></figure>
+<p><strong>图意</strong>：Reward diversity, zero-std rate, advantage spread, and group correctness are recorded separately.</p>
+<figure><img src="figures/06_reward_components.png" alt="Reward component metrics"></figure>
+<p><strong>图意</strong>：Correctness and format-shaping reward components are separated for auditability.</p>
 <figure><img src="figures/07_trace_examples_table.png" alt="Representative rollout examples"></figure>
 <p><strong>图意</strong>：Qualitative traces reveal concrete failure modes behind the aggregate metrics.</p>
 <figure><img src="figures/08_failure_taxonomy.png" alt="Failure taxonomy from rollout traces"></figure>
 <p><strong>图意</strong>：Wrong numeric answers dominate, with late response/parse failures explaining collapse.</p>
 <figure><img src="figures/09_training_runtime.png" alt="Training runtime and checkpoint I/O"></figure>
 <p><strong>图意</strong>：TensorBoard wall-time gives a reproducible runtime estimate and checkpoint I/O context.</p>
+<figure><img src="figures/10_metric_snapshot_table.png" alt="Selected scalar metric snapshot"></figure>
+<p><strong>图意</strong>：The metric snapshot records latest value and observed range for every report-selected scalar.</p>
 <h2>Scope, Data, And Metric Definitions</h2>
 <p>本报告使用本地已 fetch 的目录 <code>artifacts/cloud/course-baseline-001/</code>，不重新连接 TPU，不重跑训练。评估默认采用 greedy preset、64 个 test batches；checkpoint eval 的置信区间来自已有 summary 中的 Wilson 95% CI。</p>
 <p>核心指标解释：</p>
