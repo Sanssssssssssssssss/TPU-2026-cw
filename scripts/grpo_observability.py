@@ -10,7 +10,6 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import re
 import subprocess
 import threading
 from dataclasses import dataclass, field
@@ -20,23 +19,12 @@ from typing import Any, Iterable
 
 import numpy as np
 
+from rewards import REWARD_MODE, reward_components_for_mode, reward_diagnostics_for_observability
+
 REASONING_START = "<reasoning>"
 REASONING_END = "</reasoning>"
 SOLUTION_START = "<answer>"
 SOLUTION_END = "</answer>"
-
-MATCH_FORMAT = re.compile(
-    rf"^[\s]{{0,}}"
-    rf"{REASONING_START}.+?{REASONING_END}.*?"
-    rf"{SOLUTION_START}(.+?){SOLUTION_END}"
-    rf"[\s]{{0,}}$",
-    flags=re.MULTILINE | re.DOTALL,
-)
-
-MATCH_NUMBERS = re.compile(
-    rf"{SOLUTION_START}.*?([\d\.]{{1,}})",
-    flags=re.MULTILINE | re.DOTALL,
-)
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -174,84 +162,6 @@ def collect_config_snapshot(config_module: Any) -> dict[str, Any]:
     return out
 
 
-def numeric_match_flags(extracted: str | None, answer: str | None) -> tuple[bool, bool]:
-    if extracted is None or answer is None:
-        return False, False
-    try:
-        got = float(str(extracted).strip())
-        true = float(str(answer).strip())
-    except Exception:
-        return False, False
-    exact = got == true
-    partial = False
-    if true != 0:
-        partial = 0.9 <= got / true <= 1.1
-    else:
-        partial = exact
-    return exact, partial
-
-
-def reward_component_diagnostics(completions: list[str], answers: list[Any]) -> list[dict[str, Any]]:
-    """Mirror rewards.py scoring without emitting reward debug prints."""
-    rows = []
-    for completion, answer_raw in zip(completions, answers):
-        answer = None if answer_raw is None else _safe_text(answer_raw)
-        format_match = MATCH_FORMAT.search(completion)
-        number_match = MATCH_NUMBERS.search(completion)
-        formatted_answer = format_match.group(1) if format_match is not None else None
-        extracted_number = number_match.group(1) if number_match is not None else None
-
-        exact_format = 0.0 if format_match is None else 3.0
-
-        approx_format = 0.0
-        approx_format += 0.5 if completion.count(REASONING_START) == 1 else -0.5
-        approx_format += 0.5 if completion.find(REASONING_START) == 0 else -0.5
-        approx_format += 0.5 if completion.count(REASONING_END) == 1 else -0.5
-        approx_format += 0.5 if completion.count(SOLUTION_START) == 1 else -0.5
-        approx_format += 0.5 if completion.count(SOLUTION_END) == 1 else -0.5
-
-        answer_score = 0.0
-        if formatted_answer is not None and answer is not None:
-            if formatted_answer == answer:
-                answer_score = 3.0
-            elif formatted_answer.strip() == answer.strip():
-                answer_score = 1.5
-            else:
-                try:
-                    ratio = float(formatted_answer) / float(answer)
-                    if 0.9 <= ratio <= 1.1:
-                        answer_score = 0.5
-                    elif 0.8 <= ratio <= 1.2:
-                        answer_score = 0.25
-                    else:
-                        answer_score = -1.0
-                except Exception:
-                    answer_score = -0.5
-
-        number_score = 0.0
-        if extracted_number is not None and answer is not None:
-            try:
-                number_score = 1.5 if float(extracted_number.strip()) == float(answer.strip()) else 0.0
-            except Exception:
-                number_score = 0.0
-
-        exact, partial = numeric_match_flags(extracted_number, answer)
-        rows.append(
-            {
-                "match_format_exactly": exact_format,
-                "match_format_approximately": approx_format,
-                "check_answer": answer_score,
-                "check_numbers": number_score,
-                "formatted_answer": formatted_answer,
-                "extracted_number": extracted_number,
-                "numeric_exact": exact,
-                "numeric_partial": partial,
-                "format_ok": format_match is not None,
-            }
-        )
-    return rows
-
-
 @dataclass
 class GRPOObservability:
     run_id: str
@@ -383,6 +293,10 @@ class GRPOObservability:
                 "enable_alerts": self.enable_alerts,
                 "early_stop": self.early_stop,
             },
+            "reward": {
+                "mode": REWARD_MODE,
+                "components_for_mode": reward_components_for_mode(REWARD_MODE),
+            },
             "config": self.config_snapshot,
         }
         if self._wandb_run is not None:
@@ -416,12 +330,17 @@ class GRPOObservability:
         rewards_arr = _resize_metric_array(rewards_arr, n)
         advantages_arr = _resize_metric_array(advantages_arr, n)
 
-        diagnostics = reward_component_diagnostics(completions_list, answers)
+        diagnostics = reward_diagnostics_for_observability(completions_list, answers, REWARD_MODE)
         empty = np.asarray([not c.strip() for c in completions_list], dtype=np.float32)
         extracted_none = np.asarray([d["extracted_number"] is None for d in diagnostics], dtype=np.float32)
         exact = np.asarray([d["numeric_exact"] for d in diagnostics], dtype=np.float32)
         partial = np.asarray([d["numeric_partial"] for d in diagnostics], dtype=np.float32)
         format_ok = np.asarray([d["format_ok"] for d in diagnostics], dtype=np.float32)
+        answer_tag_pair_ok = np.asarray([d["answer_tag_pair_ok"] for d in diagnostics], dtype=np.float32)
+        duplicate_tag = np.asarray([d["duplicate_or_broken_answer_tag"] for d in diagnostics], dtype=np.float32)
+        overlong_1200 = np.asarray([d["overlong_1200"] for d in diagnostics], dtype=np.float32)
+        overlong_1600 = np.asarray([d["overlong_1600"] for d in diagnostics], dtype=np.float32)
+        answer_multi_number = np.asarray([d["answer_multi_number"] for d in diagnostics], dtype=np.float32)
         chars = np.asarray([len(c) for c in completions_list], dtype=np.float32)
         words = np.asarray([len(c.split()) for c in completions_list], dtype=np.float32)
         has_solution_end = np.asarray(["</answer>" in c for c in completions_list], dtype=np.float32)
@@ -433,6 +352,11 @@ class GRPOObservability:
             "rollout/max_completion_chars": float(chars.max()) if n else 0.0,
             "rollout/mean_completion_words": float(words.mean()) if n else 0.0,
             "rollout/has_solution_end_rate": float(has_solution_end.mean()) if n else 0.0,
+            "rollout/answer_tag_pair_rate": float(answer_tag_pair_ok.mean()) if n else 0.0,
+            "rollout/duplicate_tag_rate": float(duplicate_tag.mean()) if n else 0.0,
+            "rollout/overlong_rate_1200": float(overlong_1200.mean()) if n else 0.0,
+            "rollout/overlong_rate_1600": float(overlong_1600.mean()) if n else 0.0,
+            "rollout/answer_multi_number_rate": float(answer_multi_number.mean()) if n else 0.0,
             "eval/numeric_exact_rate": float(exact.mean()) if n else 0.0,
             "eval/numeric_partial_rate": float(partial.mean()) if n else 0.0,
             "eval/format_accuracy": float(format_ok.mean()) if n else 0.0,
@@ -462,21 +386,62 @@ class GRPOObservability:
             "match_format_approximately",
             "check_answer",
             "check_numbers",
+            "format_strict_light",
+            "answer_tag_light",
+            "numeric_primary",
+            "length_penalty_1200",
         ):
             values = np.asarray([d[component] for d in diagnostics], dtype=np.float32)
-            metric_values[f"grpo/reward_{component}_mean"] = float(values.mean()) if values.size else 0.0
+            metric_values[f"reward/{component}_mean"] = float(values.mean()) if values.size else 0.0
+        metric_values["reward/format_light_mean"] = float(
+            np.asarray([d["format_light_total"] for d in diagnostics], dtype=np.float32).mean()
+        ) if n else 0.0
+        metric_values["reward/length_penalty_mean"] = metric_values["reward/length_penalty_1200_mean"]
+
+        if rewards_arr.size and n:
+            correct_rewards = rewards_arr[exact.astype(bool)]
+            wrong_mask = ~exact.astype(bool)
+            wrong_rewards = rewards_arr[wrong_mask]
+            formatted_wrong_rewards = rewards_arr[(format_ok.astype(bool)) & wrong_mask]
+            metric_values.update(
+                {
+                    "audit/reward_numeric_margin": float(correct_rewards.mean() - wrong_rewards.mean())
+                    if correct_rewards.size and wrong_rewards.size
+                    else 0.0,
+                    "audit/reward_format_leakage": float(formatted_wrong_rewards.mean())
+                    if formatted_wrong_rewards.size
+                    else 0.0,
+                    "audit/reward_hacking_rate": float(((wrong_mask) & (rewards_arr >= 3.0)).mean()),
+                    "audit/numeric_correct_count": float(correct_rewards.size),
+                    "audit/numeric_wrong_count": float(wrong_rewards.size),
+                    "audit/formatted_wrong_count": float(formatted_wrong_rewards.size),
+                }
+            )
 
         if self.num_generations > 1 and n >= self.num_generations:
             usable = (n // self.num_generations) * self.num_generations
             reward_groups = rewards_arr[:usable].reshape(-1, self.num_generations)
             exact_groups = exact[:usable].reshape(-1, self.num_generations)
             group_std = reward_groups.std(axis=1)
+            misrank_groups = 0
+            comparable_groups = 0
+            for reward_group, exact_group in zip(reward_groups, exact_groups):
+                correct_mask = exact_group.astype(bool)
+                wrong_mask = ~correct_mask
+                if not correct_mask.any() or not wrong_mask.any():
+                    continue
+                comparable_groups += 1
+                if reward_group[wrong_mask].max() >= reward_group[correct_mask].max():
+                    misrank_groups += 1
             metric_values.update(
                 {
                     "grpo/group_reward_std_mean": float(group_std.mean()),
                     "grpo/frac_reward_zero_std": float((group_std <= 1e-8).mean()),
                     "grpo/all_correct_group_rate": float((exact_groups.sum(axis=1) == self.num_generations).mean()),
                     "grpo/all_wrong_group_rate": float((exact_groups.sum(axis=1) == 0).mean()),
+                    "audit/group_misrank_rate": _ratio(misrank_groups, comparable_groups),
+                    "audit/group_misrank_count": float(misrank_groups),
+                    "audit/group_misrank_comparable_groups": float(comparable_groups),
                 }
             )
 
@@ -570,12 +535,23 @@ class GRPOObservability:
                         "match_format_approximately": diagnostics[i]["match_format_approximately"],
                         "check_answer": diagnostics[i]["check_answer"],
                         "check_numbers": diagnostics[i]["check_numbers"],
+                        "format_strict_light": diagnostics[i]["format_strict_light"],
+                        "answer_tag_light": diagnostics[i]["answer_tag_light"],
+                        "numeric_primary": diagnostics[i]["numeric_primary"],
+                        "length_penalty_1200": diagnostics[i]["length_penalty_1200"],
                     },
+                    "reward_mode": diagnostics[i]["reward_mode"],
+                    "reward_total_recomputed": diagnostics[i]["reward_total_recomputed"],
                     "formatted_answer": diagnostics[i]["formatted_answer"],
                     "extracted_number": diagnostics[i]["extracted_number"],
                     "numeric_exact": diagnostics[i]["numeric_exact"],
                     "numeric_partial": diagnostics[i]["numeric_partial"],
                     "format_ok": diagnostics[i]["format_ok"],
+                    "answer_tag_pair_ok": diagnostics[i]["answer_tag_pair_ok"],
+                    "duplicate_or_broken_answer_tag": diagnostics[i]["duplicate_or_broken_answer_tag"],
+                    "overlong_1200": diagnostics[i]["overlong_1200"],
+                    "overlong_1600": diagnostics[i]["overlong_1600"],
+                    "answer_multi_number": diagnostics[i]["answer_multi_number"],
                 }
             )
 
@@ -600,11 +576,15 @@ class GRPOObservability:
                 "answer",
                 "completion",
                 "reward_total",
+                "reward_total_recomputed",
                 "advantage",
                 "extracted_number",
                 "numeric_exact",
                 "numeric_partial",
                 "format_ok",
+                "answer_tag_pair_ok",
+                "duplicate_or_broken_answer_tag",
+                "overlong_1600",
             ]
             table_rows = [[row.get(col) for col in columns] for row in rows]
             table = self._wandb.Table(columns=columns, data=table_rows)

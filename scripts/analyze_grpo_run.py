@@ -35,6 +35,18 @@ SCALAR_CANDIDATES = {
     "advantage_std": ["grpo/train/advantage_std", "grpo/advantage_std"],
     "completion_chars": ["rollout/train/mean_completion_chars", "rollout/mean_completion_chars"],
     "completion_length": ["completions/train/mean_length", "completions/mean_length"],
+    "reward_numeric_margin": ["audit/train/reward_numeric_margin", "audit/eval/reward_numeric_margin", "audit/reward_numeric_margin"],
+    "reward_format_leakage": ["audit/train/reward_format_leakage", "audit/eval/reward_format_leakage", "audit/reward_format_leakage"],
+    "reward_hacking_rate": ["audit/train/reward_hacking_rate", "audit/eval/reward_hacking_rate", "audit/reward_hacking_rate"],
+    "group_misrank_rate": ["audit/train/group_misrank_rate", "audit/eval/group_misrank_rate", "audit/group_misrank_rate"],
+    "answer_tag_pair_rate": ["rollout/train/answer_tag_pair_rate", "rollout/eval/answer_tag_pair_rate", "rollout/answer_tag_pair_rate"],
+    "duplicate_tag_rate": ["rollout/train/duplicate_tag_rate", "rollout/eval/duplicate_tag_rate", "rollout/duplicate_tag_rate"],
+    "overlong_rate_1200": ["rollout/train/overlong_rate_1200", "rollout/eval/overlong_rate_1200", "rollout/overlong_rate_1200"],
+    "overlong_rate_1600": ["rollout/train/overlong_rate_1600", "rollout/eval/overlong_rate_1600", "rollout/overlong_rate_1600"],
+    "answer_multi_number_rate": ["rollout/train/answer_multi_number_rate", "rollout/eval/answer_multi_number_rate", "rollout/answer_multi_number_rate"],
+    "numeric_primary_mean": ["reward/train/numeric_primary_mean", "reward/eval/numeric_primary_mean", "reward/numeric_primary_mean"],
+    "format_light_mean": ["reward/train/format_light_mean", "reward/eval/format_light_mean", "reward/format_light_mean"],
+    "length_penalty_mean": ["reward/train/length_penalty_mean", "reward/eval/length_penalty_mean", "reward/length_penalty_mean"],
 }
 
 

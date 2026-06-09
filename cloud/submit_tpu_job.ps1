@@ -7,6 +7,9 @@ Local Google TPU VM orchestrator for the GRPO baseline workflow.
 .\cloud\submit_tpu_job.ps1 ensure-tpu
 .\cloud\submit_tpu_job.ps1 bootstrap -RunId setup-001
 .\cloud\submit_tpu_job.ps1 submit-baseline -RunId baseline-001
+.\cloud\submit_tpu_job.ps1 submit-reward-sweep -RunId reward-grid-001
+.\cloud\submit_tpu_job.ps1 status-sweep -RunId reward-grid-001
+.\cloud\submit_tpu_job.ps1 fetch-sweep -RunId reward-grid-001
 .\cloud\submit_tpu_job.ps1 eval-checkpoints -RunId baseline-001
 .\cloud\submit_tpu_job.ps1 status -RunId baseline-001
 .\cloud\submit_tpu_job.ps1 ensure-storage
@@ -18,7 +21,7 @@ Local Google TPU VM orchestrator for the GRPO baseline workflow.
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("preflight", "ensure-tpu", "ensure-storage", "bootstrap", "submit-baseline", "eval-checkpoints", "status", "fetch", "sync-storage", "restore-cache", "start-tpu", "stop-tpu", "delete-tpu")]
+    [ValidateSet("preflight", "ensure-tpu", "ensure-storage", "bootstrap", "submit-baseline", "submit-reward-sweep", "eval-checkpoints", "status", "status-sweep", "fetch", "fetch-sweep", "sync-storage", "restore-cache", "start-tpu", "stop-tpu", "delete-tpu")]
     [string]$Command = "preflight",
 
     [string]$RunId = ("baseline-" + (Get-Date -Format "yyyyMMdd-HHmmss")),
@@ -377,6 +380,9 @@ function New-CodeBundle {
         if ([string]::IsNullOrWhiteSpace($rel)) {
             continue
         }
+        if ($rel -like "artifacts/reports/*.zip") {
+            continue
+        }
         $source = Join-Path $RepoRoot $rel
         if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
             continue
@@ -581,6 +587,19 @@ function Submit-Baseline {
     }
 }
 
+function Submit-RewardSweep {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-reward-sweep" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
 function Eval-Checkpoints {
     Assert-RunId
     $bundle = New-CodeBundle
@@ -600,6 +619,12 @@ function Status-Run {
     Invoke-RemoteRunner $runner "status"
 }
 
+function Status-Sweep {
+    Assert-RunId
+    $runner = Upload-Runner
+    Invoke-RemoteRunner $runner "status-sweep"
+}
+
 function Fetch-Run {
     Assert-RunId
     Write-Step "Preparing remote result archive"
@@ -611,7 +636,7 @@ FETCH=`$RUN_DIR/fetch
 ARCHIVE=$remoteArchive
 rm -rf "`$FETCH" "`$ARCHIVE"
 mkdir -p "`$FETCH"
-for path in artifacts meta pipeline.log run_baseline.sh run_eval_checkpoints.sh tensorboard; do
+for path in artifacts meta pipeline.log run_baseline.sh run_eval_checkpoints.sh run_reward_sweep.sh tensorboard runs; do
   if [ -e "`$RUN_DIR/`$path" ]; then
     cp -r "`$RUN_DIR/`$path" "`$FETCH/"
   fi
@@ -697,9 +722,12 @@ switch ($Command) {
     "ensure-storage" { Ensure-Storage }
     "bootstrap" { Bootstrap-Remote }
     "submit-baseline" { Submit-Baseline }
+    "submit-reward-sweep" { Submit-RewardSweep }
     "eval-checkpoints" { Eval-Checkpoints }
     "status" { Status-Run }
+    "status-sweep" { Status-Sweep }
     "fetch" { Fetch-Run }
+    "fetch-sweep" { Fetch-Run }
     "sync-storage" { Sync-Storage }
     "restore-cache" { Restore-Cache }
     "start-tpu" { Start-Tpu }

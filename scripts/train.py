@@ -39,6 +39,7 @@ from config import (
     EPSILON,
     EVAL_EVERY_N_STEPS,
     LEARNING_RATE,
+    LR_SCHEDULE_STEPS,
     MAX_GRAD_NORM,
     MAX_PROMPT_LENGTH,
     MAX_STEPS,
@@ -97,7 +98,7 @@ def build_optimizer():
         init_value=0.0,
         peak_value=LEARNING_RATE,
         warmup_steps=WARMUP_STEPS,
-        decay_steps=MAX_STEPS,
+        decay_steps=LR_SCHEDULE_STEPS,
         end_value=0.0,
     )
     opt = optax.adamw(learning_rate=schedule, b1=B1, b2=B2, weight_decay=WEIGHT_DECAY)
@@ -218,7 +219,11 @@ def main():
         algo_config=grpo_cfg,
     )
 
-    print(f"Starting GRPO training. CKPT_DIR={CKPT_DIR}  MAX_STEPS={MAX_STEPS}")
+    print(
+        "Starting GRPO training. "
+        f"CKPT_DIR={CKPT_DIR}  MAX_STEPS={MAX_STEPS}  "
+        f"LR_SCHEDULE_STEPS={LR_SCHEDULE_STEPS}  WARMUP_STEPS={WARMUP_STEPS}"
+    )
     status = "failed"
     try:
         observability.write_manifest(status="running")
@@ -232,6 +237,7 @@ def main():
                 "ckpt_dir": CKPT_DIR,
                 "tensorboard_dir": TENSORBOARD_DIR,
                 "max_steps": MAX_STEPS,
+                "lr_schedule_steps": LR_SCHEDULE_STEPS,
                 "eval_every_n_steps": EVAL_EVERY_N_STEPS,
                 "save_interval_steps": SAVE_INTERVAL_STEPS,
             },

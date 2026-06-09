@@ -25,7 +25,9 @@ usage() {
 Usage:
   remote_tpu_runner.sh bootstrap --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
   remote_tpu_runner.sh submit-baseline --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
+  remote_tpu_runner.sh submit-reward-sweep --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh eval-checkpoints --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
+  remote_tpu_runner.sh status-sweep --run-id RUN
   remote_tpu_runner.sh status --run-id RUN
 
 Options:
@@ -396,6 +398,193 @@ submit_baseline() {
   echo "Log: $RUN_DIR/pipeline.log"
 }
 
+write_reward_sweep_script() {
+  local run_script="$RUN_DIR/run_reward_sweep.sh"
+  cat > "$run_script" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+
+SWEEP_ID="$RUN_ID"
+RUN_DIR="$RUN_DIR"
+SRC_DIR="$SRC_DIR"
+VENV="$REMOTE_VENV"
+PARENT_ARTIFACT_DIR="$ARTIFACT_DIR"
+REMOTE_ROOT="$REMOTE_ROOT"
+PROJECT_ID="$PROJECT_ID"
+STORAGE_BUCKET="$STORAGE_BUCKET"
+STORAGE_PREFIX="$STORAGE_PREFIX"
+STORAGE_CACHE_PREFIX="$STORAGE_CACHE_PREFIX"
+
+cd "\$SRC_DIR/scripts"
+set -a
+if [[ -f .env ]]; then
+  source .env
+fi
+set +a
+source "\$VENV/bin/activate"
+
+export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+export WANDB_PROJECT="\${WANDB_PROJECT:-grpo-tpu-2026}"
+export TRAIN_DATA_DIR="\$RUN_DIR/data/train"
+export TEST_DATA_DIR="\$RUN_DIR/data/test"
+export NUM_TEST_BATCHES="\${SWEEP_NUM_TEST_BATCHES:-64}"
+export TOTAL_GENERATION_STEPS="\${SWEEP_TOTAL_GENERATION_STEPS:-768}"
+export MAX_PROMPT_LENGTH="\${MAX_PROMPT_LENGTH:-256}"
+mkdir -p "\$PARENT_ARTIFACT_DIR" "\$RUN_DIR/runs" "\$TRAIN_DATA_DIR" "\$TEST_DATA_DIR"
+
+sync_on_exit() {
+  local status=\$?
+  if [[ -n "\$STORAGE_BUCKET" ]]; then
+    echo "==> Sync reward sweep outputs to Cloud Storage on exit status \$status"
+    bash "\$REMOTE_ROOT/_tools/remote_tpu_runner.sh" sync-storage \\
+      --run-id "\$SWEEP_ID" \\
+      --remote-root "\$REMOTE_ROOT" \\
+      --venv "\$VENV" \\
+      --project-id "\$PROJECT_ID" \\
+      --storage-bucket "\$STORAGE_BUCKET" \\
+      --storage-prefix "\$STORAGE_PREFIX" \\
+      --storage-cache-prefix "\$STORAGE_CACHE_PREFIX" || true
+  fi
+  exit "\$status"
+}
+trap sync_on_exit EXIT
+
+cat > "\$PARENT_ARTIFACT_DIR/reward_sweep_manifest.json" <<JSON
+{
+  "sweep_id": "$RUN_ID",
+  "max_steps": "\${SWEEP_MAX_STEPS:-768}",
+  "lr_schedule_steps": "\${SWEEP_LR_SCHEDULE_STEPS:-3364}",
+  "warmup_steps": "\${SWEEP_WARMUP_STEPS:-336.4}",
+  "save_interval_steps": "\${SWEEP_SAVE_INTERVAL_STEPS:-256}",
+  "max_to_keep": "\${SWEEP_MAX_TO_KEEP:-5}",
+  "eval_every_n_steps": "\${SWEEP_EVAL_EVERY_N_STEPS:-64}",
+  "num_generations": "\${SWEEP_NUM_GENERATIONS:-2}",
+  "total_generation_steps": "\${SWEEP_TOTAL_GENERATION_STEPS:-768}",
+  "learning_rate": "\${SWEEP_LEARNING_RATE:-3e-6}",
+  "beta": "\${SWEEP_BETA:-0.08}",
+  "epsilon": "\${SWEEP_EPSILON:-0.2}",
+  "checkpoint_eval_steps": [256, 512, 768],
+  "reward_modes": [
+    "no_approx",
+    "light_format_oldnum",
+    "numeric_primary_no_len",
+    "numeric_primary_len1200",
+    "numeric_primary_answer_only_len1200"
+  ]
+}
+JSON
+
+if [[ "$TINY_SMOKE" == "1" ]]; then
+  export SWEEP_MAX_STEPS=2
+  export SWEEP_LR_SCHEDULE_STEPS=3364
+  export SWEEP_WARMUP_STEPS=336.4
+  export SWEEP_SAVE_INTERVAL_STEPS=1
+  export SWEEP_MAX_TO_KEEP=5
+  export SWEEP_EVAL_EVERY_N_STEPS=1
+  export SWEEP_TOTAL_GENERATION_STEPS=96
+  export NUM_TEST_BATCHES=2
+  export MAX_PROMPT_LENGTH=128
+fi
+
+echo "==> Reward sweep base evaluation"
+python -u evaluate.py --no-restore --preset greedy --output-json "\$PARENT_ARTIFACT_DIR/base_eval.json"
+
+declare -a SWEEP_RUNS=(
+  "R1_no_approx:no_approx"
+  "R2_light_format_oldnum:light_format_oldnum"
+  "R3_numeric_primary_no_len:numeric_primary_no_len"
+  "R4_numeric_primary_len1200:numeric_primary_len1200"
+  "R5_numeric_primary_answer_only_len1200:numeric_primary_answer_only_len1200"
+)
+
+for spec in "\${SWEEP_RUNS[@]}"; do
+  EXP_ID="\${spec%%:*}"
+  MODE="\${spec#*:}"
+  EXP_DIR="\$RUN_DIR/runs/\$EXP_ID"
+  ARTIFACT_DIR="\$EXP_DIR/artifacts"
+  mkdir -p "\$EXP_DIR" "\$ARTIFACT_DIR" "\$EXP_DIR/ckpts" "\$EXP_DIR/intermediate_ckpt" "\$EXP_DIR/tensorboard"
+
+  echo
+  echo "==> Reward sweep run \$EXP_ID mode=\$MODE"
+  export RUN_ID="\$SWEEP_ID-\$EXP_ID"
+  export WANDB_RUN_ID="\$SWEEP_ID-\$EXP_ID"
+  export REWARD_MODE="\$MODE"
+  export CKPT_DIR="\$EXP_DIR/ckpts"
+  export INTERMEDIATE_CKPT_DIR="\$EXP_DIR/intermediate_ckpt"
+  export TENSORBOARD_DIR="\$EXP_DIR/tensorboard"
+  export OBS_OUTPUT_DIR="\$ARTIFACT_DIR/observability"
+  export OBS_TRACE_DIR="\$ARTIFACT_DIR/rollout_traces"
+  export OBS_RUN_MANIFEST="\$ARTIFACT_DIR/run_manifest.json"
+  export OBS_TRACE_EVERY_N_STEPS="\${SWEEP_OBS_TRACE_EVERY_N_STEPS:-1}"
+  export OBS_TRACE_MAX_ROWS="\${SWEEP_OBS_TRACE_MAX_ROWS:-4096}"
+  export MAX_STEPS="\${SWEEP_MAX_STEPS:-768}"
+  export LR_SCHEDULE_STEPS="\${SWEEP_LR_SCHEDULE_STEPS:-3364}"
+  export WARMUP_STEPS="\${SWEEP_WARMUP_STEPS:-336.4}"
+  export SAVE_INTERVAL_STEPS="\${SWEEP_SAVE_INTERVAL_STEPS:-256}"
+  export MAX_TO_KEEP="\${SWEEP_MAX_TO_KEEP:-5}"
+  export EVAL_EVERY_N_STEPS="\${SWEEP_EVAL_EVERY_N_STEPS:-64}"
+  export NUM_GENERATIONS="\${SWEEP_NUM_GENERATIONS:-2}"
+  export LEARNING_RATE="\${SWEEP_LEARNING_RATE:-3e-6}"
+  export BETA="\${SWEEP_BETA:-0.08}"
+  export EPSILON="\${SWEEP_EPSILON:-0.2}"
+  if [[ -f "\$RUN_DIR/meta/git_commit.txt" ]]; then
+    export GIT_COMMIT="\$(cat "\$RUN_DIR/meta/git_commit.txt")"
+  fi
+  if [[ -f "\$RUN_DIR/meta/git_status.txt" ]]; then
+    export GIT_STATUS_SHORT="\$(cat "\$RUN_DIR/meta/git_status.txt")"
+  fi
+  mkdir -p "\$OBS_OUTPUT_DIR" "\$OBS_TRACE_DIR"
+
+  env | sort | grep -E '^(RUN_ID|REWARD_MODE|MAX_STEPS|LR_SCHEDULE_STEPS|WARMUP_STEPS|SAVE_INTERVAL_STEPS|MAX_TO_KEEP|EVAL_EVERY_N_STEPS|NUM_GENERATIONS|TOTAL_GENERATION_STEPS|LEARNING_RATE|BETA|EPSILON|CKPT_DIR|TENSORBOARD_DIR|OBS_)=' > "\$EXP_DIR/run_env.txt"
+  printf '%s\n' "\$MODE" > "\$EXP_DIR/reward_mode.txt"
+
+  python -u train.py 2>&1 | tee -a "\$EXP_DIR/train.log"
+
+  if [[ "$TINY_SMOKE" == "1" ]]; then
+    CHECKPOINT_STEPS=(1 2)
+  else
+    CHECKPOINT_STEPS=(256 512 768)
+  fi
+
+  python -u evaluate_checkpoints.py \\
+    --ckpt-dir "\$CKPT_DIR/actor" \\
+    --steps "\${CHECKPOINT_STEPS[@]}" \\
+    --preset greedy \\
+    --output-dir "\$ARTIFACT_DIR/checkpoint_eval" \\
+    --skip-existing \\
+    --continue-on-error 2>&1 | tee -a "\$EXP_DIR/eval_checkpoints.log" || true
+
+  python -u analyze_grpo_run.py --run-dir "\$EXP_DIR" --output-dir "\$ARTIFACT_DIR/analysis" || true
+done
+
+echo "==> Build reward sweep analysis package"
+python -u analyze_reward_sweep.py --input-dir "\$RUN_DIR" --output-dir "\$PARENT_ARTIFACT_DIR/sweep_analysis" || true
+
+echo "==> Reward sweep complete"
+EOF
+  chmod +x "$run_script"
+}
+
+submit_reward_sweep() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_reward_sweep_script
+
+  local session="tpu-sweep-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "bash '$RUN_DIR/run_reward_sweep.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- reward sweep exited (\$status) ---\"; exec bash"
+  echo "Started. Attach with: tmux attach -t $session"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
 write_eval_checkpoints_script() {
   local run_script="$RUN_DIR/run_eval_checkpoints.sh"
   cat > "$run_script" <<EOF
@@ -564,6 +753,62 @@ PY
   find "$ARTIFACT_DIR" -maxdepth 3 -type f 2>/dev/null | sort || true
 }
 
+status_sweep() {
+  require_run_id
+  prepare_paths
+  local session="tpu-sweep-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux sweep: running ($session)"
+  else
+    echo "tmux sweep: not running ($session)"
+  fi
+  echo
+  echo "Sweep directory: $RUN_DIR"
+  echo
+  if [[ -f "$RUN_DIR/pipeline.log" ]]; then
+    echo "Sweep markers:"
+    grep -nE '^(==>|--- reward sweep exited)' "$RUN_DIR/pipeline.log" | tail -n 40 || true
+    echo
+    echo "Last 100 log lines:"
+    tail -n 100 "$RUN_DIR/pipeline.log"
+  else
+    echo "No pipeline.log found yet."
+  fi
+  echo
+  echo "Per-run summaries:"
+  if [[ -d "$RUN_DIR/runs" ]]; then
+    for child in "$RUN_DIR"/runs/*; do
+      [[ -d "$child" ]] || continue
+      echo
+      echo "--- $(basename "$child") ---"
+      if [[ -f "$child/reward_mode.txt" ]]; then
+        echo "reward_mode: $(cat "$child/reward_mode.txt")"
+      fi
+      find "$child/ckpts/actor" -maxdepth 1 -type d -name '[0-9]*' 2>/dev/null | sed 's#.*/##' | sort -n | tail -n 10 | xargs -r echo "checkpoints:"
+      if [[ -f "$child/artifacts/checkpoint_eval/checkpoint_eval_summary.json" ]]; then
+        python - "$child/artifacts/checkpoint_eval/checkpoint_eval_summary.json" <<'PY' || true
+import json, pathlib, sys
+path = pathlib.Path(sys.argv[1])
+payload = json.loads(path.read_text())
+best = payload.get("best_lora_checkpoint") or {}
+rows = payload.get("rows") or []
+print(f"eval_rows: {len(rows)}")
+if best:
+    print(f"best_eval: step={best.get('step')} accuracy={best.get('accuracy')} partial={best.get('partial_accuracy')} format={best.get('format_accuracy')}")
+failures = payload.get("failures") or []
+if failures:
+    print(f"failures: {failures}")
+PY
+      fi
+    done
+  else
+    echo "No runs/ directory found yet."
+  fi
+  echo
+  echo "Sweep artifacts:"
+  find "$ARTIFACT_DIR" -maxdepth 5 -type f 2>/dev/null | sort | tail -n 80 || true
+}
+
 require_storage() {
   if [[ -z "$PROJECT_ID" ]]; then
     echo "--project-id is required for storage commands." >&2
@@ -630,8 +875,10 @@ sync_storage() {
   sync_dir_to_storage "$RUN_DIR/tensorboard" "$run_dest/tensorboard"
   sync_dir_to_storage "$RUN_DIR/ckpts" "$run_dest/ckpts"
   sync_dir_to_storage "$RUN_DIR/intermediate_ckpt" "$run_dest/intermediate_ckpt"
+  sync_dir_to_storage "$RUN_DIR/runs" "$run_dest/runs"
   copy_file_to_storage "$RUN_DIR/pipeline.log" "$run_dest/pipeline.log"
   copy_file_to_storage "$RUN_DIR/run_baseline.sh" "$run_dest/run_baseline.sh"
+  copy_file_to_storage "$RUN_DIR/run_reward_sweep.sh" "$run_dest/run_reward_sweep.sh"
 
   # Do not sync HF_HOME wholesale: token files can live there. Only sync model
   # repository cache directories, which are enough to avoid re-downloading weights.
@@ -691,6 +938,7 @@ restore_run_from_storage() {
   sync_storage_to_dir "$run_src/tensorboard" "$RUN_DIR/tensorboard"
   sync_storage_to_dir "$run_src/artifacts" "$RUN_DIR/artifacts"
   sync_storage_to_dir "$run_src/meta" "$RUN_DIR/meta"
+  sync_storage_to_dir "$run_src/runs" "$RUN_DIR/runs"
 }
 
 case "$COMMAND" in
@@ -704,11 +952,17 @@ case "$COMMAND" in
   submit-baseline)
     submit_baseline
     ;;
+  submit-reward-sweep)
+    submit_reward_sweep
+    ;;
   eval-checkpoints)
     eval_checkpoints
     ;;
   status)
     status_run
+    ;;
+  status-sweep)
+    status_sweep
     ;;
   sync-storage)
     sync_storage

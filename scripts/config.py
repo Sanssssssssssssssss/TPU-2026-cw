@@ -76,7 +76,8 @@ LEARNING_RATE = _env_float("LEARNING_RATE", 3e-6)
 B1 = _env_float("B1", 0.9)
 B2 = _env_float("B2", 0.99)
 WEIGHT_DECAY = _env_float("WEIGHT_DECAY", 0.1)
-WARMUP_STEPS = _env_float("WARMUP_STEPS", 0.1 * MAX_STEPS)
+LR_SCHEDULE_STEPS = _env_int("LR_SCHEDULE_STEPS", MAX_STEPS)
+WARMUP_STEPS = _env_float("WARMUP_STEPS", 0.1 * LR_SCHEDULE_STEPS)
 MAX_GRAD_NORM = _env_float("MAX_GRAD_NORM", 0.1)
 
 # ====== Checkpointing ======
