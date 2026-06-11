@@ -44,7 +44,7 @@ Local Google TPU VM orchestrator for the GRPO baseline workflow.
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("preflight", "ensure-tpu", "ensure-storage", "bootstrap", "submit-baseline", "submit-reward-sweep", "submit-reward-continuation", "submit-candidate-eval", "submit-reward-dense", "submit-r7-large-eval", "submit-r12-best-large-eval", "submit-reward-r9", "submit-reward-r10", "submit-k8-pilot", "submit-k8-r10-only", "submit-k8-r11-fallback-only", "submit-k8-r12-simple-only", "submit-k8-r12-simple-full", "submit-reward-only-r12-full", "submit-r12-non-r64-pilot", "submit-r12-lora-public-tuning", "submit-k8-public-beta", "submit-k8-r13-public-beta-only", "submit-k8-r14-public-beta-only", "eval-checkpoints", "status", "status-sweep", "status-continuation", "status-candidate-eval", "status-reward-dense", "status-r7-large-eval", "status-r12-best-large-eval", "status-reward-r9", "status-reward-r10", "status-k8-pilot", "resume-k8-pilot", "stop-reward-r10", "stop-k8-pilot", "fetch", "fetch-sweep", "fetch-continuation", "fetch-candidate-eval", "fetch-reward-dense", "fetch-r7-large-eval", "fetch-r12-best-large-eval", "fetch-reward-r9", "fetch-reward-r10", "fetch-k8-pilot", "sync-storage", "restore-cache", "start-tpu", "stop-tpu", "delete-tpu")]
+    [ValidateSet("preflight", "ensure-tpu", "ensure-storage", "bootstrap", "submit-baseline", "submit-reward-sweep", "submit-reward-continuation", "submit-candidate-eval", "submit-reward-dense", "submit-r7-large-eval", "submit-r12-best-large-eval", "submit-reward-r9", "submit-reward-r10", "submit-k8-pilot", "submit-k8-r10-only", "submit-k8-r11-fallback-only", "submit-k8-r12-simple-only", "submit-k8-r12-simple-full", "submit-reward-only-r12-full", "submit-r12-non-r64-pilot", "submit-r12-lora-public-tuning", "submit-r12-public-strong-tuning", "submit-k8-public-beta", "submit-k8-r13-public-beta-only", "submit-k8-r14-public-beta-only", "eval-checkpoints", "status", "status-sweep", "status-continuation", "status-candidate-eval", "status-reward-dense", "status-r7-large-eval", "status-r12-best-large-eval", "status-reward-r9", "status-reward-r10", "status-k8-pilot", "resume-k8-pilot", "stop-reward-r10", "stop-k8-pilot", "fetch", "fetch-sweep", "fetch-continuation", "fetch-candidate-eval", "fetch-reward-dense", "fetch-r7-large-eval", "fetch-r12-best-large-eval", "fetch-reward-r9", "fetch-reward-r10", "fetch-k8-pilot", "sync-storage", "restore-cache", "start-tpu", "stop-tpu", "delete-tpu")]
     [string]$Command = "preflight",
 
     [string]$RunId = ("baseline-" + (Get-Date -Format "yyyyMMdd-HHmmss")),
@@ -821,6 +821,19 @@ function Submit-R12LoraPublicTuning {
     }
 }
 
+function Submit-R12PublicStrongTuning {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-r12-public-strong-tuning" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
 function Submit-K8PublicBeta {
     Assert-RunId
     $bundle = New-CodeBundle
@@ -1194,6 +1207,7 @@ switch ($Command) {
     "submit-reward-only-r12-full" { Submit-RewardOnlyR12Full }
     "submit-r12-non-r64-pilot" { Submit-R12NonR64Pilot }
     "submit-r12-lora-public-tuning" { Submit-R12LoraPublicTuning }
+    "submit-r12-public-strong-tuning" { Submit-R12PublicStrongTuning }
     "submit-k8-public-beta" { Submit-K8PublicBeta }
     "submit-k8-r13-public-beta-only" { Submit-K8R13PublicBetaOnly }
     "submit-k8-r14-public-beta-only" { Submit-K8R14PublicBetaOnly }

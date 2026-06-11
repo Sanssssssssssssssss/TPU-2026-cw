@@ -1902,10 +1902,10 @@ write_k8_pilot_script() {
   local run_specs="${1:-R9_closed_answer_minimal:closed_answer_minimal R10_numeric_guarded:numeric_guarded}"
   local manifest_runs=""
   local manifest_sep=""
-  local spec exp_id mode spec_beta spec_lr spec_rank spec_alpha
+  local spec exp_id mode spec_beta spec_lr spec_rank spec_alpha spec_epsilon
   for spec in $run_specs; do
-    IFS=':' read -r exp_id mode spec_beta spec_lr spec_rank spec_alpha <<< "$spec"
-    manifest_runs+="${manifest_sep}    {\"run_id\": \"$exp_id\", \"reward_mode\": \"$mode\", \"beta_override\": \"${spec_beta:-}\", \"learning_rate_override\": \"${spec_lr:-}\", \"rank_override\": \"${spec_rank:-}\", \"alpha_override\": \"${spec_alpha:-}\"}"
+    IFS=':' read -r exp_id mode spec_beta spec_lr spec_rank spec_alpha spec_epsilon <<< "$spec"
+    manifest_runs+="${manifest_sep}    {\"run_id\": \"$exp_id\", \"reward_mode\": \"$mode\", \"beta_override\": \"${spec_beta:-}\", \"learning_rate_override\": \"${spec_lr:-}\", \"rank_override\": \"${spec_rank:-}\", \"alpha_override\": \"${spec_alpha:-}\", \"epsilon_override\": \"${spec_epsilon:-}\"}"
     manifest_sep=$',\n'
   done
   cat > "$run_script" <<EOF
@@ -1979,7 +1979,7 @@ $manifest_runs
   "rank": "\${K8_RANK:-64}",
   "alpha": "\${K8_ALPHA:-64}",
   "checkpoint_eval_steps": "\${K8_CHECKPOINT_STEPS:-32 64 96 128 160 192 224 256}",
-  "run_spec_format": "run_id:reward_mode[:beta_override[:learning_rate_override[:rank_override[:alpha_override]]]]"
+  "run_spec_format": "run_id:reward_mode[:beta_override[:learning_rate_override[:rank_override[:alpha_override[:epsilon_override]]]]]"
 }
 JSON
 
@@ -1996,17 +1996,18 @@ fi
 read -r -a K8_RUNS <<< "\$K8_RUN_SPECS"
 
 for spec in "\${K8_RUNS[@]}"; do
-  IFS=':' read -r EXP_ID MODE SPEC_BETA SPEC_LEARNING_RATE SPEC_RANK SPEC_ALPHA <<< "\$spec"
+  IFS=':' read -r EXP_ID MODE SPEC_BETA SPEC_LEARNING_RATE SPEC_RANK SPEC_ALPHA SPEC_EPSILON <<< "\$spec"
   BRANCH_BETA="\${SPEC_BETA:-\${K8_BETA:-0.04}}"
   BRANCH_LEARNING_RATE="\${SPEC_LEARNING_RATE:-\${K8_LEARNING_RATE:-3e-6}}"
   BRANCH_RANK="\${SPEC_RANK:-\${K8_RANK:-64}}"
   BRANCH_ALPHA="\${SPEC_ALPHA:-\${K8_ALPHA:-64}}"
+  BRANCH_EPSILON="\${SPEC_EPSILON:-\${K8_EPSILON:-0.2}}"
   EXP_DIR="\$RUN_DIR/runs/\$EXP_ID"
   ARTIFACT_DIR="\$EXP_DIR/artifacts"
   mkdir -p "\$EXP_DIR" "\$ARTIFACT_DIR" "\$EXP_DIR/ckpts" "\$EXP_DIR/intermediate_ckpt" "\$EXP_DIR/tensorboard"
 
   echo
-  echo "==> K8 pilot run \$EXP_ID mode=\$MODE beta=\$BRANCH_BETA lr=\$BRANCH_LEARNING_RATE rank=\$BRANCH_RANK alpha=\$BRANCH_ALPHA"
+  echo "==> K8 pilot run \$EXP_ID mode=\$MODE beta=\$BRANCH_BETA lr=\$BRANCH_LEARNING_RATE rank=\$BRANCH_RANK alpha=\$BRANCH_ALPHA epsilon=\$BRANCH_EPSILON"
   export RUN_ID="\$K8_ID-\$EXP_ID"
   export WANDB_RUN_ID="\$K8_ID-\$EXP_ID"
   export REWARD_MODE="\$MODE"
@@ -2027,7 +2028,7 @@ for spec in "\${K8_RUNS[@]}"; do
   export NUM_GENERATIONS="\${K8_NUM_GENERATIONS:-8}"
   export LEARNING_RATE="\$BRANCH_LEARNING_RATE"
   export BETA="\$BRANCH_BETA"
-  export EPSILON="\${K8_EPSILON:-0.2}"
+  export EPSILON="\$BRANCH_EPSILON"
   export RANK="\$BRANCH_RANK"
   export ALPHA="\$BRANCH_ALPHA"
   mkdir -p "\$OBS_OUTPUT_DIR" "\$OBS_TRACE_DIR"
@@ -2222,6 +2223,26 @@ submit_r12_lora_public_tuning() {
   echo "==> Starting tmux session $session"
   tmux new-session -d -s "$session" "K8_MAX_STEPS=256 K8_CHECKPOINT_STEPS='32 64 96 128 160 192 224 256' K8_MAX_TO_KEEP=12 K8_SAVE_INTERVAL_STEPS=32 K8_EVAL_EVERY_N_STEPS=32 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- k8 lora tuning pilot exited (\$status) ---\"; exec bash"
   echo "Started R12 LoRA/LR public tuning pilot. Attach with: tmux attach -t $session"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
+submit_r12_public_strong_tuning() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R12_rank16_alpha32_beta001_lr5e-6_eps02:gsm8k_verifiable_simple:0.001:5e-6:16:32:0.2 R12_rank16_alpha32_beta000_lr5e-6_eps02:gsm8k_verifiable_simple:0.0:5e-6:16:32:0.2 R12_rank16_alpha32_beta001_lr1e-5_eps02:gsm8k_verifiable_simple:0.001:1e-5:16:32:0.2 R12_rank16_alpha32_beta001_lr5e-6_eps028:gsm8k_verifiable_simple:0.001:5e-6:16:32:0.28"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_MAX_STEPS=256 K8_CHECKPOINT_STEPS='32 64 96 128 160 192 224 256' K8_MAX_TO_KEEP=12 K8_SAVE_INTERVAL_STEPS=32 K8_EVAL_EVERY_N_STEPS=32 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- k8 public-strong tuning pilot exited (\$status) ---\"; exec bash"
+  echo "Started R12 public-strong LoRA/KL/clip tuning pilot. Attach with: tmux attach -t $session"
   echo "Log: $RUN_DIR/pipeline.log"
 }
 
@@ -3221,6 +3242,9 @@ case "$COMMAND" in
     ;;
   submit-r12-lora-public-tuning)
     submit_r12_lora_public_tuning
+    ;;
+  submit-r12-public-strong-tuning)
+    submit_r12_public_strong_tuning
     ;;
   submit-k8-public-beta)
     submit_k8_public_beta

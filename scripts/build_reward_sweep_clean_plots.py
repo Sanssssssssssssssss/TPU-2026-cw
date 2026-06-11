@@ -39,6 +39,10 @@ RUNS = [
     "R12_rank32_alpha32_beta004_lr3e-6",
     "R12_rank16_alpha32_beta001_lr1e-6",
     "R12_rank16_alpha32_beta000_lr1e-6",
+    "R12_rank16_alpha32_beta001_lr5e-6_eps02",
+    "R12_rank16_alpha32_beta000_lr5e-6_eps02",
+    "R12_rank16_alpha32_beta001_lr1e-5_eps02",
+    "R12_rank16_alpha32_beta001_lr5e-6_eps028",
 ]
 
 RUN_LABEL = {
@@ -58,6 +62,10 @@ RUN_LABEL = {
     "R12_rank32_alpha32_beta004_lr3e-6": "R12 rank32 alpha32 beta0.04 lr3e-6",
     "R12_rank16_alpha32_beta001_lr1e-6": "R12 rank16 alpha32 beta0.001 lr1e-6",
     "R12_rank16_alpha32_beta000_lr1e-6": "R12 rank16 alpha32 beta0 lr1e-6",
+    "R12_rank16_alpha32_beta001_lr5e-6_eps02": "R12 rank16 alpha32 beta0.001 lr5e-6 eps0.2",
+    "R12_rank16_alpha32_beta000_lr5e-6_eps02": "R12 rank16 alpha32 beta0 lr5e-6 eps0.2",
+    "R12_rank16_alpha32_beta001_lr1e-5_eps02": "R12 rank16 alpha32 beta0.001 lr1e-5 eps0.2",
+    "R12_rank16_alpha32_beta001_lr5e-6_eps028": "R12 rank16 alpha32 beta0.001 lr5e-6 eps0.28",
 }
 
 RUN_COLOR = {
@@ -77,6 +85,10 @@ RUN_COLOR = {
     "R12_rank32_alpha32_beta004_lr3e-6": "#2ca02c",
     "R12_rank16_alpha32_beta001_lr1e-6": "#9467bd",
     "R12_rank16_alpha32_beta000_lr1e-6": "#d62728",
+    "R12_rank16_alpha32_beta001_lr5e-6_eps02": "#17becf",
+    "R12_rank16_alpha32_beta000_lr5e-6_eps02": "#8c564b",
+    "R12_rank16_alpha32_beta001_lr1e-5_eps02": "#e377c2",
+    "R12_rank16_alpha32_beta001_lr5e-6_eps028": "#7f7f7f",
 }
 
 
@@ -99,6 +111,10 @@ def run_color(run_id: str) -> str:
         "R12_rank32_alpha32_beta004_lr3e-6",
         "R12_rank16_alpha32_beta001_lr1e-6",
         "R12_rank16_alpha32_beta000_lr1e-6",
+        "R12_rank16_alpha32_beta001_lr5e-6_eps02",
+        "R12_rank16_alpha32_beta000_lr5e-6_eps02",
+        "R12_rank16_alpha32_beta001_lr1e-5_eps02",
+        "R12_rank16_alpha32_beta001_lr5e-6_eps028",
     ):
         if base_id in run_id:
             return RUN_COLOR[base_id]
