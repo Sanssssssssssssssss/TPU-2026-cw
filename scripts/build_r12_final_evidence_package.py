@@ -16,8 +16,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import matplotlib.pyplot as plt
-
 
 def read_csv(path: Path) -> list[dict[str, str]]:
     if not path.is_file():
@@ -68,6 +66,23 @@ def copy_tree_files(src: Path, dst: Path, patterns: tuple[str, ...]) -> list[dic
     return copied
 
 
+def reset_generated_output(out: Path) -> None:
+    """Remove stale one-off figures while preserving copied refs on Windows."""
+    stale_files = (
+        "figures/01_r12_checkpoint_accuracy.png",
+        "figures/02_reward_only_alert_counts.png",
+        "figures/03_r12_large_eval_summary.png",
+    )
+    for name in stale_files:
+        path = out / name
+        if path.exists():
+            path.unlink()
+    for name in ("README.md", "manifest_report.json", "manifest_clean_plots.json"):
+        path = out / name
+        if path.exists():
+            path.unlink()
+
+
 def best_checkpoint(rows: list[dict[str, str]]) -> dict[str, Any]:
     if not rows:
         return {}
@@ -115,105 +130,11 @@ def best_large_eval(rows: list[dict[str, str]]) -> dict[str, Any]:
     }
 
 
-def plot_checkpoint_accuracy(rows: list[dict[str, str]], out: Path) -> None:
-    if not rows:
-        return
-    steps = [int(float(row["step"])) for row in rows]
-    acc = [float(row["accuracy"]) for row in rows]
-    partial = [float(row.get("partial_accuracy") or 0.0) for row in rows]
-    low = [float(row.get("accuracy_ci95_low") or a) for row, a in zip(rows, acc)]
-    high = [float(row.get("accuracy_ci95_high") or a) for row, a in zip(rows, acc)]
-    yerr = [[a - l for a, l in zip(acc, low)], [h - a for a, h in zip(acc, high)]]
-
-    fig, ax = plt.subplots(figsize=(8.5, 4.8))
-    ax.errorbar(steps, acc, yerr=yerr, marker="o", linewidth=1.5, capsize=3, label="accuracy")
-    ax.plot(steps, partial, marker="s", linewidth=1.2, label="partial_accuracy")
-    best_idx = max(range(len(acc)), key=lambda i: (acc[i], partial[i], -steps[i]))
-    ax.axvline(steps[best_idx], color="0.3", linewidth=1, linestyle="--")
-    ax.text(steps[best_idx], max(acc + partial) + 1, f"best {steps[best_idx]}", ha="center", va="bottom", fontsize=9)
-    ax.set_title("R12 full checkpoint evaluation")
-    ax.set_xlabel("checkpoint step")
-    ax.set_ylabel("rate (%)")
-    ax.set_ylim(max(0, min(acc + partial) - 6), min(100, max(acc + partial) + 8))
-    ax.grid(True, axis="y", color="0.88")
-    ax.legend(frameon=False)
-    fig.tight_layout()
-    out.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out, dpi=160)
-    plt.close(fig)
-
-
-def plot_large_eval_summary(rows: list[dict[str, str]], out: Path) -> None:
-    r12_rows = [row for row in rows if row.get("label", "").startswith("R12_") and row.get("step")]
-    if not r12_rows:
-        return
-    r12_rows = sorted(r12_rows, key=lambda row: int(float(row.get("step") or 0)))
-    steps = [int(float(row["step"])) for row in r12_rows]
-    acc = [float(row.get("accuracy") or 0.0) for row in r12_rows]
-    partial = [float(row.get("partial_accuracy") or 0.0) for row in r12_rows]
-    robust = [100.0 * float(row.get("robust_numeric_exact_rate") or 0.0) for row in r12_rows]
-    base_rows = [row for row in rows if row.get("label") == "base"]
-    base_acc = float(base_rows[0].get("accuracy") or 0.0) if base_rows else None
-    base_partial = float(base_rows[0].get("partial_accuracy") or 0.0) if base_rows else None
-
-    fig, ax = plt.subplots(figsize=(8.5, 4.8))
-    ax.plot(steps, acc, marker="o", linewidth=1.5, label="large_eval accuracy")
-    ax.plot(steps, partial, marker="s", linewidth=1.3, label="large_eval partial_accuracy")
-    ax.plot(steps, robust, marker="^", linewidth=1.1, label="robust_numeric_exact_rate")
-    if base_acc is not None:
-        ax.axhline(base_acc, color="0.45", linewidth=1, linestyle="--", label="base accuracy")
-    if base_partial is not None:
-        ax.axhline(base_partial, color="0.7", linewidth=1, linestyle=":", label="base partial_accuracy")
-    best_idx = max(range(len(acc)), key=lambda i: (acc[i], partial[i], -steps[i]))
-    ax.axvline(steps[best_idx], color="0.25", linewidth=1, linestyle="--")
-    ax.text(
-        steps[best_idx],
-        max(acc + partial + robust) + 1,
-        f"large best {steps[best_idx]}",
-        ha="center",
-        va="bottom",
-        fontsize=9,
-    )
-    ax.set_title("R12 256-prompt large eval summary")
-    ax.set_xlabel("checkpoint step")
-    ax.set_ylabel("rate (%)")
-    y_values = acc + partial + robust
-    if base_acc is not None:
-        y_values.append(base_acc)
-    if base_partial is not None:
-        y_values.append(base_partial)
-    ax.set_ylim(max(0, min(y_values) - 6), min(100, max(y_values) + 8))
-    ax.grid(True, axis="y", color="0.88")
-    ax.legend(frameon=False)
-    fig.tight_layout()
-    out.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out, dpi=160)
-    plt.close(fig)
-
-
 def alert_counts(log_text: str) -> dict[str, int]:
     counts: dict[str, int] = {}
     for match in re.finditer(r"OBS ALERT ([^:]+):", log_text):
         counts[match.group(1)] = counts.get(match.group(1), 0) + 1
     return counts
-
-
-def plot_ablation_alerts(counts: dict[str, int], out: Path) -> None:
-    if not counts:
-        return
-    items = sorted(counts.items(), key=lambda kv: kv[1], reverse=True)
-    labels = [k for k, _ in items]
-    values = [v for _, v in items]
-    fig, ax = plt.subplots(figsize=(8.5, 3.8))
-    ax.bar(labels, values, color="#777777")
-    ax.set_title("Reward-only R12 stopped ablation: alert counts")
-    ax.set_ylabel("count in logs")
-    ax.grid(True, axis="y", color="0.88")
-    ax.tick_params(axis="x", rotation=20)
-    fig.tight_layout()
-    out.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out, dpi=160)
-    plt.close(fig)
 
 
 def main() -> int:
@@ -227,6 +148,7 @@ def main() -> int:
     args = parser.parse_args()
 
     out = args.output_dir
+    reset_generated_output(out)
     figures = out / "figures"
     tables = out / "tables"
     raw_refs = out / "raw_refs"
@@ -237,12 +159,10 @@ def main() -> int:
     rows = read_csv(eval_csv)
     best = best_checkpoint(rows)
     write_csv(tables / "r12_full_checkpoint_eval.csv", rows)
-    plot_checkpoint_accuracy(rows, figures / "01_r12_checkpoint_accuracy.png")
 
     large_rows = read_csv(args.large_eval_dir / "large_eval_summary.csv")
     large_best = best_large_eval(large_rows)
     write_csv(tables / "r12_large_eval_summary.csv", large_rows)
-    plot_large_eval_summary(large_rows, figures / "03_r12_large_eval_summary.png")
 
     reward_only_log = read_text(args.reward_only_dir / "pipeline.log") + "\n" + read_text(
         args.reward_only_dir / "runs/R12_reward_only_baseline_kkl/train.log"
@@ -250,7 +170,6 @@ def main() -> int:
     alerts = alert_counts(reward_only_log)
     alert_rows = [{"alert": k, "count": v} for k, v in sorted(alerts.items())]
     write_csv(tables / "reward_only_alert_counts.csv", alert_rows)
-    plot_ablation_alerts(alerts, figures / "02_reward_only_alert_counts.png")
 
     copied: list[dict[str, str]] = []
     copied += copy_tree_files(
@@ -330,9 +249,6 @@ def main() -> int:
         },
         "copied_refs": copied,
         "figures": [
-            "figures/01_r12_checkpoint_accuracy.png",
-            "figures/02_reward_only_alert_counts.png",
-            "figures/03_r12_large_eval_summary.png",
             "figures/combined/*.png",
             "figures/by_run/*.png",
         ],
@@ -367,9 +283,7 @@ This folder consolidates the R12 GRPO evidence used for the report.
 
 ## How to read
 
-- `figures/01_r12_checkpoint_accuracy.png`: checkpoint accuracy and partial accuracy.
-- `figures/03_r12_large_eval_summary.png`: large eval comparison for base and R12 checkpoints.
-- `figures/combined/`: copied clean training diagnostics from the R12 full run.
+- `figures/combined/`: copied clean training diagnostics from the R12 full run, preserving the same 01-08 plot set used in earlier packages.
 - `tables/r12_full_checkpoint_eval.csv`: source table for checkpoint results.
 - `tables/r12_large_eval_summary.csv`: 256-prompt large eval summary for base, R12 step 384, step 512, and step 841.
 - `tables/reward_only_alert_counts.csv`: stopped ablation alert counts.
