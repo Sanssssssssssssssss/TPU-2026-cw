@@ -88,6 +88,33 @@ def best_checkpoint(rows: list[dict[str, str]]) -> dict[str, Any]:
     }
 
 
+def best_large_eval(rows: list[dict[str, str]]) -> dict[str, Any]:
+    r12_rows = [row for row in rows if row.get("label", "").startswith("R12_") and row.get("step")]
+    if not r12_rows:
+        return {}
+
+    def key(row: dict[str, str]) -> tuple[float, float, int]:
+        return (
+            float(row.get("accuracy") or 0.0),
+            float(row.get("partial_accuracy") or 0.0),
+            -int(float(row.get("step") or 0)),
+        )
+
+    best = max(r12_rows, key=key)
+    return {
+        "label": best.get("label", ""),
+        "step": int(float(best.get("step") or 0)),
+        "correct": int(float(best.get("correct") or 0)),
+        "total": int(float(best.get("total") or 0)),
+        "accuracy": float(best.get("accuracy") or 0.0),
+        "partial_accuracy": float(best.get("partial_accuracy") or 0.0),
+        "format_accuracy": float(best.get("format_accuracy") or 0.0),
+        "robust_numeric_exact_rate": float(best.get("robust_numeric_exact_rate") or 0.0),
+        "no_close_answer_rate": float(best.get("no_close_answer_rate") or 0.0),
+        "text_after_close_rate": float(best.get("text_after_close_rate") or 0.0),
+    }
+
+
 def plot_checkpoint_accuracy(rows: list[dict[str, str]], out: Path) -> None:
     if not rows:
         return
@@ -107,7 +134,55 @@ def plot_checkpoint_accuracy(rows: list[dict[str, str]], out: Path) -> None:
     ax.set_title("R12 full checkpoint evaluation")
     ax.set_xlabel("checkpoint step")
     ax.set_ylabel("rate (%)")
-    ax.set_ylim(0, max(75, max(acc + partial) + 8))
+    ax.set_ylim(max(0, min(acc + partial) - 6), min(100, max(acc + partial) + 8))
+    ax.grid(True, axis="y", color="0.88")
+    ax.legend(frameon=False)
+    fig.tight_layout()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out, dpi=160)
+    plt.close(fig)
+
+
+def plot_large_eval_summary(rows: list[dict[str, str]], out: Path) -> None:
+    r12_rows = [row for row in rows if row.get("label", "").startswith("R12_") and row.get("step")]
+    if not r12_rows:
+        return
+    r12_rows = sorted(r12_rows, key=lambda row: int(float(row.get("step") or 0)))
+    steps = [int(float(row["step"])) for row in r12_rows]
+    acc = [float(row.get("accuracy") or 0.0) for row in r12_rows]
+    partial = [float(row.get("partial_accuracy") or 0.0) for row in r12_rows]
+    robust = [100.0 * float(row.get("robust_numeric_exact_rate") or 0.0) for row in r12_rows]
+    base_rows = [row for row in rows if row.get("label") == "base"]
+    base_acc = float(base_rows[0].get("accuracy") or 0.0) if base_rows else None
+    base_partial = float(base_rows[0].get("partial_accuracy") or 0.0) if base_rows else None
+
+    fig, ax = plt.subplots(figsize=(8.5, 4.8))
+    ax.plot(steps, acc, marker="o", linewidth=1.5, label="large_eval accuracy")
+    ax.plot(steps, partial, marker="s", linewidth=1.3, label="large_eval partial_accuracy")
+    ax.plot(steps, robust, marker="^", linewidth=1.1, label="robust_numeric_exact_rate")
+    if base_acc is not None:
+        ax.axhline(base_acc, color="0.45", linewidth=1, linestyle="--", label="base accuracy")
+    if base_partial is not None:
+        ax.axhline(base_partial, color="0.7", linewidth=1, linestyle=":", label="base partial_accuracy")
+    best_idx = max(range(len(acc)), key=lambda i: (acc[i], partial[i], -steps[i]))
+    ax.axvline(steps[best_idx], color="0.25", linewidth=1, linestyle="--")
+    ax.text(
+        steps[best_idx],
+        max(acc + partial + robust) + 1,
+        f"large best {steps[best_idx]}",
+        ha="center",
+        va="bottom",
+        fontsize=9,
+    )
+    ax.set_title("R12 256-prompt large eval summary")
+    ax.set_xlabel("checkpoint step")
+    ax.set_ylabel("rate (%)")
+    y_values = acc + partial + robust
+    if base_acc is not None:
+        y_values.append(base_acc)
+    if base_partial is not None:
+        y_values.append(base_partial)
+    ax.set_ylim(max(0, min(y_values) - 6), min(100, max(y_values) + 8))
     ax.grid(True, axis="y", color="0.88")
     ax.legend(frameon=False)
     fig.tight_layout()
@@ -147,6 +222,7 @@ def main() -> int:
     parser.add_argument("--reward-only-dir", type=Path, default=Path("artifacts/cloud/reward-only-r12-full-001"))
     parser.add_argument("--baseline-dir", type=Path, default=Path("artifacts/cloud/course-baseline-001"))
     parser.add_argument("--r12-clean-dir", type=Path, default=Path("artifacts/reports/reward-k8-beta004-r12-full-001-clean"))
+    parser.add_argument("--large-eval-dir", type=Path, default=Path("artifacts/cloud/r12-best-large-eval-001/artifacts/eval"))
     parser.add_argument("--output-dir", type=Path, default=Path("artifacts/reports/r12-final-evidence-001"))
     args = parser.parse_args()
 
@@ -162,6 +238,11 @@ def main() -> int:
     best = best_checkpoint(rows)
     write_csv(tables / "r12_full_checkpoint_eval.csv", rows)
     plot_checkpoint_accuracy(rows, figures / "01_r12_checkpoint_accuracy.png")
+
+    large_rows = read_csv(args.large_eval_dir / "large_eval_summary.csv")
+    large_best = best_large_eval(large_rows)
+    write_csv(tables / "r12_large_eval_summary.csv", large_rows)
+    plot_large_eval_summary(large_rows, figures / "03_r12_large_eval_summary.png")
 
     reward_only_log = read_text(args.reward_only_dir / "pipeline.log") + "\n" + read_text(
         args.reward_only_dir / "runs/R12_reward_only_baseline_kkl/train.log"
@@ -197,6 +278,15 @@ def main() -> int:
         ),
     )
     copied += copy_tree_files(
+        args.large_eval_dir,
+        raw_refs / "r12-best-large-eval-001" / "artifacts" / "eval",
+        (
+            "*.csv",
+            "*.json",
+            "*.jsonl",
+        ),
+    )
+    copied += copy_tree_files(
         args.reward_only_dir,
         raw_refs / "reward-only-r12-full-001",
         (
@@ -215,12 +305,23 @@ def main() -> int:
             ("pipeline.log", "artifacts/*.json", "meta/*.txt"),
         )
 
+    checkpoint_archives = [
+        str(path.relative_to(args.r12_full_dir))
+        for path in sorted((args.r12_full_dir / "checkpoint_archives").glob("*.tar.gz"))
+        if path.is_file()
+    ]
     manifest = {
         "created_at": datetime.now(timezone.utc).isoformat(),
         "r12_full_dir": str(args.r12_full_dir),
         "reward_only_dir": str(args.reward_only_dir),
         "baseline_dir": str(args.baseline_dir),
-        "best_r12_checkpoint": best,
+        "large_eval_dir": str(args.large_eval_dir),
+        "recommended_checkpoint": large_best or best,
+        "selection_basis": "large_eval_256_prompts" if large_best else "small_eval_64_prompts",
+        "best_r12_checkpoint_small_eval": best,
+        "best_r12_checkpoint_large_eval": large_best,
+        "checkpoint_archives_local_dir": str(args.r12_full_dir / "checkpoint_archives"),
+        "checkpoint_archives": checkpoint_archives,
         "reward_only_ablation": {
             "status": "stopped_negative_evidence",
             "reason": "sustained zero_reward_std_spike and extracted_none_spike through checkpoint 500",
@@ -231,16 +332,26 @@ def main() -> int:
         "figures": [
             "figures/01_r12_checkpoint_accuracy.png",
             "figures/02_reward_only_alert_counts.png",
+            "figures/03_r12_large_eval_summary.png",
             "figures/combined/*.png",
             "figures/by_run/*.png",
         ],
         "tables": [
             "tables/r12_full_checkpoint_eval.csv",
+            "tables/r12_large_eval_summary.csv",
             "tables/reward_only_alert_counts.csv",
             "tables/*.csv",
         ],
     }
     write_json(out / "manifest_report.json", manifest)
+
+    large_line = (
+        f"- Recommended checkpoint from 256-prompt large eval: step `{large_best.get('step')}`, "
+        f"accuracy `{large_best.get('accuracy')}%`, partial `{large_best.get('partial_accuracy')}%`, "
+        f"correct `{large_best.get('correct')}/{large_best.get('total')}`."
+        if large_best
+        else "- Recommended checkpoint falls back to the 64-prompt checkpoint eval because large eval was not found."
+    )
 
     readme = f"""# R12 Final Evidence Package
 
@@ -248,15 +359,19 @@ This folder consolidates the R12 GRPO evidence used for the report.
 
 ## Key result
 
-- Best confirmed small eval checkpoint: step `{best.get('step')}`, accuracy `{best.get('accuracy')}%`, partial `{best.get('partial_accuracy')}%`.
+- Best 64-prompt checkpoint eval: step `{best.get('step')}`, accuracy `{best.get('accuracy')}%`, partial `{best.get('partial_accuracy')}%`.
+{large_line}
 - Full R12 config: `REWARD_MODE=gsm8k_verifiable_simple`, `NUM_GENERATIONS=8`, `BETA=0.04`, `RANK=64`, `ALPHA=64`, `MAX_STEPS=841`.
+- Local checkpoint archives: `{args.r12_full_dir / "checkpoint_archives"}` ({len(checkpoint_archives)} files).
 - Reward-only ablation was stopped at checkpoint `500`: it kept the R12 reward but used baseline `NUM_GENERATIONS=2`, `BETA=0.08`; logs showed sustained zero reward std and extraction failure alerts.
 
 ## How to read
 
 - `figures/01_r12_checkpoint_accuracy.png`: checkpoint accuracy and partial accuracy.
+- `figures/03_r12_large_eval_summary.png`: large eval comparison for base and R12 checkpoints.
 - `figures/combined/`: copied clean training diagnostics from the R12 full run.
 - `tables/r12_full_checkpoint_eval.csv`: source table for checkpoint results.
+- `tables/r12_large_eval_summary.csv`: 256-prompt large eval summary for base, R12 step 384, step 512, and step 841.
 - `tables/reward_only_alert_counts.csv`: stopped ablation alert counts.
 - `raw_refs/`: copied logs, env files, checkpoint eval JSON/CSV, and manifests.
 """
