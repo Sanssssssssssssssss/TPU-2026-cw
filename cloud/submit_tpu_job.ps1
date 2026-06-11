@@ -985,7 +985,12 @@ if [ -d "`$RUN_DIR/runs" ]; then
     [ -d "`$child" ] || continue
     name=`$(basename "`$child")
     if [ -d "`$child/ckpts/actor" ]; then
-      find "`$child/ckpts/actor" -maxdepth 1 -mindepth 1 -type d -name '[0-9]*' -printf "`$name %f\n" | sort -k1,1 -k2,2n >> "`$ARCHIVE_LIST"
+      find "`$child/ckpts/actor" -maxdepth 1 -mindepth 1 -type d -name '[0-9]*' |
+        sed 's#.*/##' |
+        sort -n |
+        while read -r step; do
+          printf '%s %s\n' "`$name" "`$step"
+        done >> "`$ARCHIVE_LIST"
     fi
   done
 fi
