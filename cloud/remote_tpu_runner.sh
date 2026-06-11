@@ -2226,6 +2226,26 @@ submit_r12_lora_public_tuning() {
   echo "Log: $RUN_DIR/pipeline.log"
 }
 
+submit_r12_r64_beta_clip_tuning() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R12_r64_beta002_lr3e-6_eps02:gsm8k_verifiable_simple:0.02:3e-6:64:64:0.2 R12_r64_beta006_lr3e-6_eps02:gsm8k_verifiable_simple:0.06:3e-6:64:64:0.2 R12_r64_beta004_lr3e-6_eps028:gsm8k_verifiable_simple:0.04:3e-6:64:64:0.28"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_MAX_STEPS=256 K8_CHECKPOINT_STEPS='32 64 96 128 160 192 224 256' K8_MAX_TO_KEEP=12 K8_SAVE_INTERVAL_STEPS=32 K8_EVAL_EVERY_N_STEPS=32 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- k8 r64 beta/clip tuning pilot exited (\$status) ---\"; exec bash"
+  echo "Started R12 R64 beta/clip tuning pilot. Attach with: tmux attach -t $session"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
 submit_r12_public_strong_tuning() {
   require_run_id
   unpack_bundle
@@ -3242,6 +3262,9 @@ case "$COMMAND" in
     ;;
   submit-r12-lora-public-tuning)
     submit_r12_lora_public_tuning
+    ;;
+  submit-r12-r64-beta-clip-tuning)
+    submit_r12_r64_beta_clip_tuning
     ;;
   submit-r12-public-strong-tuning)
     submit_r12_public_strong_tuning
