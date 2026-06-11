@@ -36,6 +36,8 @@ Usage:
   remote_tpu_runner.sh submit-k8-r10-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-k8-r11-fallback-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-k8-r12-simple-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
+  remote_tpu_runner.sh submit-k8-r12-simple-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
+  remote_tpu_runner.sh submit-reward-only-r12-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-k8-public-beta --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-k8-r13-public-beta-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-k8-r14-public-beta-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
@@ -1977,6 +1979,46 @@ submit_k8_r12_simple_only() {
   echo "Log: $RUN_DIR/pipeline.log"
 }
 
+submit_k8_r12_simple_full() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R12_gsm8k_verifiable_simple:gsm8k_verifiable_simple"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_MAX_STEPS=841 K8_LR_SCHEDULE_STEPS=841 K8_WARMUP_STEPS=84.1 K8_CHECKPOINT_STEPS='128 256 384 512 640 768 841' K8_MAX_TO_KEEP=16 K8_SAVE_INTERVAL_STEPS=128 K8_EVAL_EVERY_N_STEPS=64 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- k8 pilot exited (\$status) ---\"; exec bash"
+  echo "Started R12 simple-verifiable K8 equivalent-full run. Attach with: tmux attach -t $session"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
+submit_reward_only_r12_full() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R12_reward_only_baseline_kkl:gsm8k_verifiable_simple"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_MAX_STEPS=3364 K8_LR_SCHEDULE_STEPS=3364 K8_WARMUP_STEPS=336.4 K8_CHECKPOINT_STEPS='500 1000 1500 2000 2500 3000 3364' K8_MAX_TO_KEEP=16 K8_SAVE_INTERVAL_STEPS=500 K8_EVAL_EVERY_N_STEPS=64 K8_NUM_GENERATIONS=2 K8_BETA=0.08 K8_LEARNING_RATE=3e-6 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- k8 pilot exited (\$status) ---\"; exec bash"
+  echo "Started R12 reward-only baseline-K/KL full run. Attach with: tmux attach -t $session"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
 submit_k8_public_beta() {
   require_run_id
   unpack_bundle
@@ -2958,6 +3000,12 @@ case "$COMMAND" in
     ;;
   submit-k8-r12-simple-only)
     submit_k8_r12_simple_only
+    ;;
+  submit-k8-r12-simple-full)
+    submit_k8_r12_simple_full
+    ;;
+  submit-reward-only-r12-full)
+    submit_reward_only_r12_full
     ;;
   submit-k8-public-beta)
     submit_k8_public_beta
