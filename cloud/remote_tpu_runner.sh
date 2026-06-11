@@ -38,6 +38,7 @@ Usage:
   remote_tpu_runner.sh submit-k8-r12-simple-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-k8-r12-simple-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-reward-only-r12-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
+  remote_tpu_runner.sh submit-r12-tail-stability --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
   remote_tpu_runner.sh submit-k8-public-beta --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-k8-r13-public-beta-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-k8-r14-public-beta-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
@@ -2006,6 +2007,28 @@ for spec in "\${K8_RUNS[@]}"; do
   ARTIFACT_DIR="\$EXP_DIR/artifacts"
   mkdir -p "\$EXP_DIR" "\$ARTIFACT_DIR" "\$EXP_DIR/ckpts" "\$EXP_DIR/intermediate_ckpt" "\$EXP_DIR/tensorboard"
 
+  if [[ -n "\${K8_SOURCE_CKPT_ROOT:-}" && -n "\${K8_SOURCE_STEP:-}" ]]; then
+    SOURCE_CKPT="\$K8_SOURCE_CKPT_ROOT/\$K8_SOURCE_STEP"
+    echo "==> Seeding \$EXP_ID from source checkpoint \$SOURCE_CKPT"
+    if [[ ! -d "\$SOURCE_CKPT" ]]; then
+      echo "Source checkpoint missing: \$SOURCE_CKPT" >&2
+      exit 1
+    fi
+    mkdir -p "\$EXP_DIR/ckpts/actor"
+    if [[ ! -d "\$EXP_DIR/ckpts/actor/\$K8_SOURCE_STEP" ]]; then
+      cp -a "\$SOURCE_CKPT" "\$EXP_DIR/ckpts/actor/\$K8_SOURCE_STEP"
+    fi
+    cat > "\$EXP_DIR/branch_metadata.json" <<JSON
+{
+  "run_id": "\$EXP_ID",
+  "reward_mode": "\$MODE",
+  "source_checkpoint_root": "\$K8_SOURCE_CKPT_ROOT",
+  "source_step": "\$K8_SOURCE_STEP",
+  "copied_checkpoint": "\$EXP_DIR/ckpts/actor/\$K8_SOURCE_STEP"
+}
+JSON
+  fi
+
   echo
   echo "==> K8 pilot run \$EXP_ID mode=\$MODE beta=\$BRANCH_BETA lr=\$BRANCH_LEARNING_RATE rank=\$BRANCH_RANK alpha=\$BRANCH_ALPHA epsilon=\$BRANCH_EPSILON"
   export RUN_ID="\$K8_ID-\$EXP_ID"
@@ -2033,7 +2056,7 @@ for spec in "\${K8_RUNS[@]}"; do
   export ALPHA="\$BRANCH_ALPHA"
   mkdir -p "\$OBS_OUTPUT_DIR" "\$OBS_TRACE_DIR"
 
-  env | sort | grep -E '^(RUN_ID|REWARD_MODE|MAX_STEPS|LR_SCHEDULE_STEPS|WARMUP_STEPS|SAVE_INTERVAL_STEPS|MAX_TO_KEEP|EVAL_EVERY_N_STEPS|NUM_GENERATIONS|TOTAL_GENERATION_STEPS|LEARNING_RATE|BETA|EPSILON|RANK|ALPHA|CKPT_DIR|TENSORBOARD_DIR|OBS_)=' > "\$EXP_DIR/run_env.txt"
+  env | sort | grep -E '^(RUN_ID|REWARD_MODE|MAX_STEPS|LR_SCHEDULE_STEPS|WARMUP_STEPS|SAVE_INTERVAL_STEPS|MAX_TO_KEEP|EVAL_EVERY_N_STEPS|NUM_GENERATIONS|TOTAL_GENERATION_STEPS|LEARNING_RATE|BETA|EPSILON|RANK|ALPHA|K8_SOURCE_|CKPT_DIR|TENSORBOARD_DIR|OBS_)=' > "\$EXP_DIR/run_env.txt"
   printf '%s\n' "\$MODE" > "\$EXP_DIR/reward_mode.txt"
 
   python -u train.py 2>&1 | tee -a "\$EXP_DIR/train.log"
@@ -2183,6 +2206,29 @@ submit_reward_only_r12_full() {
   echo "==> Starting tmux session $session"
   tmux new-session -d -s "$session" "K8_MAX_STEPS=3364 K8_LR_SCHEDULE_STEPS=3364 K8_WARMUP_STEPS=336.4 K8_CHECKPOINT_STEPS='500 1000 1500 2000 2500 3000 3364' K8_MAX_TO_KEEP=16 K8_SAVE_INTERVAL_STEPS=500 K8_EVAL_EVERY_N_STEPS=64 K8_NUM_GENERATIONS=2 K8_BETA=0.08 K8_LEARNING_RATE=3e-6 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- k8 pilot exited (\$status) ---\"; exec bash"
   echo "Started R12 reward-only baseline-K/KL full run. Attach with: tmux attach -t $session"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
+submit_r12_tail_stability() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R12_tail_lr1e-6_beta004_from512:gsm8k_verifiable_simple:0.04:1e-6:64:64:0.2 R12_tail_lr1e-6_beta006_from512:gsm8k_verifiable_simple:0.06:1e-6:64:64:0.2"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  local source_root="${R12_TAIL_SOURCE_CKPT_ROOT:-$REMOTE_ROOT/reward-k8-beta004-r12-full-001/runs/R12_gsm8k_verifiable_simple/ckpts/actor}"
+  local source_step="${R12_TAIL_SOURCE_STEP:-512}"
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_SOURCE_CKPT_ROOT='$source_root' K8_SOURCE_STEP='$source_step' K8_MAX_STEPS=841 K8_LR_SCHEDULE_STEPS=1682 K8_WARMUP_STEPS=0 K8_CHECKPOINT_STEPS='512 576 640 704 768 841' K8_MAX_TO_KEEP=16 K8_SAVE_INTERVAL_STEPS=64 K8_EVAL_EVERY_N_STEPS=64 K8_NUM_GENERATIONS=8 K8_RANK=64 K8_ALPHA=64 K8_LEARNING_RATE=1e-6 K8_BETA=0.04 K8_EPSILON=0.2 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- k8 R12 tail stability exited (\$status) ---\"; exec bash"
+  echo "Started R12 tail stability continuation. Attach with: tmux attach -t $session"
+  echo "Source checkpoint: $source_root/$source_step"
   echo "Log: $RUN_DIR/pipeline.log"
 }
 
@@ -3276,6 +3322,9 @@ case "$COMMAND" in
     ;;
   submit-reward-only-r12-full)
     submit_reward_only_r12_full
+    ;;
+  submit-r12-tail-stability)
+    submit_r12_tail_stability
     ;;
   submit-r12-non-r64-pilot)
     submit_r12_non_r64_pilot
