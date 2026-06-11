@@ -46,6 +46,8 @@ RUNS = [
     "R12_r64_beta002_lr3e-6_eps02",
     "R12_r64_beta006_lr3e-6_eps02",
     "R12_r64_beta004_lr3e-6_eps028",
+    "R12_r64_beta0001_lr3e-6_eps02",
+    "R12_r64_beta000_lr3e-6_eps02",
 ]
 
 RUN_LABEL = {
@@ -72,6 +74,8 @@ RUN_LABEL = {
     "R12_r64_beta002_lr3e-6_eps02": "R12 R64 beta0.02 lr3e-6 eps0.2",
     "R12_r64_beta006_lr3e-6_eps02": "R12 R64 beta0.06 lr3e-6 eps0.2",
     "R12_r64_beta004_lr3e-6_eps028": "R12 R64 beta0.04 lr3e-6 eps0.28",
+    "R12_r64_beta0001_lr3e-6_eps02": "R12 R64 beta0.001 lr3e-6 eps0.2",
+    "R12_r64_beta000_lr3e-6_eps02": "R12 R64 beta0 lr3e-6 eps0.2",
 }
 
 RUN_COLOR = {
@@ -98,6 +102,8 @@ RUN_COLOR = {
     "R12_r64_beta002_lr3e-6_eps02": "#1f77b4",
     "R12_r64_beta006_lr3e-6_eps02": "#ff7f0e",
     "R12_r64_beta004_lr3e-6_eps028": "#2ca02c",
+    "R12_r64_beta0001_lr3e-6_eps02": "#9467bd",
+    "R12_r64_beta000_lr3e-6_eps02": "#d62728",
 }
 
 
@@ -127,6 +133,8 @@ def run_color(run_id: str) -> str:
         "R12_r64_beta002_lr3e-6_eps02",
         "R12_r64_beta006_lr3e-6_eps02",
         "R12_r64_beta004_lr3e-6_eps028",
+        "R12_r64_beta0001_lr3e-6_eps02",
+        "R12_r64_beta000_lr3e-6_eps02",
     ):
         if base_id in run_id:
             return RUN_COLOR[base_id]
