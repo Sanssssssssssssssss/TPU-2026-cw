@@ -34,6 +34,7 @@ RUNS = [
     "R9_closed_answer_minimal",
     "R10_numeric_guarded",
     "R11_numeric_guarded_fallback",
+    "R12_gsm8k_verifiable_simple",
 ]
 
 RUN_LABEL = {
@@ -48,6 +49,7 @@ RUN_LABEL = {
     "R9_closed_answer_minimal": "R9 closed_answer_minimal",
     "R10_numeric_guarded": "R10 numeric_guarded",
     "R11_numeric_guarded_fallback": "R11 numeric_guarded_fallback",
+    "R12_gsm8k_verifiable_simple": "R12 gsm8k_verifiable_simple",
 }
 
 RUN_COLOR = {
@@ -62,6 +64,7 @@ RUN_COLOR = {
     "R9_closed_answer_minimal": "#9467bd",
     "R10_numeric_guarded": "#17becf",
     "R11_numeric_guarded_fallback": "#bcbd22",
+    "R12_gsm8k_verifiable_simple": "#1f77b4",
 }
 
 
@@ -79,6 +82,7 @@ def run_color(run_id: str) -> str:
         "R9_closed_answer_minimal",
         "R10_numeric_guarded",
         "R11_numeric_guarded_fallback",
+        "R12_gsm8k_verifiable_simple",
     ):
         if base_id in run_id:
             return RUN_COLOR[base_id]
@@ -133,6 +137,8 @@ METRIC_COLOR = {
     "reward_numeric_guarded_fallback_mean": "#1f77b4",
     "reward_answer_hygiene_fallback_mean": "#2ca02c",
     "reward_numeric_guarded_fallback_total_mean": "#bcbd22",
+    "reward_gsm8k_simple_numeric_mean": "#1f77b4",
+    "reward_gsm8k_simple_format_mean": "#2ca02c",
     "reward_format_light_mean": "#ff7f0e",
     "reward_length_penalty_1200_mean": "#d62728",
     "reward_length_penalty_short_mean": "#8c564b",
@@ -161,9 +167,10 @@ COMPONENTS_BY_MODE = {
     "closed_answer_minimal": ["numeric_dense", "closed_answer_minimal"],
     "numeric_guarded": ["numeric_guarded", "answer_hygiene_guarded"],
     "numeric_guarded_fallback": ["numeric_guarded_fallback", "answer_hygiene_fallback"],
+    "gsm8k_verifiable_simple": ["gsm8k_simple_numeric", "gsm8k_simple_format"],
 }
 
-NUMERIC_COMPONENTS = {"check_answer", "check_numbers", "numeric_primary", "numeric_dense", "numeric_guarded", "numeric_guarded_fallback"}
+NUMERIC_COMPONENTS = {"check_answer", "check_numbers", "numeric_primary", "numeric_dense", "numeric_guarded", "numeric_guarded_fallback", "gsm8k_simple_numeric"}
 FORMAT_COMPONENTS = {
     "match_format_exactly",
     "match_format_approximately",
@@ -173,6 +180,7 @@ FORMAT_COMPONENTS = {
     "closed_answer_minimal",
     "answer_hygiene_guarded",
     "answer_hygiene_fallback",
+    "gsm8k_simple_format",
 }
 LENGTH_COMPONENTS = {"length_penalty_1200", "length_penalty_short"}
 
@@ -246,6 +254,8 @@ COMBINED_METRIC_GROUPS = [
             ("reward_numeric_guarded_fallback_mean", "reward_numeric_guarded_fallback_mean", None),
             ("reward_answer_hygiene_fallback_mean", "reward_answer_hygiene_fallback_mean", None),
             ("reward_numeric_guarded_fallback_total_mean", "reward_numeric_guarded_fallback_total_mean", None),
+            ("reward_gsm8k_simple_numeric_mean", "reward_gsm8k_simple_numeric_mean", None),
+            ("reward_gsm8k_simple_format_mean", "reward_gsm8k_simple_format_mean", None),
             ("reward_format_light_mean", "reward_format_light_mean", None),
             ("reward_length_penalty_1200_mean", "reward_length_penalty_1200_mean", None),
             ("reward_length_penalty_short_mean", "reward_length_penalty_short_mean", None),
@@ -333,6 +343,8 @@ PER_RUN_GROUPS = [
             ("reward_numeric_guarded_fallback_mean", "reward_numeric_guarded_fallback_mean", None),
             ("reward_answer_hygiene_fallback_mean", "reward_answer_hygiene_fallback_mean", None),
             ("reward_numeric_guarded_fallback_total_mean", "reward_numeric_guarded_fallback_total_mean", None),
+            ("reward_gsm8k_simple_numeric_mean", "reward_gsm8k_simple_numeric_mean", None),
+            ("reward_gsm8k_simple_format_mean", "reward_gsm8k_simple_format_mean", None),
             ("reward_format_light_mean", "reward_format_light_mean", None),
             ("reward_length_penalty_1200_mean", "reward_length_penalty_1200_mean", None),
             ("reward_length_penalty_short_mean", "reward_length_penalty_short_mean", None),

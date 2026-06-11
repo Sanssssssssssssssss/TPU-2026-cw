@@ -418,6 +418,8 @@ class GRPOObservability:
             "answer_hygiene_fallback",
             "answer_hygiene_fallback_raw",
             "numeric_guarded_fallback_total",
+            "gsm8k_simple_numeric",
+            "gsm8k_simple_format",
             "length_penalty_1200",
             "length_penalty_short",
         ):
@@ -591,6 +593,8 @@ class GRPOObservability:
                         "answer_hygiene_fallback": diagnostics[i]["answer_hygiene_fallback"],
                         "answer_hygiene_fallback_raw": diagnostics[i]["answer_hygiene_fallback_raw"],
                         "numeric_guarded_fallback_total": diagnostics[i]["numeric_guarded_fallback_total"],
+                        "gsm8k_simple_numeric": diagnostics[i]["gsm8k_simple_numeric"],
+                        "gsm8k_simple_format": diagnostics[i]["gsm8k_simple_format"],
                         "length_penalty_1200": diagnostics[i]["length_penalty_1200"],
                         "length_penalty_short": diagnostics[i]["length_penalty_short"],
                     },

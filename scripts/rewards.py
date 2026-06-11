@@ -43,6 +43,7 @@ REWARD_MODES = (
     "closed_answer_minimal",
     "numeric_guarded",
     "numeric_guarded_fallback",
+    "gsm8k_verifiable_simple",
 )
 
 match_format = re.compile(
@@ -406,6 +407,41 @@ def _numeric_guarded_fallback_components(response: str, true_answer: Any) -> tup
     return numeric_score, hygiene_effective, hygiene_raw, numeric_score + hygiene_effective, used_fallback, fallback_number
 
 
+def _gsm8k_simple_numeric_score(response: str, true_answer: Any) -> float:
+    """Conservative GSM8K RLVR-style reward: correct high, wrong low, no answer zero."""
+    if not response.strip():
+        return 0.0
+    extracted = _fallback_extracted_number(response)
+    got = _robust_float_or_none(extracted)
+    true = _float_or_none(true_answer)
+    if got is None or true is None:
+        return 0.0
+    if math.isclose(got, true, rel_tol=0.0, abs_tol=1e-9):
+        return 1.0
+    if true == 0:
+        return 0.1
+    rel_error = abs(got - true) / abs(true)
+    if rel_error <= 0.01:
+        return 0.5
+    if rel_error <= 0.10:
+        return 0.25
+    return 0.1
+
+
+def _gsm8k_simple_format_score(response: str) -> float:
+    """Small non-negative answer-tag helper; never lets format dominate correctness."""
+    if not response.strip():
+        return 0.0
+    starts = response.count(solution_start)
+    ends = response.count(solution_end)
+    numbers = _robust_answer_numbers(response)
+    if starts == 1 and ends == 1 and numbers and not _text_after_solution_close(response):
+        return 0.2
+    if starts == 1 and numbers:
+        return 0.1
+    return 0.0
+
+
 def _answer_hygiene_dense_score(response: str) -> float:
     if not response.strip():
         return 0.0
@@ -617,6 +653,16 @@ def numeric_guarded_fallback_total(prompts, completions, answer, **kwargs):
     return [_numeric_guarded_fallback_components(response, true)[3] for response, true in zip(completions, answer)]
 
 
+def gsm8k_simple_numeric(prompts, completions, answer, **kwargs):
+    """R12 simple GSM8K verifiable reward with tolerant final-number extraction."""
+    return [_gsm8k_simple_numeric_score(response, true) for response, true in zip(completions, answer)]
+
+
+def gsm8k_simple_format(prompts, completions, **kwargs):
+    """Small answer-tag reward for the simple verifiable branch."""
+    return [_gsm8k_simple_format_score(response) for response in completions]
+
+
 def _baseline_components(response: str, answer: Any) -> dict[str, Any]:
     format_match = match_format.search(response)
     number_match = match_numbers.search(response)
@@ -708,6 +754,8 @@ def reward_diagnostics_for_observability(
             fallback_extracted_number,
         ) = _numeric_guarded_fallback_components(completion, answer)
         fallback_numeric_exact, fallback_numeric_partial = _robust_numeric_flags(fallback_extracted_number, answer)
+        gsm8k_simple_numeric_score = _gsm8k_simple_numeric_score(completion, answer)
+        gsm8k_simple_format_score = _gsm8k_simple_format_score(completion)
         length_penalty_score = _length_penalty_len1200(completion)
         length_penalty_short_score = _length_penalty_short(completion)
         format_light_total = format_strict_light_score + answer_tag_light_score
@@ -731,6 +779,8 @@ def reward_diagnostics_for_observability(
             "answer_hygiene_fallback": answer_hygiene_fallback_score,
             "answer_hygiene_fallback_raw": answer_hygiene_fallback_raw_score,
             "numeric_guarded_fallback_total": numeric_guarded_fallback_total_score,
+            "gsm8k_simple_numeric": gsm8k_simple_numeric_score,
+            "gsm8k_simple_format": gsm8k_simple_format_score,
             "length_penalty_1200": length_penalty_score,
             "length_penalty_short": length_penalty_short_score,
         }
@@ -758,6 +808,8 @@ def reward_diagnostics_for_observability(
                 "answer_hygiene_fallback": answer_hygiene_fallback_score,
                 "answer_hygiene_fallback_raw": answer_hygiene_fallback_raw_score,
                 "numeric_guarded_fallback_total": numeric_guarded_fallback_total_score,
+                "gsm8k_simple_numeric": gsm8k_simple_numeric_score,
+                "gsm8k_simple_format": gsm8k_simple_format_score,
                 "length_penalty_1200": length_penalty_score,
                 "length_penalty_short": length_penalty_short_score,
                 "format_light_total": format_light_total,
@@ -815,6 +867,8 @@ def reward_components_for_mode(mode: str) -> list[str]:
         return ["numeric_guarded", "answer_hygiene_guarded"]
     if mode == "numeric_guarded_fallback":
         return ["numeric_guarded_fallback", "answer_hygiene_fallback"]
+    if mode == "gsm8k_verifiable_simple":
+        return ["gsm8k_simple_numeric", "gsm8k_simple_format"]
     raise ValueError(f"Unknown REWARD_MODE '{mode}'. Valid modes: {', '.join(REWARD_MODES)}")
 
 
@@ -844,6 +898,8 @@ def reward_functions_for_mode(mode: str):
         return [numeric_guarded_total]
     if mode == "numeric_guarded_fallback":
         return [numeric_guarded_fallback_total]
+    if mode == "gsm8k_verifiable_simple":
+        return [gsm8k_simple_numeric, gsm8k_simple_format]
     raise ValueError(f"Unknown REWARD_MODE '{mode}'. Valid modes: {', '.join(REWARD_MODES)}")
 
 

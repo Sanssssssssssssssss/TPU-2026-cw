@@ -35,6 +35,7 @@ Usage:
   remote_tpu_runner.sh submit-k8-pilot --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-k8-r10-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-k8-r11-fallback-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
+  remote_tpu_runner.sh submit-k8-r12-simple-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh eval-checkpoints --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
   remote_tpu_runner.sh status-sweep --run-id RUN
   remote_tpu_runner.sh status-continuation --run-id RUN
@@ -1950,6 +1951,26 @@ submit_k8_r11_fallback_only() {
   echo "Log: $RUN_DIR/pipeline.log"
 }
 
+submit_k8_r12_simple_only() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R12_gsm8k_verifiable_simple:gsm8k_verifiable_simple"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_MAX_STEPS=256 K8_CHECKPOINT_STEPS='32 64 96 128 160 192 224 256' K8_MAX_TO_KEEP=12 K8_SAVE_INTERVAL_STEPS=32 K8_EVAL_EVERY_N_STEPS=32 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- k8 pilot exited (\$status) ---\"; exec bash"
+  echo "Started R12 simple-verifiable K8 pilot. Attach with: tmux attach -t $session"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
 write_eval_checkpoints_script() {
   local run_script="$RUN_DIR/run_eval_checkpoints.sh"
   cat > "$run_script" <<EOF
@@ -2868,6 +2889,9 @@ case "$COMMAND" in
     ;;
   submit-k8-r11-fallback-only)
     submit_k8_r11_fallback_only
+    ;;
+  submit-k8-r12-simple-only)
+    submit_k8_r12_simple_only
     ;;
   eval-checkpoints)
     eval_checkpoints

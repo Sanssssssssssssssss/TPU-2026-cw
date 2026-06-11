@@ -21,6 +21,7 @@ SWEEP_RUNS = [
     ("R9_closed_answer_minimal", "closed_answer_minimal"),
     ("R10_numeric_guarded", "numeric_guarded"),
     ("R11_numeric_guarded_fallback", "numeric_guarded_fallback"),
+    ("R12_gsm8k_verifiable_simple", "gsm8k_verifiable_simple"),
 ]
 
 ROLE_WORDS = {"train", "eval"}
@@ -748,6 +749,8 @@ def render_figures(output_dir: Path, scalar_rows: list[dict[str, Any]], ckpt_row
             ("numeric_guarded_fallback_mean", metric_series(scalar_rows, ["eval_reward_numeric_guarded_fallback_mean", "train_reward_numeric_guarded_fallback_mean"])),
             ("answer_hygiene_fallback_mean", metric_series(scalar_rows, ["eval_reward_answer_hygiene_fallback_mean", "train_reward_answer_hygiene_fallback_mean"])),
             ("numeric_guarded_fallback_total_mean", metric_series(scalar_rows, ["eval_reward_numeric_guarded_fallback_total_mean", "train_reward_numeric_guarded_fallback_total_mean"])),
+            ("gsm8k_simple_numeric_mean", metric_series(scalar_rows, ["eval_reward_gsm8k_simple_numeric_mean", "train_reward_gsm8k_simple_numeric_mean"])),
+            ("gsm8k_simple_format_mean", metric_series(scalar_rows, ["eval_reward_gsm8k_simple_format_mean", "train_reward_gsm8k_simple_format_mean"])),
             ("format_light_mean", metric_series(scalar_rows, ["eval_reward_format_light_mean", "train_reward_format_light_mean"])),
             ("length_penalty_mean", metric_series(scalar_rows, ["eval_reward_length_penalty_mean", "train_reward_length_penalty_mean"])),
             ("approx_format_mean", metric_series(scalar_rows, ["eval_reward_match_format_approximately_mean", "train_reward_match_format_approximately_mean"])),

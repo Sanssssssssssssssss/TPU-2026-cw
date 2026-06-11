@@ -148,6 +148,18 @@ class DenseNumericRewardTests(unittest.TestCase):
         self.assertEqual(hygiene, 0.0)
         self.assertEqual(total, -1.5)
 
+    def test_gsm8k_simple_verifiable_reward(self):
+        self.assertEqual(rewards._gsm8k_simple_numeric_score(answer("100"), "100"), 1.0)
+        self.assertEqual(rewards._gsm8k_simple_numeric_score(answer("101"), "100"), 0.5)
+        self.assertEqual(rewards._gsm8k_simple_numeric_score(answer("110"), "100"), 0.25)
+        self.assertEqual(rewards._gsm8k_simple_numeric_score(answer("130"), "100"), 0.1)
+        self.assertEqual(rewards._gsm8k_simple_numeric_score("No number here.", "100"), 0.0)
+
+        self.assertEqual(rewards._gsm8k_simple_numeric_score("The answer is 100.", "100"), 1.0)
+        self.assertAlmostEqual(rewards._gsm8k_simple_format_score(answer("100")), 0.2)
+        self.assertAlmostEqual(rewards._gsm8k_simple_format_score(solution_start + "100"), 0.1)
+        self.assertEqual(rewards._gsm8k_simple_format_score("The answer is 100."), 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()
