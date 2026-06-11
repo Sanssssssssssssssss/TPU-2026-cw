@@ -40,6 +40,7 @@ Usage:
   remote_tpu_runner.sh submit-reward-only-r12-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-r12-tail-stability --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
   remote_tpu_runner.sh submit-r12-high-rank-pilot --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
+  remote_tpu_runner.sh submit-r12-high-rank-alpha64-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-k8-public-beta --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-k8-r13-public-beta-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-k8-r14-public-beta-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
@@ -2253,6 +2254,26 @@ submit_r12_high_rank_pilot() {
   echo "Log: $RUN_DIR/pipeline.log"
 }
 
+submit_r12_high_rank_alpha64_only() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R12_rank128_alpha64_beta004_lr2e-6:gsm8k_verifiable_simple:0.04:2e-6:128:64:0.2"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_MAX_STEPS=256 K8_LR_SCHEDULE_STEPS=841 K8_WARMUP_STEPS=84.1 K8_CHECKPOINT_STEPS='32 64 96 128 160 192 224 256' K8_MAX_TO_KEEP=12 K8_SAVE_INTERVAL_STEPS=32 K8_EVAL_EVERY_N_STEPS=32 K8_NUM_GENERATIONS=8 K8_RANK=128 K8_ALPHA=64 K8_LEARNING_RATE=2e-6 K8_BETA=0.04 K8_EPSILON=0.2 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- k8 R12 high-rank alpha64 exited (\$status) ---\"; exec bash"
+  echo "Started R12 high-rank alpha64 K8 pilot. Attach with: tmux attach -t $session"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
 submit_r12_non_r64_pilot() {
   require_run_id
   unpack_bundle
@@ -3349,6 +3370,9 @@ case "$COMMAND" in
     ;;
   submit-r12-high-rank-pilot)
     submit_r12_high_rank_pilot
+    ;;
+  submit-r12-high-rank-alpha64-only)
+    submit_r12_high_rank_alpha64_only
     ;;
   submit-r12-non-r64-pilot)
     submit_r12_non_r64_pilot

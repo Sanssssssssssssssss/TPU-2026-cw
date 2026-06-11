@@ -37,6 +37,7 @@ Local Google TPU VM orchestrator for the GRPO baseline workflow.
 .\cloud\submit_tpu_job.ps1 submit-r12-r64-small-beta-tuning -RunId r12-r64-small-beta-tuning-001
 .\cloud\submit_tpu_job.ps1 submit-r12-tail-stability -RunId r12-tail-stability-001
 .\cloud\submit_tpu_job.ps1 submit-r12-high-rank-pilot -RunId r12-high-rank-pilot-001
+.\cloud\submit_tpu_job.ps1 submit-r12-high-rank-alpha64-only -RunId r12-high-rank-alpha64-001
 .\cloud\submit_tpu_job.ps1 eval-checkpoints -RunId baseline-001
 .\cloud\submit_tpu_job.ps1 status -RunId baseline-001
 .\cloud\submit_tpu_job.ps1 ensure-storage
@@ -48,7 +49,7 @@ Local Google TPU VM orchestrator for the GRPO baseline workflow.
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("preflight", "ensure-tpu", "ensure-storage", "bootstrap", "submit-baseline", "submit-reward-sweep", "submit-reward-continuation", "submit-candidate-eval", "submit-reward-dense", "submit-r7-large-eval", "submit-r12-best-large-eval", "submit-reward-r9", "submit-reward-r10", "submit-k8-pilot", "submit-k8-r10-only", "submit-k8-r11-fallback-only", "submit-k8-r12-simple-only", "submit-k8-r12-simple-full", "submit-reward-only-r12-full", "submit-r12-non-r64-pilot", "submit-r12-lora-public-tuning", "submit-r12-r64-beta-clip-tuning", "submit-r12-r64-small-beta-tuning", "submit-r12-tail-stability", "submit-r12-high-rank-pilot", "submit-r12-public-strong-tuning", "submit-k8-public-beta", "submit-k8-r13-public-beta-only", "submit-k8-r14-public-beta-only", "eval-checkpoints", "status", "status-sweep", "status-continuation", "status-candidate-eval", "status-reward-dense", "status-r7-large-eval", "status-r12-best-large-eval", "status-reward-r9", "status-reward-r10", "status-k8-pilot", "resume-k8-pilot", "stop-reward-r10", "stop-k8-pilot", "fetch", "fetch-sweep", "fetch-continuation", "fetch-candidate-eval", "fetch-reward-dense", "fetch-r7-large-eval", "fetch-r12-best-large-eval", "fetch-reward-r9", "fetch-reward-r10", "fetch-k8-pilot", "sync-storage", "restore-cache", "start-tpu", "stop-tpu", "delete-tpu")]
+    [ValidateSet("preflight", "ensure-tpu", "ensure-storage", "bootstrap", "submit-baseline", "submit-reward-sweep", "submit-reward-continuation", "submit-candidate-eval", "submit-reward-dense", "submit-r7-large-eval", "submit-r12-best-large-eval", "submit-reward-r9", "submit-reward-r10", "submit-k8-pilot", "submit-k8-r10-only", "submit-k8-r11-fallback-only", "submit-k8-r12-simple-only", "submit-k8-r12-simple-full", "submit-reward-only-r12-full", "submit-r12-non-r64-pilot", "submit-r12-lora-public-tuning", "submit-r12-r64-beta-clip-tuning", "submit-r12-r64-small-beta-tuning", "submit-r12-tail-stability", "submit-r12-high-rank-pilot", "submit-r12-high-rank-alpha64-only", "submit-r12-public-strong-tuning", "submit-k8-public-beta", "submit-k8-r13-public-beta-only", "submit-k8-r14-public-beta-only", "eval-checkpoints", "status", "status-sweep", "status-continuation", "status-candidate-eval", "status-reward-dense", "status-r7-large-eval", "status-r12-best-large-eval", "status-reward-r9", "status-reward-r10", "status-k8-pilot", "resume-k8-pilot", "stop-reward-r10", "stop-k8-pilot", "fetch", "fetch-sweep", "fetch-continuation", "fetch-candidate-eval", "fetch-reward-dense", "fetch-r7-large-eval", "fetch-r12-best-large-eval", "fetch-reward-r9", "fetch-reward-r10", "fetch-k8-pilot", "sync-storage", "restore-cache", "start-tpu", "stop-tpu", "delete-tpu")]
     [string]$Command = "preflight",
 
     [string]$RunId = ("baseline-" + (Get-Date -Format "yyyyMMdd-HHmmss")),
@@ -877,6 +878,19 @@ function Submit-R12HighRankPilot {
     }
 }
 
+function Submit-R12HighRankAlpha64Only {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-r12-high-rank-alpha64-only" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
 function Submit-R12PublicStrongTuning {
     Assert-RunId
     $bundle = New-CodeBundle
@@ -1267,6 +1281,7 @@ switch ($Command) {
     "submit-r12-r64-small-beta-tuning" { Submit-R12R64SmallBetaTuning }
     "submit-r12-tail-stability" { Submit-R12TailStability }
     "submit-r12-high-rank-pilot" { Submit-R12HighRankPilot }
+    "submit-r12-high-rank-alpha64-only" { Submit-R12HighRankAlpha64Only }
     "submit-r12-public-strong-tuning" { Submit-R12PublicStrongTuning }
     "submit-k8-public-beta" { Submit-K8PublicBeta }
     "submit-k8-r13-public-beta-only" { Submit-K8R13PublicBetaOnly }
