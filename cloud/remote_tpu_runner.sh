@@ -38,6 +38,7 @@ Usage:
   remote_tpu_runner.sh submit-k8-r12-simple-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-k8-r12-simple-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-reward-only-r12-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
+  remote_tpu_runner.sh submit-reward-only-r12-complete-from500 --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
   remote_tpu_runner.sh submit-r12-tail-stability --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
   remote_tpu_runner.sh submit-r12-high-rank-pilot --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-r12-high-rank-alpha64-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
@@ -2212,6 +2213,29 @@ submit_reward_only_r12_full() {
   echo "Log: $RUN_DIR/pipeline.log"
 }
 
+submit_reward_only_r12_complete_from500() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R12_reward_only_baseline_kkl:gsm8k_verifiable_simple"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  local source_root="${R12_REWARD_ONLY_SOURCE_CKPT_ROOT:-$REMOTE_ROOT/reward-only-r12-full-001/runs/R12_reward_only_baseline_kkl/ckpts/actor}"
+  local source_step="${R12_REWARD_ONLY_SOURCE_STEP:-500}"
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_SOURCE_CKPT_ROOT='$source_root' K8_SOURCE_STEP='$source_step' K8_MAX_STEPS=3364 K8_LR_SCHEDULE_STEPS=3364 K8_WARMUP_STEPS=336.4 K8_CHECKPOINT_STEPS='500 1000 1500 2000 2500 3000 3364' K8_MAX_TO_KEEP=16 K8_SAVE_INTERVAL_STEPS=500 K8_EVAL_EVERY_N_STEPS=64 K8_NUM_GENERATIONS=2 K8_BETA=0.08 K8_LEARNING_RATE=3e-6 K8_RANK=64 K8_ALPHA=64 K8_EPSILON=0.2 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- reward-only R12 complete-from500 exited (\$status) ---\"; exec bash"
+  echo "Started R12 reward-only completion from checkpoint $source_step. Attach with: tmux attach -t $session"
+  echo "Source checkpoint: $source_root/$source_step"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
 submit_r12_tail_stability() {
   require_run_id
   unpack_bundle
@@ -3385,6 +3409,9 @@ case "$COMMAND" in
     ;;
   submit-reward-only-r12-full)
     submit_reward_only_r12_full
+    ;;
+  submit-reward-only-r12-complete-from500)
+    submit_reward_only_r12_complete_from500
     ;;
   submit-r12-tail-stability)
     submit_r12_tail_stability
