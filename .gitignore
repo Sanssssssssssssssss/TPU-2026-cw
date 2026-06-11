@@ -33,6 +33,7 @@ artifacts/observability/
 artifacts/checkpoint_eval/
 artifacts/analysis/
 artifacts/*.txt
+artifacts/_archive_noncanonical_*/
 
 # local cloud orchestration config
 cloud/tpu_config.local.ps1
