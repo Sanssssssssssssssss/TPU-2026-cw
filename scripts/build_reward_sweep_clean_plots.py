@@ -35,6 +35,10 @@ RUNS = [
     "R10_numeric_guarded",
     "R11_numeric_guarded_fallback",
     "R12_gsm8k_verifiable_simple",
+    "R12_rank16_alpha32_beta004_lr3e-6",
+    "R12_rank32_alpha32_beta004_lr3e-6",
+    "R12_rank16_alpha32_beta001_lr1e-6",
+    "R12_rank16_alpha32_beta000_lr1e-6",
 ]
 
 RUN_LABEL = {
@@ -50,6 +54,10 @@ RUN_LABEL = {
     "R10_numeric_guarded": "R10 numeric_guarded",
     "R11_numeric_guarded_fallback": "R11 numeric_guarded_fallback",
     "R12_gsm8k_verifiable_simple": "R12 gsm8k_verifiable_simple",
+    "R12_rank16_alpha32_beta004_lr3e-6": "R12 rank16 alpha32 beta0.04 lr3e-6",
+    "R12_rank32_alpha32_beta004_lr3e-6": "R12 rank32 alpha32 beta0.04 lr3e-6",
+    "R12_rank16_alpha32_beta001_lr1e-6": "R12 rank16 alpha32 beta0.001 lr1e-6",
+    "R12_rank16_alpha32_beta000_lr1e-6": "R12 rank16 alpha32 beta0 lr1e-6",
 }
 
 RUN_COLOR = {
@@ -65,6 +73,10 @@ RUN_COLOR = {
     "R10_numeric_guarded": "#17becf",
     "R11_numeric_guarded_fallback": "#bcbd22",
     "R12_gsm8k_verifiable_simple": "#1f77b4",
+    "R12_rank16_alpha32_beta004_lr3e-6": "#ff7f0e",
+    "R12_rank32_alpha32_beta004_lr3e-6": "#2ca02c",
+    "R12_rank16_alpha32_beta001_lr1e-6": "#9467bd",
+    "R12_rank16_alpha32_beta000_lr1e-6": "#d62728",
 }
 
 
@@ -83,6 +95,10 @@ def run_color(run_id: str) -> str:
         "R10_numeric_guarded",
         "R11_numeric_guarded_fallback",
         "R12_gsm8k_verifiable_simple",
+        "R12_rank16_alpha32_beta004_lr3e-6",
+        "R12_rank32_alpha32_beta004_lr3e-6",
+        "R12_rank16_alpha32_beta001_lr1e-6",
+        "R12_rank16_alpha32_beta000_lr1e-6",
     ):
         if base_id in run_id:
             return RUN_COLOR[base_id]

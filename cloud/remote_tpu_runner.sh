@@ -1406,6 +1406,170 @@ submit_r7_large_eval() {
   echo "Log: $RUN_DIR/pipeline.log"
 }
 
+write_r12_best_large_eval_script() {
+  local run_script="$RUN_DIR/run_r12_best_large_eval.sh"
+  cat > "$run_script" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+
+RUN_DIR="$RUN_DIR"
+SRC_DIR="$SRC_DIR"
+VENV="$REMOTE_VENV"
+ARTIFACT_DIR="$ARTIFACT_DIR"
+REMOTE_ROOT="$REMOTE_ROOT"
+
+cd "\$SRC_DIR/scripts"
+set -a
+if [[ -f .env ]]; then
+  source .env
+fi
+set +a
+source "\$VENV/bin/activate"
+
+export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+export DATA_SOURCE=tfds
+export TRAIN_DATA_DIR="\$RUN_DIR/data/train"
+export TEST_DATA_DIR="\$RUN_DIR/data/test"
+export NUM_TEST_BATCHES="\${R12_LARGE_NUM_TEST_BATCHES:-256}"
+export TOTAL_GENERATION_STEPS="\${R12_LARGE_TOTAL_GENERATION_STEPS:-768}"
+export MAX_PROMPT_LENGTH="\${MAX_PROMPT_LENGTH:-256}"
+
+OUT_DIR="\$ARTIFACT_DIR/eval"
+mkdir -p "\$OUT_DIR" "\$TRAIN_DATA_DIR" "\$TEST_DATA_DIR"
+
+R12_CKPT_ROOT="\${R12_LARGE_CKPT_ROOT:-$REMOTE_ROOT/reward-k8-beta004-r12-full-001/runs/R12_gsm8k_verifiable_simple/ckpts/actor}"
+
+cat > "\$ARTIFACT_DIR/r12_best_large_eval_manifest.json" <<JSON
+{
+  "run_id": "$RUN_ID",
+  "num_test_batches": "\${NUM_TEST_BATCHES}",
+  "total_generation_steps": "\${TOTAL_GENERATION_STEPS}",
+  "preset": "greedy",
+  "source": "tfds",
+  "ckpt_root": "\${R12_CKPT_ROOT}",
+  "evaluations": [
+    {"label": "base", "step": null},
+    {"label": "R12_step384", "step": 384},
+    {"label": "R12_step512", "step": 512},
+    {"label": "R12_step841", "step": 841}
+  ]
+}
+JSON
+
+run_base_eval() {
+  echo
+  echo "==> Large eval base"
+  python -u evaluate.py \\
+    --no-restore \\
+    --preset greedy \\
+    --source tfds \\
+    --output-json "\$OUT_DIR/base_large.json" \\
+    --output-examples-jsonl "\$OUT_DIR/base_large_examples.jsonl"
+}
+
+run_one_eval() {
+  local label="\$1"
+  local step="\$2"
+  local json_out="\$OUT_DIR/\${label}_large.json"
+  local examples_out="\$OUT_DIR/\${label}_large_examples.jsonl"
+  if [[ ! -d "\$R12_CKPT_ROOT/\$step" ]]; then
+    echo "Missing checkpoint: \$R12_CKPT_ROOT/\$step" >&2
+    exit 1
+  fi
+  echo
+  echo "==> Large eval \$label ckpt_root=\$R12_CKPT_ROOT step=\$step"
+  python -u evaluate.py \\
+    --ckpt-dir "\$R12_CKPT_ROOT" \\
+    --step "\$step" \\
+    --preset greedy \\
+    --source tfds \\
+    --output-json "\$json_out" \\
+    --output-examples-jsonl "\$examples_out"
+}
+
+echo "==> R12 best large eval"
+echo "NUM_TEST_BATCHES=\$NUM_TEST_BATCHES"
+echo "R12_CKPT_ROOT=\$R12_CKPT_ROOT"
+
+run_base_eval
+run_one_eval "R12_step384" 384
+run_one_eval "R12_step512" 512
+run_one_eval "R12_step841" 841
+
+python - "\$OUT_DIR" <<'PY'
+import csv
+import json
+import pathlib
+import sys
+
+out = pathlib.Path(sys.argv[1])
+specs = [
+    ("base", None, out / "base_large.json", out / "base_large_examples.jsonl"),
+    ("R12_step384", 384, out / "R12_step384_large.json", out / "R12_step384_large_examples.jsonl"),
+    ("R12_step512", 512, out / "R12_step512_large.json", out / "R12_step512_large_examples.jsonl"),
+    ("R12_step841", 841, out / "R12_step841_large.json", out / "R12_step841_large_examples.jsonl"),
+]
+rows = []
+for label, step, path, examples_path in specs:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    metrics = payload.get("metrics", {})
+    rows.append({
+        "label": label,
+        "step": step,
+        "correct": metrics.get("correct"),
+        "total": metrics.get("total"),
+        "accuracy": metrics.get("accuracy"),
+        "partial_accuracy": metrics.get("partial_accuracy"),
+        "format_accuracy": metrics.get("format_accuracy"),
+        "robust_numeric_exact_rate": metrics.get("robust_numeric_exact_rate"),
+        "no_close_answer_rate": metrics.get("no_close_answer_rate"),
+        "text_after_close_rate": metrics.get("text_after_close_rate"),
+        "failure_counts": json.dumps(metrics.get("failure_counts") or {}, sort_keys=True),
+        "file": str(path),
+        "examples_jsonl": str(examples_path),
+    })
+lora = [row for row in rows if row["step"] is not None]
+best = max(lora, key=lambda row: (float(row["accuracy"] or 0.0), float(row["partial_accuracy"] or 0.0), -int(row["step"] or 0)))
+summary = {
+    "best_label": best["label"],
+    "best_step": best["step"],
+    "best_accuracy": best["accuracy"],
+    "best_partial_accuracy": best["partial_accuracy"],
+    "rows": rows,
+}
+(out / "large_eval_summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+with (out / "large_eval_summary.csv").open("w", newline="", encoding="utf-8") as f:
+    writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+    writer.writeheader()
+    writer.writerows(rows)
+print("Wrote R12 large eval summary")
+PY
+
+echo "==> R12 best large eval complete"
+EOF
+  chmod +x "$run_script"
+}
+
+submit_r12_best_large_eval() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_r12_best_large_eval_script
+
+  local session="tpu-r12eval-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "bash '$RUN_DIR/run_r12_best_large_eval.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- r12 large eval exited (\$status) ---\"; exec bash"
+  echo "Started. Attach with: tmux attach -t $session"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
 write_reward_r9_script() {
   local run_script="$RUN_DIR/run_reward_r9.sh"
   cat > "$run_script" <<EOF
@@ -1738,10 +1902,10 @@ write_k8_pilot_script() {
   local run_specs="${1:-R9_closed_answer_minimal:closed_answer_minimal R10_numeric_guarded:numeric_guarded}"
   local manifest_runs=""
   local manifest_sep=""
-  local spec exp_id mode spec_beta spec_lr
+  local spec exp_id mode spec_beta spec_lr spec_rank spec_alpha
   for spec in $run_specs; do
-    IFS=':' read -r exp_id mode spec_beta spec_lr <<< "$spec"
-    manifest_runs+="${manifest_sep}    {\"run_id\": \"$exp_id\", \"reward_mode\": \"$mode\", \"beta_override\": \"${spec_beta:-}\", \"learning_rate_override\": \"${spec_lr:-}\"}"
+    IFS=':' read -r exp_id mode spec_beta spec_lr spec_rank spec_alpha <<< "$spec"
+    manifest_runs+="${manifest_sep}    {\"run_id\": \"$exp_id\", \"reward_mode\": \"$mode\", \"beta_override\": \"${spec_beta:-}\", \"learning_rate_override\": \"${spec_lr:-}\", \"rank_override\": \"${spec_rank:-}\", \"alpha_override\": \"${spec_alpha:-}\"}"
     manifest_sep=$',\n'
   done
   cat > "$run_script" <<EOF
@@ -1815,7 +1979,7 @@ $manifest_runs
   "rank": "\${K8_RANK:-64}",
   "alpha": "\${K8_ALPHA:-64}",
   "checkpoint_eval_steps": "\${K8_CHECKPOINT_STEPS:-32 64 96 128 160 192 224 256}",
-  "run_spec_format": "run_id:reward_mode[:beta_override[:learning_rate_override]]"
+  "run_spec_format": "run_id:reward_mode[:beta_override[:learning_rate_override[:rank_override[:alpha_override]]]]"
 }
 JSON
 
@@ -1832,15 +1996,17 @@ fi
 read -r -a K8_RUNS <<< "\$K8_RUN_SPECS"
 
 for spec in "\${K8_RUNS[@]}"; do
-  IFS=':' read -r EXP_ID MODE SPEC_BETA SPEC_LEARNING_RATE <<< "\$spec"
+  IFS=':' read -r EXP_ID MODE SPEC_BETA SPEC_LEARNING_RATE SPEC_RANK SPEC_ALPHA <<< "\$spec"
   BRANCH_BETA="\${SPEC_BETA:-\${K8_BETA:-0.04}}"
   BRANCH_LEARNING_RATE="\${SPEC_LEARNING_RATE:-\${K8_LEARNING_RATE:-3e-6}}"
+  BRANCH_RANK="\${SPEC_RANK:-\${K8_RANK:-64}}"
+  BRANCH_ALPHA="\${SPEC_ALPHA:-\${K8_ALPHA:-64}}"
   EXP_DIR="\$RUN_DIR/runs/\$EXP_ID"
   ARTIFACT_DIR="\$EXP_DIR/artifacts"
   mkdir -p "\$EXP_DIR" "\$ARTIFACT_DIR" "\$EXP_DIR/ckpts" "\$EXP_DIR/intermediate_ckpt" "\$EXP_DIR/tensorboard"
 
   echo
-  echo "==> K8 pilot run \$EXP_ID mode=\$MODE beta=\$BRANCH_BETA lr=\$BRANCH_LEARNING_RATE"
+  echo "==> K8 pilot run \$EXP_ID mode=\$MODE beta=\$BRANCH_BETA lr=\$BRANCH_LEARNING_RATE rank=\$BRANCH_RANK alpha=\$BRANCH_ALPHA"
   export RUN_ID="\$K8_ID-\$EXP_ID"
   export WANDB_RUN_ID="\$K8_ID-\$EXP_ID"
   export REWARD_MODE="\$MODE"
@@ -1862,8 +2028,8 @@ for spec in "\${K8_RUNS[@]}"; do
   export LEARNING_RATE="\$BRANCH_LEARNING_RATE"
   export BETA="\$BRANCH_BETA"
   export EPSILON="\${K8_EPSILON:-0.2}"
-  export RANK="\${K8_RANK:-64}"
-  export ALPHA="\${K8_ALPHA:-64}"
+  export RANK="\$BRANCH_RANK"
+  export ALPHA="\$BRANCH_ALPHA"
   mkdir -p "\$OBS_OUTPUT_DIR" "\$OBS_TRACE_DIR"
 
   env | sort | grep -E '^(RUN_ID|REWARD_MODE|MAX_STEPS|LR_SCHEDULE_STEPS|WARMUP_STEPS|SAVE_INTERVAL_STEPS|MAX_TO_KEEP|EVAL_EVERY_N_STEPS|NUM_GENERATIONS|TOTAL_GENERATION_STEPS|LEARNING_RATE|BETA|EPSILON|RANK|ALPHA|CKPT_DIR|TENSORBOARD_DIR|OBS_)=' > "\$EXP_DIR/run_env.txt"
@@ -2016,6 +2182,46 @@ submit_reward_only_r12_full() {
   echo "==> Starting tmux session $session"
   tmux new-session -d -s "$session" "K8_MAX_STEPS=3364 K8_LR_SCHEDULE_STEPS=3364 K8_WARMUP_STEPS=336.4 K8_CHECKPOINT_STEPS='500 1000 1500 2000 2500 3000 3364' K8_MAX_TO_KEEP=16 K8_SAVE_INTERVAL_STEPS=500 K8_EVAL_EVERY_N_STEPS=64 K8_NUM_GENERATIONS=2 K8_BETA=0.08 K8_LEARNING_RATE=3e-6 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- k8 pilot exited (\$status) ---\"; exec bash"
   echo "Started R12 reward-only baseline-K/KL full run. Attach with: tmux attach -t $session"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
+submit_r12_non_r64_pilot() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R12_rank16_alpha32_beta004_lr3e-6:gsm8k_verifiable_simple:0.04:3e-6:16:32"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_MAX_STEPS=256 K8_CHECKPOINT_STEPS='32 64 96 128 160 192 224 256' K8_MAX_TO_KEEP=12 K8_SAVE_INTERVAL_STEPS=32 K8_EVAL_EVERY_N_STEPS=32 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- k8 non-r64 pilot exited (\$status) ---\"; exec bash"
+  echo "Started R12 non-R64 K8 pilot. Attach with: tmux attach -t $session"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
+submit_r12_lora_public_tuning() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R12_rank32_alpha32_beta004_lr3e-6:gsm8k_verifiable_simple:0.04:3e-6:32:32 R12_rank16_alpha32_beta001_lr1e-6:gsm8k_verifiable_simple:0.001:1e-6:16:32 R12_rank16_alpha32_beta000_lr1e-6:gsm8k_verifiable_simple:0.0:1e-6:16:32"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_MAX_STEPS=256 K8_CHECKPOINT_STEPS='32 64 96 128 160 192 224 256' K8_MAX_TO_KEEP=12 K8_SAVE_INTERVAL_STEPS=32 K8_EVAL_EVERY_N_STEPS=32 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- k8 lora tuning pilot exited (\$status) ---\"; exec bash"
+  echo "Started R12 LoRA/LR public tuning pilot. Attach with: tmux attach -t $session"
   echo "Log: $RUN_DIR/pipeline.log"
 }
 
@@ -2983,6 +3189,9 @@ case "$COMMAND" in
   submit-r7-large-eval)
     submit_r7_large_eval
     ;;
+  submit-r12-best-large-eval)
+    submit_r12_best_large_eval
+    ;;
   submit-reward-r9)
     submit_reward_r9
     ;;
@@ -3006,6 +3215,12 @@ case "$COMMAND" in
     ;;
   submit-reward-only-r12-full)
     submit_reward_only_r12_full
+    ;;
+  submit-r12-non-r64-pilot)
+    submit_r12_non_r64_pilot
+    ;;
+  submit-r12-lora-public-tuning)
+    submit_r12_lora_public_tuning
     ;;
   submit-k8-public-beta)
     submit_k8_public_beta
@@ -3035,6 +3250,9 @@ case "$COMMAND" in
     status_reward_dense
     ;;
   status-r7-large-eval)
+    status_r7_large_eval
+    ;;
+  status-r12-best-large-eval)
     status_r7_large_eval
     ;;
   status-reward-r9)

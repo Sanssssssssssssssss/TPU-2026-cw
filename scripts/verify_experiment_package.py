@@ -37,8 +37,8 @@ def verify_run(root: Path) -> tuple[list[str], list[str]]:
     manifests = sorted((root / "artifacts").glob("*manifest*.json"))
     for manifest in manifests:
         data = read_json(manifest)
-        if "rank" in data and str(data.get("rank")) != "64":
-            warnings.append(f"manifest rank is not 64 in {manifest}: {data.get('rank')}")
+        if "rank" in data and data.get("rank") in (None, ""):
+            warnings.append(f"manifest rank is empty in {manifest}")
 
     runs_dir = root / "runs"
     if not runs_dir.is_dir():
@@ -63,10 +63,10 @@ def verify_run(root: Path) -> tuple[list[str], list[str]]:
         env_path = branch / "run_env.txt"
         if env_path.is_file():
             env_text = env_path.read_text(encoding="utf-8", errors="replace")
-            if "RANK=64" not in env_text:
-                warnings.append(f"RANK=64 not recorded in {env_path}")
-            if "ALPHA=64" not in env_text and "ALPHA=64.0" not in env_text:
-                warnings.append(f"ALPHA=64 not recorded in {env_path}")
+            if "RANK=" not in env_text:
+                warnings.append(f"RANK not recorded in {env_path}")
+            if "ALPHA=" not in env_text:
+                warnings.append(f"ALPHA not recorded in {env_path}")
 
     archives = root / "checkpoint_archives"
     manifest = root / "checkpoint_archives.txt"
