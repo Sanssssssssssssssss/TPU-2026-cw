@@ -10,6 +10,23 @@ Local Google TPU VM orchestrator for the GRPO baseline workflow.
 .\cloud\submit_tpu_job.ps1 submit-reward-sweep -RunId reward-grid-001
 .\cloud\submit_tpu_job.ps1 status-sweep -RunId reward-grid-001
 .\cloud\submit_tpu_job.ps1 fetch-sweep -RunId reward-grid-001
+.\cloud\submit_tpu_job.ps1 submit-reward-continuation -RunId reward-continuation-001
+.\cloud\submit_tpu_job.ps1 status-continuation -RunId reward-continuation-001
+.\cloud\submit_tpu_job.ps1 fetch-continuation -RunId reward-continuation-001
+.\cloud\submit_tpu_job.ps1 submit-candidate-eval -RunId candidate-eval-r3-r5-001
+.\cloud\submit_tpu_job.ps1 status-candidate-eval -RunId candidate-eval-r3-r5-001
+.\cloud\submit_tpu_job.ps1 fetch-candidate-eval -RunId candidate-eval-r3-r5-001
+.\cloud\submit_tpu_job.ps1 submit-reward-dense -RunId reward-dense-001
+.\cloud\submit_tpu_job.ps1 status-reward-dense -RunId reward-dense-001
+.\cloud\submit_tpu_job.ps1 fetch-reward-dense -RunId reward-dense-001
+.\cloud\submit_tpu_job.ps1 submit-r7-large-eval -RunId r7-large-eval-001
+.\cloud\submit_tpu_job.ps1 status-r7-large-eval -RunId r7-large-eval-001
+.\cloud\submit_tpu_job.ps1 fetch-r7-large-eval -RunId r7-large-eval-001
+.\cloud\submit_tpu_job.ps1 submit-reward-r9 -RunId reward-r9-closed-answer-001
+.\cloud\submit_tpu_job.ps1 status-reward-r9 -RunId reward-r9-closed-answer-001
+.\cloud\submit_tpu_job.ps1 fetch-reward-r9 -RunId reward-r9-closed-answer-001
+.\cloud\submit_tpu_job.ps1 submit-reward-r10 -RunId reward-r10-numeric-guarded-001
+.\cloud\submit_tpu_job.ps1 submit-k8-pilot -RunId reward-k8-beta004-pilot-001
 .\cloud\submit_tpu_job.ps1 eval-checkpoints -RunId baseline-001
 .\cloud\submit_tpu_job.ps1 status -RunId baseline-001
 .\cloud\submit_tpu_job.ps1 ensure-storage
@@ -21,7 +38,7 @@ Local Google TPU VM orchestrator for the GRPO baseline workflow.
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("preflight", "ensure-tpu", "ensure-storage", "bootstrap", "submit-baseline", "submit-reward-sweep", "eval-checkpoints", "status", "status-sweep", "fetch", "fetch-sweep", "sync-storage", "restore-cache", "start-tpu", "stop-tpu", "delete-tpu")]
+    [ValidateSet("preflight", "ensure-tpu", "ensure-storage", "bootstrap", "submit-baseline", "submit-reward-sweep", "submit-reward-continuation", "submit-candidate-eval", "submit-reward-dense", "submit-r7-large-eval", "submit-reward-r9", "submit-reward-r10", "submit-k8-pilot", "submit-k8-r10-only", "submit-k8-r11-fallback-only", "eval-checkpoints", "status", "status-sweep", "status-continuation", "status-candidate-eval", "status-reward-dense", "status-r7-large-eval", "status-reward-r9", "status-reward-r10", "status-k8-pilot", "resume-k8-pilot", "stop-reward-r10", "stop-k8-pilot", "fetch", "fetch-sweep", "fetch-continuation", "fetch-candidate-eval", "fetch-reward-dense", "fetch-r7-large-eval", "fetch-reward-r9", "fetch-reward-r10", "fetch-k8-pilot", "sync-storage", "restore-cache", "start-tpu", "stop-tpu", "delete-tpu")]
     [string]$Command = "preflight",
 
     [string]$RunId = ("baseline-" + (Get-Date -Format "yyyyMMdd-HHmmss")),
@@ -380,7 +397,10 @@ function New-CodeBundle {
         if ([string]::IsNullOrWhiteSpace($rel)) {
             continue
         }
-        if ($rel -like "artifacts/reports/*.zip") {
+        if ($rel -eq "artifacts" -or $rel -like "artifacts/*") {
+            continue
+        }
+        if ($rel -like "*.pyc" -or $rel -like "*/__pycache__/*") {
             continue
         }
         $source = Join-Path $RepoRoot $rel
@@ -600,6 +620,123 @@ function Submit-RewardSweep {
     }
 }
 
+function Submit-RewardContinuation {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-reward-continuation" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
+function Submit-CandidateEval {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-candidate-eval" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
+function Submit-RewardDense {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-reward-dense" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
+function Submit-R7LargeEval {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-r7-large-eval" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
+function Submit-RewardR9 {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-reward-r9" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
+function Submit-RewardR10 {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-reward-r10" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
+function Submit-K8Pilot {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-k8-pilot" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
+function Submit-K8R10Only {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-k8-r10-only" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
+function Submit-K8R11FallbackOnly {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-k8-r11-fallback-only" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
 function Eval-Checkpoints {
     Assert-RunId
     $bundle = New-CodeBundle
@@ -625,6 +762,66 @@ function Status-Sweep {
     Invoke-RemoteRunner $runner "status-sweep"
 }
 
+function Status-Continuation {
+    Assert-RunId
+    $runner = Upload-Runner
+    Invoke-RemoteRunner $runner "status-continuation"
+}
+
+function Status-CandidateEval {
+    Assert-RunId
+    $runner = Upload-Runner
+    Invoke-RemoteRunner $runner "status-candidate-eval"
+}
+
+function Status-RewardDense {
+    Assert-RunId
+    $runner = Upload-Runner
+    Invoke-RemoteRunner $runner "status-reward-dense"
+}
+
+function Status-R7LargeEval {
+    Assert-RunId
+    $runner = Upload-Runner
+    Invoke-RemoteRunner $runner "status-r7-large-eval"
+}
+
+function Status-RewardR9 {
+    Assert-RunId
+    $runner = Upload-Runner
+    Invoke-RemoteRunner $runner "status-reward-r9"
+}
+
+function Status-RewardR10 {
+    Assert-RunId
+    $runner = Upload-Runner
+    Invoke-RemoteRunner $runner "status-reward-r10"
+}
+
+function Status-K8Pilot {
+    Assert-RunId
+    $runner = Upload-Runner
+    Invoke-RemoteRunner $runner "status-k8-pilot"
+}
+
+function Resume-K8Pilot {
+    Assert-RunId
+    $runner = Upload-Runner
+    Invoke-RemoteRunner $runner "resume-k8-pilot"
+}
+
+function Stop-RewardR10 {
+    Assert-RunId
+    $runner = Upload-Runner
+    Invoke-RemoteRunner $runner "stop-reward-r10"
+}
+
+function Stop-K8Pilot {
+    Assert-RunId
+    $runner = Upload-Runner
+    Invoke-RemoteRunner $runner "stop-k8-pilot"
+}
+
 function Fetch-Run {
     Assert-RunId
     Write-Step "Preparing remote result archive"
@@ -636,7 +833,7 @@ FETCH=`$RUN_DIR/fetch
 ARCHIVE=$remoteArchive
 rm -rf "`$FETCH" "`$ARCHIVE"
 mkdir -p "`$FETCH"
-for path in artifacts meta pipeline.log run_baseline.sh run_eval_checkpoints.sh run_reward_sweep.sh tensorboard runs; do
+for path in artifacts meta pipeline.log run_baseline.sh run_eval_checkpoints.sh run_reward_sweep.sh run_reward_continuation.sh run_candidate_eval.sh run_reward_dense.sh run_r7_large_eval.sh run_reward_r9.sh tensorboard runs; do
   if [ -e "`$RUN_DIR/`$path" ]; then
     cp -r "`$RUN_DIR/`$path" "`$FETCH/"
   fi
@@ -668,6 +865,131 @@ tar -czf "`$ARCHIVE" -C "`$FETCH" .
         }
         Write-Host "Fetched run outputs to $localDest"
     }
+}
+
+function Fetch-RewardDense {
+    Assert-RunId
+    Write-Step "Preparing split reward result archives"
+    $remoteRunDir = Get-RemotePath $RemoteRoot $RunId
+    $remoteAnalysisArchive = Get-RemotePath $remoteRunDir "$RunId-analysis.tar.gz"
+    $remoteArchiveList = Get-RemotePath $remoteRunDir "checkpoint_archives.txt"
+    $remoteCommand = @"
+RUN_DIR=$remoteRunDir
+FETCH=`$RUN_DIR/fetch_analysis
+ANALYSIS_ARCHIVE=$remoteAnalysisArchive
+ARCHIVE_LIST=$remoteArchiveList
+rm -rf "`$FETCH" "`$ANALYSIS_ARCHIVE" "`$ARCHIVE_LIST" "`$RUN_DIR"/$RunId-checkpoint-*.tar.gz "`$RUN_DIR"/$RunId-checkpoints-*.tar.gz
+mkdir -p "`$FETCH/runs"
+for path in artifacts meta pipeline.log run_baseline.sh run_eval_checkpoints.sh run_reward_sweep.sh run_reward_continuation.sh run_candidate_eval.sh run_reward_dense.sh run_r7_large_eval.sh run_reward_r9.sh run_reward_r10.sh run_k8_pilot.sh tensorboard; do
+  if [ -e "`$RUN_DIR/`$path" ]; then
+    cp -r "`$RUN_DIR/`$path" "`$FETCH/"
+  fi
+done
+if [ -d "`$RUN_DIR/runs" ]; then
+  for child in "`$RUN_DIR"/runs/*; do
+    [ -d "`$child" ] || continue
+    name=`$(basename "`$child")
+    mkdir -p "`$FETCH/runs/`$name"
+    for path in artifacts meta tensorboard train.log reward_mode.txt run_env.txt run_manifest.json extension_decision.json checkpoint_eval_plan.txt; do
+      if [ -e "`$child/`$path" ]; then
+        cp -r "`$child/`$path" "`$FETCH/runs/`$name/"
+      fi
+    done
+  done
+fi
+tar -czf "`$ANALYSIS_ARCHIVE" -C "`$FETCH" .
+: > "`$ARCHIVE_LIST"
+if [ -d "`$RUN_DIR/runs" ]; then
+  for child in "`$RUN_DIR"/runs/*; do
+    [ -d "`$child" ] || continue
+    name=`$(basename "`$child")
+    if [ -d "`$child/ckpts/actor" ]; then
+      find "`$child/ckpts/actor" -maxdepth 1 -mindepth 1 -type d -name '[0-9]*' -printf "`$name %f\n" | sort -k1,1 -k2,2n >> "`$ARCHIVE_LIST"
+    fi
+  done
+fi
+"@
+    Invoke-Remote $remoteCommand
+
+    $localRoot = Resolve-RepoPath $LocalArtifactsRoot
+    $localDest = Join-Path $localRoot $RunId
+    $localAnalysisArchive = Join-Path $localDest "$RunId-analysis.tar.gz"
+    $localArchiveList = Join-Path $localDest "checkpoint_archives.txt"
+    $localCheckpointArchiveDir = Join-Path $localDest "checkpoint_archives"
+
+    if (-not $DryRun) {
+        New-Item -ItemType Directory -Path $localDest, $localCheckpointArchiveDir -Force | Out-Null
+    }
+
+    Write-Step "Downloading reward analysis archive"
+    Invoke-RemoteScp "${TpuName}:$remoteAnalysisArchive" $localAnalysisArchive
+
+    if (-not $DryRun) {
+        Write-Step "Extracting reward analysis archive"
+        if (Get-Command "tar" -ErrorAction SilentlyContinue) {
+            & tar -xzf $localAnalysisArchive -C $localDest
+            if ($LASTEXITCODE -ne 0) {
+                throw "tar extraction failed: $localAnalysisArchive"
+            }
+        } else {
+            Write-Warning "tar is not available locally. Archive left at $localAnalysisArchive"
+        }
+    }
+
+    Write-Step "Downloading checkpoint list"
+    Invoke-RemoteScp "${TpuName}:$remoteArchiveList" $localArchiveList
+
+    if ($DryRun) {
+        return
+    }
+
+    if (-not (Test-Path -LiteralPath $localArchiveList -PathType Leaf)) {
+        Write-Warning "No checkpoint archive list downloaded."
+        return
+    }
+
+    $checkpointEntries = Get-Content -LiteralPath $localArchiveList | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    Set-Content -LiteralPath $localArchiveList -Value "" -Encoding utf8
+    foreach ($entry in $checkpointEntries) {
+        $parts = $entry.Trim() -split "\s+"
+        if ($parts.Count -lt 2) {
+            Write-Warning "Skipping malformed checkpoint entry: $entry"
+            continue
+        }
+        $runName = $parts[0]
+        $step = $parts[1]
+        $fileName = "$RunId-checkpoint-$runName-$step.tar.gz"
+        $remoteCheckpointArchive = Get-RemotePath $remoteRunDir $fileName
+        $localCheckpointArchive = Join-Path $localCheckpointArchiveDir $fileName
+        $remoteCheckpointCommand = @"
+RUN_DIR=$remoteRunDir
+RUN_NAME=$runName
+STEP=$step
+ARCHIVE=$remoteCheckpointArchive
+CHILD="`$RUN_DIR/runs/`$RUN_NAME"
+test -d "`$CHILD/ckpts/actor/`$STEP"
+rm -f "`$ARCHIVE"
+tar -czf "`$ARCHIVE" -C "`$CHILD/ckpts/actor" "`$STEP"
+"@
+        Write-Step "Preparing checkpoint archive $fileName"
+        Invoke-Remote $remoteCheckpointCommand
+
+        Write-Step "Downloading checkpoint archive $fileName"
+        Invoke-RemoteScp "${TpuName}:$remoteCheckpointArchive" $localCheckpointArchive
+        Invoke-Remote "rm -f $remoteCheckpointArchive"
+        Add-Content -LiteralPath $localArchiveList -Value ("checkpoint_archives/$fileName") -Encoding utf8
+
+        if (Get-Command "tar" -ErrorAction SilentlyContinue) {
+            $runDest = Join-Path (Join-Path (Join-Path $localDest "runs") $runName) "ckpts\actor"
+            New-Item -ItemType Directory -Path $runDest -Force | Out-Null
+            & tar -xzf $localCheckpointArchive -C $runDest
+            if ($LASTEXITCODE -ne 0) {
+                throw "checkpoint extraction failed: $localCheckpointArchive"
+            }
+        }
+    }
+
+    Write-Host "Fetched reward outputs to $localDest"
 }
 
 function Sync-Storage {
@@ -723,11 +1045,37 @@ switch ($Command) {
     "bootstrap" { Bootstrap-Remote }
     "submit-baseline" { Submit-Baseline }
     "submit-reward-sweep" { Submit-RewardSweep }
+    "submit-reward-continuation" { Submit-RewardContinuation }
+    "submit-candidate-eval" { Submit-CandidateEval }
+    "submit-reward-dense" { Submit-RewardDense }
+    "submit-r7-large-eval" { Submit-R7LargeEval }
+    "submit-reward-r9" { Submit-RewardR9 }
+    "submit-reward-r10" { Submit-RewardR10 }
+    "submit-k8-pilot" { Submit-K8Pilot }
+    "submit-k8-r10-only" { Submit-K8R10Only }
+    "submit-k8-r11-fallback-only" { Submit-K8R11FallbackOnly }
     "eval-checkpoints" { Eval-Checkpoints }
     "status" { Status-Run }
     "status-sweep" { Status-Sweep }
+    "status-continuation" { Status-Continuation }
+    "status-candidate-eval" { Status-CandidateEval }
+    "status-reward-dense" { Status-RewardDense }
+    "status-r7-large-eval" { Status-R7LargeEval }
+    "status-reward-r9" { Status-RewardR9 }
+    "status-reward-r10" { Status-RewardR10 }
+    "status-k8-pilot" { Status-K8Pilot }
+    "resume-k8-pilot" { Resume-K8Pilot }
+    "stop-reward-r10" { Stop-RewardR10 }
+    "stop-k8-pilot" { Stop-K8Pilot }
     "fetch" { Fetch-Run }
     "fetch-sweep" { Fetch-Run }
+    "fetch-continuation" { Fetch-Run }
+    "fetch-candidate-eval" { Fetch-Run }
+    "fetch-reward-dense" { Fetch-RewardDense }
+    "fetch-r7-large-eval" { Fetch-Run }
+    "fetch-reward-r9" { Fetch-RewardDense }
+    "fetch-reward-r10" { Fetch-RewardDense }
+    "fetch-k8-pilot" { Fetch-RewardDense }
     "sync-storage" { Sync-Storage }
     "restore-cache" { Restore-Cache }
     "start-tpu" { Start-Tpu }

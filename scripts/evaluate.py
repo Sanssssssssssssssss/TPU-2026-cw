@@ -12,17 +12,32 @@ Examples:
 """
 
 import argparse
+from collections import Counter
 import json
 import os
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any, Callable
 
 os.environ.setdefault("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION", "python")
 
 PRESET_CHOICES = ("greedy", "standard", "liberal")
 SOURCE_CHOICES = ("tfds", "kaggle")
 DEFAULT_CKPT_ROOT = "~/tpu-2026/ckpts_backup/actor"
+ANSWER_OPEN = "<answer>"
+ANSWER_CLOSE = "</answer>"
+FAILURE_TYPES = (
+    "correct",
+    "format_fail_only",
+    "missing_answer_open",
+    "missing_answer_close",
+    "no_number",
+    "wrong_number",
+    "multiple_numbers",
+    "trailing_text_after_close",
+    "empty_completion",
+)
 
 
 def generate(
@@ -69,8 +84,10 @@ def evaluate(
     top_k=50,
     top_p=0.95,
     num_passes=1,
+    diagnostics_fn: Callable[[list[str], list[Any], str | None], list[dict[str, Any]]] | None = None,
 ):
     corr = partially_corr = corr_format = total = 0
+    example_rows: list[dict[str, Any]] = []
 
     for batch in tqdm(dataset):
         answers = batch["answer"]
@@ -91,6 +108,12 @@ def evaluate(
             )
             for i, r in enumerate(responses):
                 per_q[i].append(r)
+            if diagnostics_fn is not None:
+                diagnostics = diagnostics_fn(responses, answers, "numeric_dense_single_answer")
+                for i, (question, answer, response, diag) in enumerate(
+                    zip(questions, answers, responses, diagnostics)
+                ):
+                    example_rows.append(build_example_record(question, answer, response, diag, i, p))
 
         for responses, ans in zip(per_q, answers):
             got_corr = got_partial = got_format = False
@@ -119,7 +142,119 @@ def evaluate(
                     f"partial={partially_corr/total*100:.2f}% fmt={corr_format/total*100:.2f}%"
                 )
 
-    return corr, total, corr / total * 100, partially_corr / total * 100, corr_format / total * 100
+    return (
+        corr,
+        total,
+        corr / total * 100,
+        partially_corr / total * 100,
+        corr_format / total * 100,
+        example_rows,
+    )
+
+
+def _safe_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return str(value)
+
+
+def _text_after_answer_close(completion: str) -> str:
+    index = completion.find(ANSWER_CLOSE)
+    if index < 0:
+        return ""
+    return completion[index + len(ANSWER_CLOSE) :].strip()
+
+
+def classify_failure(completion: str, diagnostics: dict[str, Any]) -> str:
+    """Classify why a completion did or did not pass the official eval."""
+    text = _safe_text(completion)
+    has_open = ANSWER_OPEN in text
+    has_close = ANSWER_CLOSE in text
+    text_after_close = _text_after_answer_close(text)
+    official_exact = bool(diagnostics.get("official_numeric_exact"))
+    format_ok = bool(diagnostics.get("format_ok"))
+    answer_number_count = int(diagnostics.get("robust_answer_number_count") or 0)
+
+    if not text.strip():
+        return "empty_completion"
+    if official_exact and format_ok:
+        return "correct"
+    if not has_open:
+        return "missing_answer_open"
+    if has_open and not has_close:
+        return "missing_answer_close"
+    if diagnostics.get("official_extracted_number") is None:
+        return "no_number"
+    if answer_number_count > 1:
+        return "multiple_numbers"
+    if text_after_close:
+        return "trailing_text_after_close"
+    if official_exact and not format_ok:
+        return "format_fail_only"
+    return "wrong_number"
+
+
+def build_example_record(
+    question: Any,
+    gold_answer: Any,
+    completion: Any,
+    diagnostics: dict[str, Any],
+    example_index: int,
+    pass_index: int,
+) -> dict[str, Any]:
+    completion_text = _safe_text(completion)
+    has_open = ANSWER_OPEN in completion_text
+    has_close = ANSWER_CLOSE in completion_text
+    text_after_close = _text_after_answer_close(completion_text)
+    failure_type = classify_failure(completion_text, diagnostics)
+    return {
+        "example_index": example_index,
+        "pass_index": pass_index,
+        "question": _safe_text(question),
+        "gold_answer": _safe_text(gold_answer),
+        "completion": completion_text,
+        "official_extracted_number": diagnostics.get("official_extracted_number"),
+        "robust_extracted_number": diagnostics.get("robust_extracted_number"),
+        "has_answer_open": has_open,
+        "has_answer_close": has_close,
+        "has <answer>": has_open,
+        "has </answer>": has_close,
+        "text_after_answer_close": text_after_close,
+        "numeric_exact": bool(diagnostics.get("official_numeric_exact")),
+        "partial_numeric": bool(diagnostics.get("official_numeric_partial")),
+        "robust_numeric_exact": bool(diagnostics.get("robust_numeric_exact")),
+        "robust_partial_numeric": bool(diagnostics.get("robust_numeric_partial")),
+        "format_ok": bool(diagnostics.get("format_ok")),
+        "failure_type": failure_type,
+        "answer_number_count": diagnostics.get("robust_answer_number_count"),
+        "parser_false_negative": bool(diagnostics.get("parser_false_negative")),
+    }
+
+
+def summarize_examples(example_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    total = len(example_rows)
+    failure_counts = Counter(row.get("failure_type", "unknown") for row in example_rows)
+    for name in FAILURE_TYPES:
+        failure_counts.setdefault(name, 0)
+    return {
+        "failure_counts": dict(sorted(failure_counts.items())),
+        "no_close_answer_rate": (
+            sum(bool(row.get("has_answer_open")) and not bool(row.get("has_answer_close")) for row in example_rows)
+            / total
+            if total
+            else 0.0
+        ),
+        "text_after_close_rate": (
+            sum(bool(_safe_text(row.get("text_after_answer_close")).strip()) for row in example_rows) / total
+            if total
+            else 0.0
+        ),
+        "robust_numeric_exact_rate": (
+            sum(bool(row.get("robust_numeric_exact")) for row in example_rows) / total if total else 0.0
+        ),
+    }
 
 
 def git_commit() -> str | None:
@@ -142,6 +277,15 @@ def write_json(path: str, payload: dict) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(f"Wrote evaluation JSON: {out}")
+
+
+def write_jsonl(path: str, rows: list[dict[str, Any]]) -> None:
+    out = Path(path).expanduser()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with out.open("w", encoding="utf-8") as f:
+        for row in rows:
+            f.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+    print(f"Wrote evaluation examples JSONL: {out}")
 
 
 def parse_args():
@@ -173,6 +317,11 @@ def parse_args():
         help="Number of generations per prompt for pass@N-style evaluation.",
     )
     ap.add_argument("--output-json", default=None, help="Optional path for machine-readable results.")
+    ap.add_argument(
+        "--output-examples-jsonl",
+        default=None,
+        help="Optional JSONL path containing one row per generated completion with parser diagnostics.",
+    )
     return ap.parse_args()
 
 
@@ -198,7 +347,7 @@ def main():
     )
     from data import SYSTEM_PROMPT, TEMPLATE, build_train_val_test
     from model import build_mesh, download_weights, get_lora_model, load_base_model, load_tokenizer
-    from rewards import match_format, match_numbers
+    from rewards import match_format, match_numbers, reward_diagnostics_for_observability
 
     source = args.source or DATA_SOURCE
 
@@ -236,7 +385,7 @@ def main():
             head_dim=cfg.head_dim,
         ),
     )
-    n, t, acc, pacc, facc = evaluate(
+    n, t, acc, pacc, facc, example_rows = evaluate(
         test_ds,
         sampler,
         eos_tokens,
@@ -247,9 +396,11 @@ def main():
         tqdm,
         TOTAL_GENERATION_STEPS,
         num_passes=args.num_passes,
+        diagnostics_fn=reward_diagnostics_for_observability,
         **GENERATION_CONFIGS[args.preset],
     )
     print(f"\nFINAL: correct={n}/{t}  acc={acc:.2f}%  partial={pacc:.2f}%  format={facc:.2f}%")
+    example_summary = summarize_examples(example_rows)
 
     payload = {
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -278,8 +429,16 @@ def main():
             "accuracy": acc,
             "partial_accuracy": pacc,
             "format_accuracy": facc,
+            **example_summary,
+        },
+        "outputs": {
+            "examples_jsonl": str(Path(args.output_examples_jsonl).expanduser())
+            if args.output_examples_jsonl
+            else None,
         },
     }
+    if args.output_examples_jsonl:
+        write_jsonl(args.output_examples_jsonl, example_rows)
     if args.output_json:
         write_json(args.output_json, payload)
 

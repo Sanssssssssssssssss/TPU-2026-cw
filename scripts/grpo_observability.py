@@ -335,12 +335,22 @@ class GRPOObservability:
         extracted_none = np.asarray([d["extracted_number"] is None for d in diagnostics], dtype=np.float32)
         exact = np.asarray([d["numeric_exact"] for d in diagnostics], dtype=np.float32)
         partial = np.asarray([d["numeric_partial"] for d in diagnostics], dtype=np.float32)
+        official_exact = np.asarray([d["official_numeric_exact"] for d in diagnostics], dtype=np.float32)
+        robust_exact = np.asarray([d["robust_numeric_exact"] for d in diagnostics], dtype=np.float32)
+        fallback_used = np.asarray([d["fallback_number_used"] for d in diagnostics], dtype=np.float32)
+        fallback_exact = np.asarray([d["fallback_numeric_exact"] for d in diagnostics], dtype=np.float32)
+        parser_false_negative = np.asarray([d["parser_false_negative"] for d in diagnostics], dtype=np.float32)
         format_ok = np.asarray([d["format_ok"] for d in diagnostics], dtype=np.float32)
         answer_tag_pair_ok = np.asarray([d["answer_tag_pair_ok"] for d in diagnostics], dtype=np.float32)
         duplicate_tag = np.asarray([d["duplicate_or_broken_answer_tag"] for d in diagnostics], dtype=np.float32)
         overlong_1200 = np.asarray([d["overlong_1200"] for d in diagnostics], dtype=np.float32)
         overlong_1600 = np.asarray([d["overlong_1600"] for d in diagnostics], dtype=np.float32)
         answer_multi_number = np.asarray([d["answer_multi_number"] for d in diagnostics], dtype=np.float32)
+        answer_single_number = np.asarray([d["answer_single_number"] for d in diagnostics], dtype=np.float32)
+        no_close_answer = np.asarray([d["no_close_answer"] for d in diagnostics], dtype=np.float32)
+        dense_numeric = np.asarray([d["numeric_dense"] for d in diagnostics], dtype=np.float32)
+        guarded_numeric = np.asarray([d["numeric_guarded"] for d in diagnostics], dtype=np.float32)
+        fallback_guarded_numeric = np.asarray([d["numeric_guarded_fallback"] for d in diagnostics], dtype=np.float32)
         chars = np.asarray([len(c) for c in completions_list], dtype=np.float32)
         words = np.asarray([len(c.split()) for c in completions_list], dtype=np.float32)
         has_solution_end = np.asarray(["</answer>" in c for c in completions_list], dtype=np.float32)
@@ -357,9 +367,17 @@ class GRPOObservability:
             "rollout/overlong_rate_1200": float(overlong_1200.mean()) if n else 0.0,
             "rollout/overlong_rate_1600": float(overlong_1600.mean()) if n else 0.0,
             "rollout/answer_multi_number_rate": float(answer_multi_number.mean()) if n else 0.0,
+            "rollout/answer_single_number_rate": float(answer_single_number.mean()) if n else 0.0,
+            "rollout/no_close_answer_rate": float(no_close_answer.mean()) if n else 0.0,
+            "rollout/answer_last_number_exact_rate": float(robust_exact.mean()) if n else 0.0,
+            "rollout/fallback_number_used_rate": float(fallback_used.mean()) if n else 0.0,
+            "rollout/fallback_numeric_exact_rate": float(fallback_exact.mean()) if n else 0.0,
             "eval/numeric_exact_rate": float(exact.mean()) if n else 0.0,
             "eval/numeric_partial_rate": float(partial.mean()) if n else 0.0,
+            "eval/official_numeric_exact_rate": float(official_exact.mean()) if n else 0.0,
+            "eval/robust_numeric_exact_rate": float(robust_exact.mean()) if n else 0.0,
             "eval/format_accuracy": float(format_ok.mean()) if n else 0.0,
+            "reward/parser_false_negative_rate": float(parser_false_negative.mean()) if n else 0.0,
         }
 
         if rewards_arr.size:
@@ -389,7 +407,19 @@ class GRPOObservability:
             "format_strict_light",
             "answer_tag_light",
             "numeric_primary",
+            "numeric_dense",
+            "answer_hygiene_dense",
+            "closed_answer_minimal",
+            "numeric_guarded",
+            "answer_hygiene_guarded",
+            "answer_hygiene_guarded_raw",
+            "numeric_guarded_total",
+            "numeric_guarded_fallback",
+            "answer_hygiene_fallback",
+            "answer_hygiene_fallback_raw",
+            "numeric_guarded_fallback_total",
             "length_penalty_1200",
+            "length_penalty_short",
         ):
             values = np.asarray([d[component] for d in diagnostics], dtype=np.float32)
             metric_values[f"reward/{component}_mean"] = float(values.mean()) if values.size else 0.0
@@ -411,10 +441,22 @@ class GRPOObservability:
                     "audit/reward_format_leakage": float(formatted_wrong_rewards.mean())
                     if formatted_wrong_rewards.size
                     else 0.0,
+                    "audit/wrong_formatted_reward_leakage": float(formatted_wrong_rewards.mean())
+                    if formatted_wrong_rewards.size
+                    else 0.0,
                     "audit/reward_hacking_rate": float(((wrong_mask) & (rewards_arr >= 3.0)).mean()),
                     "audit/numeric_correct_count": float(correct_rewards.size),
                     "audit/numeric_wrong_count": float(wrong_rewards.size),
                     "audit/formatted_wrong_count": float(formatted_wrong_rewards.size),
+                    "audit/dense_wrong_reward_std": float(dense_numeric[~robust_exact.astype(bool)].std())
+                    if dense_numeric.size and (~robust_exact.astype(bool)).any()
+                    else 0.0,
+                    "audit/guarded_wrong_reward_std": float(guarded_numeric[~robust_exact.astype(bool)].std())
+                    if guarded_numeric.size and (~robust_exact.astype(bool)).any()
+                    else 0.0,
+                    "audit/fallback_guarded_wrong_reward_std": float(fallback_guarded_numeric[~fallback_exact.astype(bool)].std())
+                    if fallback_guarded_numeric.size and (~fallback_exact.astype(bool)).any()
+                    else 0.0,
                 }
             )
 
@@ -538,20 +580,46 @@ class GRPOObservability:
                         "format_strict_light": diagnostics[i]["format_strict_light"],
                         "answer_tag_light": diagnostics[i]["answer_tag_light"],
                         "numeric_primary": diagnostics[i]["numeric_primary"],
+                        "numeric_dense": diagnostics[i]["numeric_dense"],
+                        "answer_hygiene_dense": diagnostics[i]["answer_hygiene_dense"],
+                        "closed_answer_minimal": diagnostics[i]["closed_answer_minimal"],
+                        "numeric_guarded": diagnostics[i]["numeric_guarded"],
+                        "answer_hygiene_guarded": diagnostics[i]["answer_hygiene_guarded"],
+                        "answer_hygiene_guarded_raw": diagnostics[i]["answer_hygiene_guarded_raw"],
+                        "numeric_guarded_total": diagnostics[i]["numeric_guarded_total"],
+                        "numeric_guarded_fallback": diagnostics[i]["numeric_guarded_fallback"],
+                        "answer_hygiene_fallback": diagnostics[i]["answer_hygiene_fallback"],
+                        "answer_hygiene_fallback_raw": diagnostics[i]["answer_hygiene_fallback_raw"],
+                        "numeric_guarded_fallback_total": diagnostics[i]["numeric_guarded_fallback_total"],
                         "length_penalty_1200": diagnostics[i]["length_penalty_1200"],
+                        "length_penalty_short": diagnostics[i]["length_penalty_short"],
                     },
                     "reward_mode": diagnostics[i]["reward_mode"],
                     "reward_total_recomputed": diagnostics[i]["reward_total_recomputed"],
                     "formatted_answer": diagnostics[i]["formatted_answer"],
                     "extracted_number": diagnostics[i]["extracted_number"],
+                    "official_extracted_number": diagnostics[i]["official_extracted_number"],
+                    "robust_extracted_number": diagnostics[i]["robust_extracted_number"],
+                    "fallback_extracted_number": diagnostics[i]["fallback_extracted_number"],
                     "numeric_exact": diagnostics[i]["numeric_exact"],
                     "numeric_partial": diagnostics[i]["numeric_partial"],
+                    "official_numeric_exact": diagnostics[i]["official_numeric_exact"],
+                    "official_numeric_partial": diagnostics[i]["official_numeric_partial"],
+                    "robust_numeric_exact": diagnostics[i]["robust_numeric_exact"],
+                    "robust_numeric_partial": diagnostics[i]["robust_numeric_partial"],
+                    "fallback_numeric_exact": diagnostics[i]["fallback_numeric_exact"],
+                    "fallback_numeric_partial": diagnostics[i]["fallback_numeric_partial"],
+                    "fallback_number_used": diagnostics[i]["fallback_number_used"],
+                    "parser_false_negative": diagnostics[i]["parser_false_negative"],
                     "format_ok": diagnostics[i]["format_ok"],
                     "answer_tag_pair_ok": diagnostics[i]["answer_tag_pair_ok"],
                     "duplicate_or_broken_answer_tag": diagnostics[i]["duplicate_or_broken_answer_tag"],
                     "overlong_1200": diagnostics[i]["overlong_1200"],
                     "overlong_1600": diagnostics[i]["overlong_1600"],
                     "answer_multi_number": diagnostics[i]["answer_multi_number"],
+                    "answer_single_number": diagnostics[i]["answer_single_number"],
+                    "robust_answer_number_count": diagnostics[i]["robust_answer_number_count"],
+                    "no_close_answer": diagnostics[i]["no_close_answer"],
                 }
             )
 
@@ -579,11 +647,18 @@ class GRPOObservability:
                 "reward_total_recomputed",
                 "advantage",
                 "extracted_number",
+                "official_extracted_number",
+                "robust_extracted_number",
                 "numeric_exact",
                 "numeric_partial",
+                "robust_numeric_exact",
+                "parser_false_negative",
                 "format_ok",
                 "answer_tag_pair_ok",
                 "duplicate_or_broken_answer_tag",
+                "answer_single_number",
+                "robust_answer_number_count",
+                "no_close_answer",
                 "overlong_1600",
             ]
             table_rows = [[row.get(col) for col in columns] for row in rows]

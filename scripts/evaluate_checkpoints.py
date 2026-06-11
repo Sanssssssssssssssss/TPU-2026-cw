@@ -39,6 +39,11 @@ def parse_args() -> argparse.Namespace:
         help="Override NUM_TEST_BATCHES for this script's subprocesses.",
     )
     ap.add_argument("--output-dir", default="artifacts/checkpoint_eval")
+    ap.add_argument(
+        "--output-examples-jsonl-dir",
+        default=None,
+        help="Optional directory for per-checkpoint example JSONL files from evaluate.py.",
+    )
     ap.add_argument("--skip-existing", action="store_true")
     ap.add_argument("--continue-on-error", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
@@ -76,6 +81,7 @@ def run_eval(
     env: dict[str, str],
     ckpt_dir: Path | None = None,
     step: int | None = None,
+    output_examples_jsonl: Path | None = None,
     dry_run: bool = False,
 ) -> int:
     cmd = [sys.executable, "-u", "evaluate.py", "--preset", preset, "--num-passes", str(num_passes)]
@@ -86,6 +92,8 @@ def run_eval(
     else:
         cmd += ["--ckpt-dir", str(ckpt_dir), "--step", str(step)]
     cmd += ["--output-json", str(output_json)]
+    if output_examples_jsonl is not None:
+        cmd += ["--output-examples-jsonl", str(output_examples_jsonl)]
 
     print(" ".join(cmd))
     if dry_run:
@@ -113,6 +121,10 @@ def load_eval(path: Path, *, label: str, step: int | None) -> dict[str, Any]:
         "accuracy_ci95_high": hi,
         "partial_accuracy": float(metrics.get("partial_accuracy") or 0.0),
         "format_accuracy": float(metrics.get("format_accuracy") or 0.0),
+        "no_close_answer_rate": float(metrics.get("no_close_answer_rate") or 0.0),
+        "text_after_close_rate": float(metrics.get("text_after_close_rate") or 0.0),
+        "robust_numeric_exact_rate": float(metrics.get("robust_numeric_exact_rate") or 0.0),
+        "failure_counts": metrics.get("failure_counts") or {},
     }
 
 
@@ -145,6 +157,9 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "accuracy_ci95_high",
         "partial_accuracy",
         "format_accuracy",
+        "no_close_answer_rate",
+        "text_after_close_rate",
+        "robust_numeric_exact_rate",
         "file",
     ]
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -233,6 +248,9 @@ def main() -> int:
     ckpt_dir = Path(args.ckpt_dir).expanduser()
     output_dir = Path(args.output_dir).expanduser()
     output_dir.mkdir(parents=True, exist_ok=True)
+    examples_dir = Path(args.output_examples_jsonl_dir).expanduser() if args.output_examples_jsonl_dir else None
+    if examples_dir is not None:
+        examples_dir.mkdir(parents=True, exist_ok=True)
     steps = resolve_steps(args.steps, ckpt_dir)
     if not steps:
         print(f"No checkpoint steps found under {ckpt_dir}")
@@ -246,6 +264,7 @@ def main() -> int:
 
     if args.include_base:
         path = output_dir / "base_eval.json"
+        examples_path = examples_dir / "base_eval_examples.jsonl" if examples_dir is not None else None
         eval_files.append(("base", None, path))
         if not (args.skip_existing and path.exists()):
             code = run_eval(
@@ -254,6 +273,7 @@ def main() -> int:
                 source=args.source,
                 num_passes=args.num_passes,
                 env=env,
+                output_examples_jsonl=examples_path,
                 dry_run=args.dry_run,
             )
             if code != 0:
@@ -263,6 +283,7 @@ def main() -> int:
 
     for step in steps:
         path = output_dir / f"checkpoint_{step}_eval.json"
+        examples_path = examples_dir / f"checkpoint_{step}_examples.jsonl" if examples_dir is not None else None
         eval_files.append((f"ckpt-{step}", step, path))
         if args.skip_existing and path.exists():
             continue
@@ -274,6 +295,7 @@ def main() -> int:
             env=env,
             ckpt_dir=ckpt_dir,
             step=step,
+            output_examples_jsonl=examples_path,
             dry_run=args.dry_run,
         )
         if code != 0:

@@ -18,6 +18,9 @@ SWEEP_RUNS = [
     ("R3_numeric_primary_no_len", "numeric_primary_no_len"),
     ("R4_numeric_primary_len1200", "numeric_primary_len1200"),
     ("R5_numeric_primary_answer_only_len1200", "numeric_primary_answer_only_len1200"),
+    ("R9_closed_answer_minimal", "closed_answer_minimal"),
+    ("R10_numeric_guarded", "numeric_guarded"),
+    ("R11_numeric_guarded_fallback", "numeric_guarded_fallback"),
 ]
 
 ROLE_WORDS = {"train", "eval"}
@@ -132,7 +135,28 @@ def run_dirs(input_dir: Path, baseline_dir: Path | None, max_control_step: int) 
                 "max_step": max_control_step,
             }
         )
-    for run_id, mode in SWEEP_RUNS:
+    manifest_runs: list[tuple[str, str]] = []
+    for manifest_name in (
+        "reward_k8_pilot_manifest.json",
+        "reward_r10_manifest.json",
+        "reward_r9_manifest.json",
+        "reward_dense_manifest.json",
+        "reward_sweep_manifest.json",
+    ):
+        manifest = read_json(input_dir / "artifacts" / manifest_name)
+        if not manifest:
+            continue
+        raw_runs = manifest.get("runs") or manifest.get("reward_runs") or []
+        for item in raw_runs:
+            if isinstance(item, dict):
+                run_id = item.get("run_id")
+                mode = item.get("reward_mode")
+                if run_id and mode:
+                    manifest_runs.append((str(run_id), str(mode)))
+        if manifest_runs:
+            break
+    configured_runs = manifest_runs or SWEEP_RUNS
+    for run_id, mode in configured_runs:
         child = input_dir / "runs" / run_id
         out.append(
             {
@@ -187,14 +211,24 @@ def read_traces(trace_dir: Path, run_id: str, reward_mode: str) -> list[dict[str
                     "advantage": row.get("advantage"),
                     "formatted_answer": row.get("formatted_answer"),
                     "extracted_number": row.get("extracted_number"),
+                    "official_extracted_number": row.get("official_extracted_number"),
+                    "robust_extracted_number": row.get("robust_extracted_number"),
                     "numeric_exact": row.get("numeric_exact"),
                     "numeric_partial": row.get("numeric_partial"),
+                    "official_numeric_exact": row.get("official_numeric_exact"),
+                    "official_numeric_partial": row.get("official_numeric_partial"),
+                    "robust_numeric_exact": row.get("robust_numeric_exact"),
+                    "robust_numeric_partial": row.get("robust_numeric_partial"),
+                    "parser_false_negative": row.get("parser_false_negative"),
                     "format_ok": row.get("format_ok"),
                     "answer_tag_pair_ok": row.get("answer_tag_pair_ok"),
                     "duplicate_or_broken_answer_tag": row.get("duplicate_or_broken_answer_tag"),
                     "overlong_1200": row.get("overlong_1200"),
                     "overlong_1600": row.get("overlong_1600"),
                     "answer_multi_number": row.get("answer_multi_number"),
+                    "answer_single_number": row.get("answer_single_number"),
+                    "robust_answer_number_count": row.get("robust_answer_number_count"),
+                    "no_close_answer": row.get("no_close_answer"),
                 }
                 for key, value in components.items():
                     flat[f"component_{key}"] = value
@@ -223,6 +257,9 @@ def read_checkpoint_rows(eval_dir: Path, run_id: str, reward_mode: str) -> list[
                 "accuracy_ci95_high": row.get("accuracy_ci95_high"),
                 "partial_accuracy": row.get("partial_accuracy"),
                 "format_accuracy": row.get("format_accuracy"),
+                "no_close_answer_rate": row.get("no_close_answer_rate"),
+                "robust_numeric_exact_rate": row.get("robust_numeric_exact_rate"),
+                "text_after_close_rate": row.get("text_after_close_rate"),
                 "file": row.get("file"),
             }
         )
@@ -257,6 +294,14 @@ def mean(values: list[Any]) -> float | None:
     return sum(clean) / len(clean) if clean else None
 
 
+def std(values: list[Any]) -> float | None:
+    clean = [float(v) for v in values if float_value(v) is not None]
+    if not clean:
+        return None
+    avg = sum(clean) / len(clean)
+    return math.sqrt(sum((value - avg) ** 2 for value in clean) / len(clean))
+
+
 def trace_audit_summary(trace_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     grouped: dict[tuple[str, str, str, int], list[dict[str, Any]]] = defaultdict(list)
     for row in trace_rows:
@@ -273,6 +318,12 @@ def trace_audit_summary(trace_rows: list[dict[str, Any]]) -> list[dict[str, Any]
         rewards_clean = [reward for reward, _ in reward_pairs]
         exact = [bool_value(row.get("numeric_exact")) for row in rows]
         fmt = [bool_value(row.get("format_ok")) for row in rows]
+        robust_exact = [bool_value(row.get("robust_numeric_exact")) for row in rows]
+        fallback_used = [bool_value(row.get("fallback_number_used")) for row in rows]
+        fallback_exact = [bool_value(row.get("fallback_numeric_exact")) for row in rows]
+        parser_false_negative = [bool_value(row.get("parser_false_negative")) for row in rows]
+        answer_single_number = [bool_value(row.get("answer_single_number")) for row in rows]
+        no_close_answer = [bool_value(row.get("no_close_answer")) for row in rows]
         empty = [not str(row.get("completion") or "").strip() for row in rows]
         extracted_none = [row.get("extracted_number") in (None, "") for row in rows]
         overlong_1200 = [bool_value(row.get("overlong_1200")) or int(row.get("completion_chars") or 0) > 1200 for row in rows]
@@ -284,6 +335,24 @@ def trace_audit_summary(trace_rows: list[dict[str, Any]]) -> list[dict[str, Any]
             for reward, row in reward_pairs
             if bool_value(row.get("format_ok")) and not bool_value(row.get("numeric_exact"))
         ]
+        dense_wrong_rewards = [
+            float_value(row.get("component_numeric_dense"))
+            for row in rows
+            if not bool_value(row.get("robust_numeric_exact"))
+            and float_value(row.get("component_numeric_dense")) is not None
+        ]
+        guarded_wrong_rewards = [
+            float_value(row.get("component_numeric_guarded"))
+            for row in rows
+            if not bool_value(row.get("robust_numeric_exact"))
+            and float_value(row.get("component_numeric_guarded")) is not None
+        ]
+        fallback_guarded_wrong_rewards = [
+            float_value(row.get("component_numeric_guarded_fallback"))
+            for row in rows
+            if not bool_value(row.get("fallback_numeric_exact"))
+            and float_value(row.get("component_numeric_guarded_fallback")) is not None
+        ]
         out.append(
             {
                 "run_id": run_id,
@@ -293,11 +362,20 @@ def trace_audit_summary(trace_rows: list[dict[str, Any]]) -> list[dict[str, Any]
                 "rows": len(rows),
                 "reward_mean": mean(rewards_clean),
                 "numeric_exact_rate": ratio(sum(exact), len(exact)),
+                "robust_numeric_exact_rate": ratio(sum(robust_exact), len(robust_exact)),
+                "fallback_number_used_rate": ratio(sum(fallback_used), len(fallback_used)),
+                "fallback_numeric_exact_rate": ratio(sum(fallback_exact), len(fallback_exact)),
+                "parser_false_negative_rate": ratio(sum(parser_false_negative), len(parser_false_negative)),
                 "format_accuracy": ratio(sum(fmt), len(fmt)),
                 "empty_response_rate": ratio(sum(empty), len(empty)),
                 "extracted_none_rate": ratio(sum(extracted_none), len(extracted_none)),
+                "answer_single_number_rate": ratio(sum(answer_single_number), len(answer_single_number)),
+                "no_close_answer_rate": ratio(sum(no_close_answer), len(no_close_answer)),
                 "overlong_rate_1200": ratio(sum(overlong_1200), len(overlong_1200)),
                 "overlong_rate_1600": ratio(sum(overlong_1600), len(overlong_1600)),
+                "dense_wrong_reward_std": std(dense_wrong_rewards),
+                "guarded_wrong_reward_std": std(guarded_wrong_rewards),
+                "fallback_guarded_wrong_reward_std": std(fallback_guarded_wrong_rewards),
                 "reward_numeric_margin": (
                     mean(correct_rewards) - mean(wrong_rewards)
                     if mean(correct_rewards) is not None and mean(wrong_rewards) is not None
@@ -367,7 +445,16 @@ def latest_metric(rows: list[dict[str, Any]], run_id: str, candidates: list[str]
 
 def sweep_selection_summary(scalar_rows: list[dict[str, Any]], trace_summary: list[dict[str, Any]], ckpt_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     out = []
-    run_ids = ["R0_baseline"] + [run_id for run_id, _ in SWEEP_RUNS]
+    modes_by_run = {}
+    for row in scalar_rows + trace_summary + ckpt_rows:
+        run_id = row.get("run_id")
+        mode = row.get("reward_mode")
+        if run_id and mode:
+            modes_by_run[str(run_id)] = str(mode)
+    run_ids = sorted(modes_by_run)
+    if "R0_baseline" in run_ids:
+        run_ids.remove("R0_baseline")
+        run_ids = ["R0_baseline"] + run_ids
     latest_trace: dict[str, dict[str, Any]] = {}
     for row in trace_summary:
         if row.get("dataset_role") not in {"eval", "unknown"}:
@@ -381,7 +468,7 @@ def sweep_selection_summary(scalar_rows: list[dict[str, Any]], trace_summary: li
         ckpt_by_run[row["run_id"]].append(row)
 
     for run_id in run_ids:
-        mode = "baseline" if run_id == "R0_baseline" else next((m for r, m in SWEEP_RUNS if r == run_id), "")
+        mode = modes_by_run.get(run_id, "baseline" if run_id == "R0_baseline" else "")
         best_ckpt = None
         if ckpt_by_run.get(run_id):
             best_ckpt = max(
@@ -429,6 +516,34 @@ def sweep_selection_summary(scalar_rows: list[dict[str, Any]], trace_summary: li
             run_id,
             ["eval_grpo_frac_reward_zero_std", "train_grpo_frac_reward_zero_std", "eval_frac_reward_zero_std"],
         )
+        parser_false_negative = latest_metric(
+            scalar_rows,
+            run_id,
+            [
+                "reward_parser_false_negative_rate",
+                "eval_reward_parser_false_negative_rate",
+                "train_reward_parser_false_negative_rate",
+            ],
+        )
+        answer_single_number = latest_metric(
+            scalar_rows,
+            run_id,
+            [
+                "rollout_answer_single_number_rate",
+                "eval_rollout_answer_single_number_rate",
+                "train_rollout_answer_single_number_rate",
+            ],
+        )
+        no_close_answer = latest_metric(
+            scalar_rows,
+            run_id,
+            ["rollout_no_close_answer_rate", "eval_rollout_no_close_answer_rate", "train_rollout_no_close_answer_rate"],
+        )
+        dense_wrong_std = latest_metric(
+            scalar_rows,
+            run_id,
+            ["audit_dense_wrong_reward_std", "eval_audit_dense_wrong_reward_std", "train_audit_dense_wrong_reward_std"],
+        )
         kl = latest_metric(scalar_rows, run_id, ["eval_kl", "train_kl"])
         row = {
             "run_id": run_id,
@@ -442,7 +557,15 @@ def sweep_selection_summary(scalar_rows: list[dict[str, Any]], trace_summary: li
             "reward_hacking_rate": hacking if hacking is not None else trace.get("reward_hacking_rate"),
             "empty_response_rate": empty if empty is not None else trace.get("empty_response_rate"),
             "extracted_none_rate": extracted_none if extracted_none is not None else trace.get("extracted_none_rate"),
+            "parser_false_negative_rate": (
+                parser_false_negative if parser_false_negative is not None else trace.get("parser_false_negative_rate")
+            ),
+            "answer_single_number_rate": (
+                answer_single_number if answer_single_number is not None else trace.get("answer_single_number_rate")
+            ),
+            "no_close_answer_rate": no_close_answer if no_close_answer is not None else trace.get("no_close_answer_rate"),
             "overlong_rate_1600": overlong if overlong is not None else trace.get("overlong_rate_1600"),
+            "dense_wrong_reward_std": dense_wrong_std if dense_wrong_std is not None else trace.get("dense_wrong_reward_std"),
             "frac_reward_zero_std": zero_std,
             "kl": kl,
         }
@@ -455,6 +578,8 @@ def sweep_selection_summary(scalar_rows: list[dict[str, Any]], trace_summary: li
             elimination_reasons.append("extracted_none_rate>0.35")
         if float_value(row["frac_reward_zero_std"]) is not None and float(row["frac_reward_zero_std"]) > 0.65:
             elimination_reasons.append("frac_reward_zero_std>0.65")
+        if float_value(row["answer_single_number_rate"]) is not None and float(row["answer_single_number_rate"]) < 0.8:
+            elimination_reasons.append("answer_single_number_rate<0.8")
         if float_value(row["kl"]) is not None and float(row["kl"]) > 0.8:
             elimination_reasons.append("kl>0.8")
         row["elimination_reasons"] = ";".join(elimination_reasons)
@@ -615,6 +740,14 @@ def render_figures(output_dir: Path, scalar_rows: list[dict[str, Any]], ckpt_row
         "Reward sweep component means",
         [
             ("numeric_primary_mean", metric_series(scalar_rows, ["eval_reward_numeric_primary_mean", "train_reward_numeric_primary_mean"])),
+            ("numeric_dense_mean", metric_series(scalar_rows, ["eval_reward_numeric_dense_mean", "train_reward_numeric_dense_mean"])),
+            ("closed_answer_minimal_mean", metric_series(scalar_rows, ["eval_reward_closed_answer_minimal_mean", "train_reward_closed_answer_minimal_mean"])),
+            ("numeric_guarded_mean", metric_series(scalar_rows, ["eval_reward_numeric_guarded_mean", "train_reward_numeric_guarded_mean"])),
+            ("answer_hygiene_guarded_mean", metric_series(scalar_rows, ["eval_reward_answer_hygiene_guarded_mean", "train_reward_answer_hygiene_guarded_mean"])),
+            ("numeric_guarded_total_mean", metric_series(scalar_rows, ["eval_reward_numeric_guarded_total_mean", "train_reward_numeric_guarded_total_mean"])),
+            ("numeric_guarded_fallback_mean", metric_series(scalar_rows, ["eval_reward_numeric_guarded_fallback_mean", "train_reward_numeric_guarded_fallback_mean"])),
+            ("answer_hygiene_fallback_mean", metric_series(scalar_rows, ["eval_reward_answer_hygiene_fallback_mean", "train_reward_answer_hygiene_fallback_mean"])),
+            ("numeric_guarded_fallback_total_mean", metric_series(scalar_rows, ["eval_reward_numeric_guarded_fallback_total_mean", "train_reward_numeric_guarded_fallback_total_mean"])),
             ("format_light_mean", metric_series(scalar_rows, ["eval_reward_format_light_mean", "train_reward_format_light_mean"])),
             ("length_penalty_mean", metric_series(scalar_rows, ["eval_reward_length_penalty_mean", "train_reward_length_penalty_mean"])),
             ("approx_format_mean", metric_series(scalar_rows, ["eval_reward_match_format_approximately_mean", "train_reward_match_format_approximately_mean"])),
