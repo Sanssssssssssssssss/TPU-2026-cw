@@ -27,6 +27,7 @@ Local Google TPU VM orchestrator for the GRPO baseline workflow.
 .\cloud\submit_tpu_job.ps1 fetch-reward-r9 -RunId reward-r9-closed-answer-001
 .\cloud\submit_tpu_job.ps1 submit-reward-r10 -RunId reward-r10-numeric-guarded-001
 .\cloud\submit_tpu_job.ps1 submit-k8-pilot -RunId reward-k8-beta004-pilot-001
+.\cloud\submit_tpu_job.ps1 submit-k8-public-beta -RunId reward-k8-public-beta-001
 .\cloud\submit_tpu_job.ps1 eval-checkpoints -RunId baseline-001
 .\cloud\submit_tpu_job.ps1 status -RunId baseline-001
 .\cloud\submit_tpu_job.ps1 ensure-storage
@@ -38,7 +39,7 @@ Local Google TPU VM orchestrator for the GRPO baseline workflow.
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("preflight", "ensure-tpu", "ensure-storage", "bootstrap", "submit-baseline", "submit-reward-sweep", "submit-reward-continuation", "submit-candidate-eval", "submit-reward-dense", "submit-r7-large-eval", "submit-reward-r9", "submit-reward-r10", "submit-k8-pilot", "submit-k8-r10-only", "submit-k8-r11-fallback-only", "submit-k8-r12-simple-only", "eval-checkpoints", "status", "status-sweep", "status-continuation", "status-candidate-eval", "status-reward-dense", "status-r7-large-eval", "status-reward-r9", "status-reward-r10", "status-k8-pilot", "resume-k8-pilot", "stop-reward-r10", "stop-k8-pilot", "fetch", "fetch-sweep", "fetch-continuation", "fetch-candidate-eval", "fetch-reward-dense", "fetch-r7-large-eval", "fetch-reward-r9", "fetch-reward-r10", "fetch-k8-pilot", "sync-storage", "restore-cache", "start-tpu", "stop-tpu", "delete-tpu")]
+    [ValidateSet("preflight", "ensure-tpu", "ensure-storage", "bootstrap", "submit-baseline", "submit-reward-sweep", "submit-reward-continuation", "submit-candidate-eval", "submit-reward-dense", "submit-r7-large-eval", "submit-reward-r9", "submit-reward-r10", "submit-k8-pilot", "submit-k8-r10-only", "submit-k8-r11-fallback-only", "submit-k8-r12-simple-only", "submit-k8-public-beta", "submit-k8-r13-public-beta-only", "submit-k8-r14-public-beta-only", "eval-checkpoints", "status", "status-sweep", "status-continuation", "status-candidate-eval", "status-reward-dense", "status-r7-large-eval", "status-reward-r9", "status-reward-r10", "status-k8-pilot", "resume-k8-pilot", "stop-reward-r10", "stop-k8-pilot", "fetch", "fetch-sweep", "fetch-continuation", "fetch-candidate-eval", "fetch-reward-dense", "fetch-r7-large-eval", "fetch-reward-r9", "fetch-reward-r10", "fetch-k8-pilot", "sync-storage", "restore-cache", "start-tpu", "stop-tpu", "delete-tpu")]
     [string]$Command = "preflight",
 
     [string]$RunId = ("baseline-" + (Get-Date -Format "yyyyMMdd-HHmmss")),
@@ -750,6 +751,45 @@ function Submit-K8R12SimpleOnly {
     }
 }
 
+function Submit-K8PublicBeta {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-k8-public-beta" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
+function Submit-K8R13PublicBetaOnly {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-k8-r13-public-beta-only" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
+function Submit-K8R14PublicBetaOnly {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-k8-r14-public-beta-only" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
 function Eval-Checkpoints {
     Assert-RunId
     $bundle = New-CodeBundle
@@ -1068,6 +1108,9 @@ switch ($Command) {
     "submit-k8-r10-only" { Submit-K8R10Only }
     "submit-k8-r11-fallback-only" { Submit-K8R11FallbackOnly }
     "submit-k8-r12-simple-only" { Submit-K8R12SimpleOnly }
+    "submit-k8-public-beta" { Submit-K8PublicBeta }
+    "submit-k8-r13-public-beta-only" { Submit-K8R13PublicBetaOnly }
+    "submit-k8-r14-public-beta-only" { Submit-K8R14PublicBetaOnly }
     "eval-checkpoints" { Eval-Checkpoints }
     "status" { Status-Run }
     "status-sweep" { Status-Sweep }

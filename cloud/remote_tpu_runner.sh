@@ -36,6 +36,9 @@ Usage:
   remote_tpu_runner.sh submit-k8-r10-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-k8-r11-fallback-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-k8-r12-simple-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
+  remote_tpu_runner.sh submit-k8-public-beta --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
+  remote_tpu_runner.sh submit-k8-r13-public-beta-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
+  remote_tpu_runner.sh submit-k8-r14-public-beta-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh eval-checkpoints --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
   remote_tpu_runner.sh status-sweep --run-id RUN
   remote_tpu_runner.sh status-continuation --run-id RUN
@@ -1733,10 +1736,10 @@ write_k8_pilot_script() {
   local run_specs="${1:-R9_closed_answer_minimal:closed_answer_minimal R10_numeric_guarded:numeric_guarded}"
   local manifest_runs=""
   local manifest_sep=""
-  local spec exp_id mode
+  local spec exp_id mode spec_beta spec_lr
   for spec in $run_specs; do
-    IFS=':' read -r exp_id mode <<< "$spec"
-    manifest_runs+="${manifest_sep}    {\"run_id\": \"$exp_id\", \"reward_mode\": \"$mode\"}"
+    IFS=':' read -r exp_id mode spec_beta spec_lr <<< "$spec"
+    manifest_runs+="${manifest_sep}    {\"run_id\": \"$exp_id\", \"reward_mode\": \"$mode\", \"beta_override\": \"${spec_beta:-}\", \"learning_rate_override\": \"${spec_lr:-}\"}"
     manifest_sep=$',\n'
   done
   cat > "$run_script" <<EOF
@@ -1809,7 +1812,8 @@ $manifest_runs
   "epsilon": "\${K8_EPSILON:-0.2}",
   "rank": "\${K8_RANK:-64}",
   "alpha": "\${K8_ALPHA:-64}",
-  "checkpoint_eval_steps": "\${K8_CHECKPOINT_STEPS:-32 64 96 128 160 192 224 256}"
+  "checkpoint_eval_steps": "\${K8_CHECKPOINT_STEPS:-32 64 96 128 160 192 224 256}",
+  "run_spec_format": "run_id:reward_mode[:beta_override[:learning_rate_override]]"
 }
 JSON
 
@@ -1826,13 +1830,15 @@ fi
 read -r -a K8_RUNS <<< "\$K8_RUN_SPECS"
 
 for spec in "\${K8_RUNS[@]}"; do
-  IFS=':' read -r EXP_ID MODE <<< "\$spec"
+  IFS=':' read -r EXP_ID MODE SPEC_BETA SPEC_LEARNING_RATE <<< "\$spec"
+  BRANCH_BETA="\${SPEC_BETA:-\${K8_BETA:-0.04}}"
+  BRANCH_LEARNING_RATE="\${SPEC_LEARNING_RATE:-\${K8_LEARNING_RATE:-3e-6}}"
   EXP_DIR="\$RUN_DIR/runs/\$EXP_ID"
   ARTIFACT_DIR="\$EXP_DIR/artifacts"
   mkdir -p "\$EXP_DIR" "\$ARTIFACT_DIR" "\$EXP_DIR/ckpts" "\$EXP_DIR/intermediate_ckpt" "\$EXP_DIR/tensorboard"
 
   echo
-  echo "==> K8 pilot run \$EXP_ID mode=\$MODE"
+  echo "==> K8 pilot run \$EXP_ID mode=\$MODE beta=\$BRANCH_BETA lr=\$BRANCH_LEARNING_RATE"
   export RUN_ID="\$K8_ID-\$EXP_ID"
   export WANDB_RUN_ID="\$K8_ID-\$EXP_ID"
   export REWARD_MODE="\$MODE"
@@ -1851,8 +1857,8 @@ for spec in "\${K8_RUNS[@]}"; do
   export MAX_TO_KEEP="\${K8_MAX_TO_KEEP:-12}"
   export EVAL_EVERY_N_STEPS="\${K8_EVAL_EVERY_N_STEPS:-32}"
   export NUM_GENERATIONS="\${K8_NUM_GENERATIONS:-8}"
-  export LEARNING_RATE="\${K8_LEARNING_RATE:-3e-6}"
-  export BETA="\${K8_BETA:-0.04}"
+  export LEARNING_RATE="\$BRANCH_LEARNING_RATE"
+  export BETA="\$BRANCH_BETA"
   export EPSILON="\${K8_EPSILON:-0.2}"
   export RANK="\${K8_RANK:-64}"
   export ALPHA="\${K8_ALPHA:-64}"
@@ -1968,6 +1974,66 @@ submit_k8_r12_simple_only() {
   echo "==> Starting tmux session $session"
   tmux new-session -d -s "$session" "K8_MAX_STEPS=256 K8_CHECKPOINT_STEPS='32 64 96 128 160 192 224 256' K8_MAX_TO_KEEP=12 K8_SAVE_INTERVAL_STEPS=32 K8_EVAL_EVERY_N_STEPS=32 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- k8 pilot exited (\$status) ---\"; exec bash"
   echo "Started R12 simple-verifiable K8 pilot. Attach with: tmux attach -t $session"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
+submit_k8_public_beta() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R13_gsm8k_simple_beta0001:gsm8k_verifiable_simple:0.001:1e-6 R14_gsm8k_simple_beta000:gsm8k_verifiable_simple:0.0:1e-6"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_MAX_STEPS=256 K8_CHECKPOINT_STEPS='32 64 96 128 160 192 224 256' K8_MAX_TO_KEEP=12 K8_SAVE_INTERVAL_STEPS=32 K8_EVAL_EVERY_N_STEPS=32 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- k8 pilot exited (\$status) ---\"; exec bash"
+  echo "Started R13/R14 public-beta K8 pilot. Attach with: tmux attach -t $session"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
+submit_k8_r13_public_beta_only() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R13_gsm8k_simple_beta0001:gsm8k_verifiable_simple:0.001:1e-6"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_MAX_STEPS=256 K8_CHECKPOINT_STEPS='32 64 96 128 160 192 224 256' K8_MAX_TO_KEEP=12 K8_SAVE_INTERVAL_STEPS=32 K8_EVAL_EVERY_N_STEPS=32 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- k8 pilot exited (\$status) ---\"; exec bash"
+  echo "Started R13 public-beta K8 pilot. Attach with: tmux attach -t $session"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
+submit_k8_r14_public_beta_only() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R14_gsm8k_simple_beta000:gsm8k_verifiable_simple:0.0:1e-6"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_MAX_STEPS=256 K8_CHECKPOINT_STEPS='32 64 96 128 160 192 224 256' K8_MAX_TO_KEEP=12 K8_SAVE_INTERVAL_STEPS=32 K8_EVAL_EVERY_N_STEPS=32 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- k8 pilot exited (\$status) ---\"; exec bash"
+  echo "Started R14 public-beta K8 pilot. Attach with: tmux attach -t $session"
   echo "Log: $RUN_DIR/pipeline.log"
 }
 
@@ -2892,6 +2958,15 @@ case "$COMMAND" in
     ;;
   submit-k8-r12-simple-only)
     submit_k8_r12_simple_only
+    ;;
+  submit-k8-public-beta)
+    submit_k8_public_beta
+    ;;
+  submit-k8-r13-public-beta-only)
+    submit_k8_r13_public_beta_only
+    ;;
+  submit-k8-r14-public-beta-only)
+    submit_k8_r14_public_beta_only
     ;;
   eval-checkpoints)
     eval_checkpoints
