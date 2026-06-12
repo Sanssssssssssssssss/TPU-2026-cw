@@ -100,6 +100,20 @@ been rebuilt.
    change only `LEARNING_RATE` (`5e-7`, then `3e-7`) so any improvement or
    regression is attributable to LR rather than reward, rank, or beta changes.
 
+6. Screenshot-inspired high-LR cosine/g512 tail candidate, only after any
+   active TPU job has been stopped or finished:
+
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\cloud\submit_tpu_job.ps1 submit-r12-tail-lr3e6-cos-g512 -RunId r12-full-autotune-tail512-lr3e6-cosg512-001
+   ```
+
+   Expected config: seed from canonical R12 full checkpoint 512, `K=8`,
+   `BETA=0.04`, `RANK=64`, `ALPHA=64`, `LEARNING_RATE=3e-6`, cosine
+   schedule over `841` steps, no warmup, `TOTAL_GENERATION_STEPS=512`,
+   checkpoints `512/576/640/704/768/841`. This candidate is motivated by
+   the external `r64_lr3e6-cos_g512` result and should be kept as a separate
+   autotune evidence line unless it beats the current tail winner.
+
 ## Evidence requirements
 
 For any candidate that reaches its pilot horizon:

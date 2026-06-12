@@ -1,0 +1,31 @@
+{
+  "generated_at": "2026-06-12T17:51:21.181506+00:00",
+  "input_dir": "D:\\GPT_Project\\TPU-2026-cw\\artifacts\\cloud\\r12-full-autotune-tail512-001",
+  "output_dir": "D:\\GPT_Project\\TPU-2026-cw\\artifacts\\reports\\r12-full-autotune-tail512-001-clean",
+  "rolling_window": 64,
+  "figures": [
+    "figures\\combined\\01_checkpoint_eval.png",
+    "figures\\combined\\02_reward_score.png",
+    "figures\\combined\\03_kl_loss_clipfrac.png",
+    "figures\\combined\\04_grpo_health.png",
+    "figures\\combined\\05_response_health.png",
+    "figures\\combined\\06_reward_audit.png",
+    "figures\\combined\\07_reward_components.png",
+    "figures\\combined\\08_reward_composition_format_share.png",
+    "figures\\by_run\\R12_tail_lr1e-6_beta004_from512\\01_checkpoint_eval.png",
+    "figures\\by_run\\R12_tail_lr1e-6_beta004_from512\\02_reward_score_raw.png",
+    "figures\\by_run\\R12_tail_lr1e-6_beta004_from512\\03_kl_loss_clipfrac_raw.png",
+    "figures\\by_run\\R12_tail_lr1e-6_beta004_from512\\04_grpo_health_raw.png",
+    "figures\\by_run\\R12_tail_lr1e-6_beta004_from512\\05_response_health_raw.png",
+    "figures\\by_run\\R12_tail_lr1e-6_beta004_from512\\06_reward_audit_raw.png",
+    "figures\\by_run\\R12_tail_lr1e-6_beta004_from512\\07_reward_components_raw.png",
+    "figures\\by_run\\R12_tail_lr1e-6_beta004_from512\\08_trace_audit_raw.png",
+    "figures\\by_run\\R12_tail_lr1e-6_beta004_from512\\09_reward_composition_format_share_raw.png"
+  ],
+  "copied_tables": [],
+  "derived_tables": [
+    "tables/reward_composition_by_call.csv",
+    "tables/reward_composition_latest.csv"
+  ],
+  "style": "plain matplotlib, raw per-run curves plus rolling mean, combined rolling means"
+}

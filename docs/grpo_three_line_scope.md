@@ -15,7 +15,9 @@ We are keeping three canonical lines for the GRPO analysis:
    - Status: complete local raw/report package; seeded from stopped source run checkpoint `500`.
    - Local raw: `artifacts/cloud/reward-only-r12-full-complete-001`
    - Local report: `artifacts/reports/reward-only-r12-full-complete-001-clean`
-   - Source raw kept locally for seed provenance: `artifacts/cloud/reward-only-r12-full-001`
+   - Source run raw was cleaned after evidence packaging; seed provenance is
+     preserved in `artifacts/reports/grpo-three-line-evidence-001/raw_refs/r12_reward_only_source`
+     and in the completion run's copied checkpoint metadata.
    - Completion runbook: `docs/r12_reward_only_completion.md`
 
 3. `reward-k8-beta004-r12-full-001`
@@ -75,8 +77,9 @@ Top-level local report directories have been reduced to:
 - `artifacts/reports/course-baseline-001`
 - `artifacts/reports/reward-only-r12-full-complete-001-clean`
 - `artifacts/reports/reward-k8-beta004-r12-full-001-clean`
+- `artifacts/reports/r12-full-autotune-tail512-001-clean`
 - supporting evidence packages: `grpo-three-line-evidence-001`,
-  `r12-final-evidence-001`
+  `r12-final-evidence-001`, `r12-full-autotune-evidence-tail512-001`
 
 Non-canonical historical report outputs were moved to:
 
@@ -86,9 +89,12 @@ Top-level local raw cloud artifact directories have been reduced to:
 
 - `artifacts/cloud/course-baseline-001`
 - `artifacts/cloud/reward-only-r12-full-complete-001`
-- `artifacts/cloud/reward-only-r12-full-001`
 - `artifacts/cloud/reward-k8-beta004-r12-full-001`
-- supporting large eval: `artifacts/cloud/r12-best-large-eval-001`
+- `artifacts/cloud/r12-full-autotune-tail512-001`
+
+Supporting large-eval tables and old reward-only source provenance are retained
+inside `artifacts/reports/grpo-three-line-evidence-001`; their top-level raw
+directories were cleaned.
 
 Non-canonical historical raw outputs were moved to:
 

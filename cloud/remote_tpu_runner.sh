@@ -42,6 +42,7 @@ Usage:
   remote_tpu_runner.sh submit-r12-tail-stability --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
   remote_tpu_runner.sh submit-r12-tail-lr5e7 --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
   remote_tpu_runner.sh submit-r12-tail-lr3e7 --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
+  remote_tpu_runner.sh submit-r12-tail-lr3e6-cos-g512 --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
   remote_tpu_runner.sh submit-r12-high-rank-pilot --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-r12-high-rank-alpha64-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-r12-r64-lr-smoothing --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
@@ -2294,6 +2295,29 @@ submit_r12_tail_lr3e7() {
   submit_r12_tail_low_lr "3e-7" "3e-7"
 }
 
+submit_r12_tail_lr3e6_cos_g512() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R12_tail_lr3e-6_beta004_cos_g512_from512:gsm8k_verifiable_simple:0.04:3e-6:64:64:0.2"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  local source_root="${R12_TAIL_SOURCE_CKPT_ROOT:-$REMOTE_ROOT/reward-k8-beta004-r12-full-001/runs/R12_gsm8k_verifiable_simple/ckpts/actor}"
+  local source_step="${R12_TAIL_SOURCE_STEP:-512}"
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_SOURCE_CKPT_ROOT='$source_root' K8_SOURCE_STEP='$source_step' K8_MAX_STEPS=841 K8_LR_SCHEDULE_STEPS=841 K8_WARMUP_STEPS=0 K8_CHECKPOINT_STEPS='512 576 640 704 768 841' K8_MAX_TO_KEEP=16 K8_SAVE_INTERVAL_STEPS=64 K8_EVAL_EVERY_N_STEPS=64 K8_NUM_GENERATIONS=8 K8_TOTAL_GENERATION_STEPS=512 K8_RANK=64 K8_ALPHA=64 K8_LEARNING_RATE=3e-6 K8_BETA=0.04 K8_EPSILON=0.2 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- k8 R12 tail lr3e-6 cosine g512 exited (\$status) ---\"; exec bash"
+  echo "Started R12 tail lr=3e-6 cosine/g512 continuation. Attach with: tmux attach -t $session"
+  echo "Source checkpoint: $source_root/$source_step"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
 submit_r12_high_rank_pilot() {
   require_run_id
   unpack_bundle
@@ -3456,6 +3480,9 @@ case "$COMMAND" in
     ;;
   submit-r12-tail-lr3e7)
     submit_r12_tail_lr3e7
+    ;;
+  submit-r12-tail-lr3e6-cos-g512)
+    submit_r12_tail_lr3e6_cos_g512
     ;;
   submit-r12-high-rank-pilot)
     submit_r12_high_rank_pilot

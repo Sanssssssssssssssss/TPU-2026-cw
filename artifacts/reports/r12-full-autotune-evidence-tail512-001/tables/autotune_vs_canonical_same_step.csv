@@ -1,0 +1,7 @@
+step,autotune_run,autotune_accuracy,autotune_partial_accuracy,canonical_step_available,canonical_accuracy,canonical_partial_accuracy,accuracy_delta_vs_same_step,partial_delta_vs_same_step
+512,R12_tail_lr1e-6_beta004_from512,62.5,64.0625,True,62.5,64.0625,0.0,0.0
+576,R12_tail_lr1e-6_beta004_from512,59.375,60.9375,False,,,,
+640,R12_tail_lr1e-6_beta004_from512,60.9375,62.5,True,57.8125,59.375,3.125,3.125
+704,R12_tail_lr1e-6_beta004_from512,62.5,64.0625,False,,,,
+768,R12_tail_lr1e-6_beta004_from512,64.0625,67.1875,True,60.9375,62.5,3.125,4.6875
+841,R12_tail_lr1e-6_beta004_from512,65.625,67.1875,True,60.9375,62.5,4.6875,4.6875
