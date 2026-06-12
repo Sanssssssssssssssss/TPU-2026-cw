@@ -13,6 +13,10 @@
     "figures\\combined\\06_reward_audit.png",
     "figures\\combined\\07_reward_components.png",
     "figures\\combined\\08_reward_composition_format_share.png",
+    "figures\\dense\\01_checkpoint_eval_tail_step.png",
+    "figures\\dense\\02_dense_scalar_performance_tail_step.png",
+    "figures\\dense\\03_dense_reward_components_tail_step.png",
+    "figures\\dense\\04_dense_grpo_response_health_tail_step.png",
     "figures\\winner_raw\\01_checkpoint_eval.png",
     "figures\\winner_raw\\02_reward_score_raw.png",
     "figures\\winner_raw\\03_kl_loss_clipfrac_raw.png",
@@ -24,6 +28,7 @@
     "figures\\winner_raw\\09_reward_composition_format_share_raw.png"
   ],
   "visual_summary": "VISUAL_SUMMARY.md",
+  "dense_scalar_grid": "tables\\winner_dense_scalar_grid_32.csv",
   "copied_tables": [],
   "derived_tables": [
     "tables/reward_composition_by_call.csv",

@@ -9,6 +9,25 @@ Winner retained in this package:
 - Best checkpoint: step `841`, exact `65.625`, partial `67.1875`
 - Canonical R12 full best: exact `62.5`, partial `65.625`
 
+## Dense Tail-Step View
+
+These figures re-index the tail run so canonical checkpoint `512` becomes
+tail step `0`. Major grid lines are every `64` steps and minor grid lines are
+every `32` steps. Checkpoint eval is only plotted where a saved/restorable
+checkpoint actually exists; the denser views use TensorBoard scalar traces,
+not fabricated checkpoint evals.
+
+![Dense checkpoint eval](figures/dense/01_checkpoint_eval_tail_step.png)
+
+![Dense scalar performance](figures/dense/02_dense_scalar_performance_tail_step.png)
+
+![Dense reward components](figures/dense/03_dense_reward_components_tail_step.png)
+
+![Dense GRPO response health](figures/dense/04_dense_grpo_response_health_tail_step.png)
+
+Supporting table: `tables/winner_dense_scalar_grid_32.csv` samples the nearest
+recorded scalar values at `32`-step tail offsets.
+
 ## Combined Comparison
 
 These figures compare the retained winner branch against the non-winning

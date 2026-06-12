@@ -23,6 +23,7 @@ Key tables:
 - `tables/summary.csv`
 - `tables/autotune_tail_all_checkpoint_eval.csv`
 - `tables/canonical_r12_full_checkpoint_eval.csv`
+- `tables/winner_dense_scalar_grid_32.csv`
 
 Visual summary:
 
@@ -37,3 +38,5 @@ Copied visual sets:
 - `figures/combined`: comparison views across tail512 branches.
 - `figures/winner_raw`: raw winner-only timelines for training, reward,
   response health, and trace audit.
+- `figures/dense`: source-normalized tail-step views, with 32-step grid lines
+  and dense scalar traces.
