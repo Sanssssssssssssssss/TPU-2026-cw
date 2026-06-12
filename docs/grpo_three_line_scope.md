@@ -12,9 +12,10 @@ We are keeping three canonical lines for the GRPO analysis:
 2. `reward-only-r12-full-complete-001`
    - Purpose: R12 reward-only ablation against the course baseline training setup.
    - Reward mode: `gsm8k_verifiable_simple`.
-   - Status: running remotely; seeded from stopped source run checkpoint `500`.
-   - Source raw kept locally: `artifacts/cloud/reward-only-r12-full-001`
-   - Current interim report: `artifacts/reports/reward-only-r12-full-001-clean`
+   - Status: complete local raw/report package; seeded from stopped source run checkpoint `500`.
+   - Local raw: `artifacts/cloud/reward-only-r12-full-complete-001`
+   - Local report: `artifacts/reports/reward-only-r12-full-complete-001-clean`
+   - Source raw kept locally for seed provenance: `artifacts/cloud/reward-only-r12-full-001`
    - Completion runbook: `docs/r12_reward_only_completion.md`
 
 3. `reward-k8-beta004-r12-full-001`
@@ -72,7 +73,7 @@ reward-mechanism ablation against baseline.
 Top-level local report directories have been reduced to:
 
 - `artifacts/reports/course-baseline-001`
-- `artifacts/reports/reward-only-r12-full-001-clean`
+- `artifacts/reports/reward-only-r12-full-complete-001-clean`
 - `artifacts/reports/reward-k8-beta004-r12-full-001-clean`
 - supporting evidence packages: `grpo-three-line-evidence-001`,
   `r12-final-evidence-001`
@@ -84,6 +85,7 @@ Non-canonical historical report outputs were moved to:
 Top-level local raw cloud artifact directories have been reduced to:
 
 - `artifacts/cloud/course-baseline-001`
+- `artifacts/cloud/reward-only-r12-full-complete-001`
 - `artifacts/cloud/reward-only-r12-full-001`
 - `artifacts/cloud/reward-k8-beta004-r12-full-001`
 - supporting large eval: `artifacts/cloud/r12-best-large-eval-001`

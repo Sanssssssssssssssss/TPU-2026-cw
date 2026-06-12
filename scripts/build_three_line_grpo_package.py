@@ -46,9 +46,13 @@ def main() -> int:
     parser.add_argument("--baseline-report", type=Path, default=Path("artifacts/reports/course-baseline-001"))
     parser.add_argument("--r12-full-raw", type=Path, default=Path("artifacts/cloud/reward-k8-beta004-r12-full-001"))
     parser.add_argument("--r12-full-report", type=Path, default=Path("artifacts/reports/reward-k8-beta004-r12-full-001-clean"))
-    parser.add_argument("--reward-only-raw", type=Path, default=Path("artifacts/cloud/reward-only-r12-full-001"))
-    parser.add_argument("--reward-only-report", type=Path, default=Path("artifacts/reports/reward-only-r12-full-001-clean"))
-    parser.add_argument("--reward-only-status", default="stopped negative ablation; no checkpoint eval table in raw fetch")
+    parser.add_argument("--reward-only-raw", type=Path, default=Path("artifacts/cloud/reward-only-r12-full-complete-001"))
+    parser.add_argument("--reward-only-report", type=Path, default=Path("artifacts/reports/reward-only-r12-full-complete-001-clean"))
+    parser.add_argument("--reward-only-source-raw", type=Path, default=Path("artifacts/cloud/reward-only-r12-full-001"))
+    parser.add_argument(
+        "--reward-only-status",
+        default="complete 3364-step reward-only ablation; seeded from reward-only-r12-full-001 checkpoint 500",
+    )
     parser.add_argument("--r12-final-report", type=Path, default=Path("artifacts/reports/r12-final-evidence-001"))
     args = parser.parse_args()
 
@@ -92,6 +96,10 @@ def main() -> int:
         [
             "alert_counts.csv",
             "checkpoint_archives_summary.csv",
+            "checkpoint_eval_long.csv",
+            "clean_selection_summary.csv",
+            "reward_composition_latest.csv",
+            "reward_composition_by_call.csv",
             "selection_summary.csv",
             "trace_audit_by_call.csv",
         ],
@@ -116,7 +124,35 @@ def main() -> int:
         (args.reward_only_raw / "artifacts" / "reward_k8_pilot_manifest.json", raw_refs / "r12_reward_only" / "reward_k8_pilot_manifest.json"),
         (args.reward_only_raw / "checkpoint_archives.txt", raw_refs / "r12_reward_only" / "checkpoint_archives.txt"),
         (args.reward_only_raw / "runs" / "R12_reward_only_baseline_kkl" / "run_env.txt", raw_refs / "r12_reward_only" / "run_env.txt"),
-        (args.reward_only_raw / "runs" / "R12_reward_only_baseline_kkl" / "branch_metadata.json", raw_refs / "r12_reward_only" / "branch_metadata.json"),
+        (args.reward_only_raw / "runs" / "R12_reward_only_baseline_kkl" / "artifacts" / "run_manifest.json", raw_refs / "r12_reward_only" / "run_manifest.json"),
+        (
+            args.reward_only_raw
+            / "runs"
+            / "R12_reward_only_baseline_kkl"
+            / "artifacts"
+            / "checkpoint_eval"
+            / "checkpoint_eval_summary.csv",
+            raw_refs / "r12_reward_only" / "checkpoint_eval_summary.csv",
+        ),
+        (
+            args.reward_only_raw
+            / "runs"
+            / "R12_reward_only_baseline_kkl"
+            / "artifacts"
+            / "checkpoint_eval"
+            / "checkpoint_eval_summary.json",
+            raw_refs / "r12_reward_only" / "checkpoint_eval_summary.json",
+        ),
+        (args.reward_only_source_raw / "pipeline.log", raw_refs / "r12_reward_only_source" / "pipeline.log"),
+        (args.reward_only_source_raw / "checkpoint_archives.txt", raw_refs / "r12_reward_only_source" / "checkpoint_archives.txt"),
+        (args.reward_only_source_raw / "runs" / "R12_reward_only_baseline_kkl" / "run_env.txt", raw_refs / "r12_reward_only_source" / "run_env.txt"),
+        (
+            args.reward_only_source_raw
+            / "runs"
+            / "R12_reward_only_baseline_kkl"
+            / "branch_metadata.json",
+            raw_refs / "r12_reward_only_source" / "branch_metadata.json",
+        ),
     ]
     for src, dst in refs:
         item = copy_one(src, dst)
@@ -141,6 +177,8 @@ def main() -> int:
             },
             "r12_reward_only": {
                 "raw_dir": str(args.reward_only_raw),
+                "source_raw_dir": str(args.reward_only_source_raw),
+                "source_checkpoint_step": 500,
                 "report_dir": str(args.reward_only_report),
                 "checkpoint_archive_dir": str(args.reward_only_raw / "checkpoint_archives"),
                 "checkpoint_archive_count": file_count(args.reward_only_raw / "checkpoint_archives", "*.tar.gz"),
