@@ -86,6 +86,20 @@ been rebuilt.
    `reward-k8-beta004-r12-full-001/runs/R12_gsm8k_verifiable_simple/ckpts/actor/512`,
    run `LR=1e-6` continuations with `BETA=0.04` and `BETA=0.06`.
 
+5. LR-only fallback tail continuations, only if the `LR=1e-6` tail run is
+   clearly worse than the canonical R12 full checkpoint-eval anchors:
+
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\cloud\submit_tpu_job.ps1 submit-r12-tail-lr5e7 -RunId r12-full-autotune-tail512-lr5e7-001
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\cloud\submit_tpu_job.ps1 submit-r12-tail-lr3e7 -RunId r12-full-autotune-tail512-lr3e7-001
+   ```
+
+   Expected config for both: seed from canonical R12 full checkpoint 512,
+   `K=8`, `BETA=0.04`, `RANK=64`, `ALPHA=64`, no warmup,
+   checkpoints `512/576/640/704/768/841`. These fallbacks intentionally
+   change only `LEARNING_RATE` (`5e-7`, then `3e-7`) so any improvement or
+   regression is attributable to LR rather than reward, rank, or beta changes.
+
 ## Evidence requirements
 
 For any candidate that reaches its pilot horizon:
