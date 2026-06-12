@@ -1,5 +1,6 @@
 {
   "generated_at": "2026-06-12T17:51:21.181506+00:00",
+  "visual_summary_added_at": "2026-06-12",
   "input_dir": "D:\\GPT_Project\\TPU-2026-cw\\artifacts\\cloud\\r12-full-autotune-tail512-001",
   "output_dir": "D:\\GPT_Project\\TPU-2026-cw\\artifacts\\reports\\r12-full-autotune-tail512-001-clean",
   "rolling_window": 64,
@@ -12,16 +13,17 @@
     "figures\\combined\\06_reward_audit.png",
     "figures\\combined\\07_reward_components.png",
     "figures\\combined\\08_reward_composition_format_share.png",
-    "figures\\by_run\\R12_tail_lr1e-6_beta004_from512\\01_checkpoint_eval.png",
-    "figures\\by_run\\R12_tail_lr1e-6_beta004_from512\\02_reward_score_raw.png",
-    "figures\\by_run\\R12_tail_lr1e-6_beta004_from512\\03_kl_loss_clipfrac_raw.png",
-    "figures\\by_run\\R12_tail_lr1e-6_beta004_from512\\04_grpo_health_raw.png",
-    "figures\\by_run\\R12_tail_lr1e-6_beta004_from512\\05_response_health_raw.png",
-    "figures\\by_run\\R12_tail_lr1e-6_beta004_from512\\06_reward_audit_raw.png",
-    "figures\\by_run\\R12_tail_lr1e-6_beta004_from512\\07_reward_components_raw.png",
-    "figures\\by_run\\R12_tail_lr1e-6_beta004_from512\\08_trace_audit_raw.png",
-    "figures\\by_run\\R12_tail_lr1e-6_beta004_from512\\09_reward_composition_format_share_raw.png"
+    "figures\\winner_raw\\01_checkpoint_eval.png",
+    "figures\\winner_raw\\02_reward_score_raw.png",
+    "figures\\winner_raw\\03_kl_loss_clipfrac_raw.png",
+    "figures\\winner_raw\\04_grpo_health_raw.png",
+    "figures\\winner_raw\\05_response_health_raw.png",
+    "figures\\winner_raw\\06_reward_audit_raw.png",
+    "figures\\winner_raw\\07_reward_components_raw.png",
+    "figures\\winner_raw\\08_trace_audit_raw.png",
+    "figures\\winner_raw\\09_reward_composition_format_share_raw.png"
   ],
+  "visual_summary": "VISUAL_SUMMARY.md",
   "copied_tables": [],
   "derived_tables": [
     "tables/reward_composition_by_call.csv",

@@ -24,6 +24,16 @@ Key tables:
 - `tables/autotune_tail_all_checkpoint_eval.csv`
 - `tables/canonical_r12_full_checkpoint_eval.csv`
 
+Visual summary:
+
+- `VISUAL_SUMMARY.md`
+
 Clean plots:
 
 - `artifacts/reports/r12-full-autotune-tail512-001-clean`
+
+Copied visual sets:
+
+- `figures/combined`: comparison views across tail512 branches.
+- `figures/winner_raw`: raw winner-only timelines for training, reward,
+  response health, and trace audit.
