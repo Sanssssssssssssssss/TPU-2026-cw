@@ -30,8 +30,8 @@ Local Google TPU VM orchestrator for the GRPO baseline workflow.
 .\cloud\submit_tpu_job.ps1 submit-k8-public-beta -RunId reward-k8-public-beta-001
 .\cloud\submit_tpu_job.ps1 submit-k8-r12-simple-full -RunId reward-k8-beta004-r12-full-001
 .\cloud\submit_tpu_job.ps1 submit-baseline-rollout320-full -RunId baseline-rollout320-full-001
-.\cloud\submit_tpu_job.ps1 submit-reward-only-rollout320-full -RunId reward-only-rollout320-full-001
-.\cloud\submit_tpu_job.ps1 submit-r12-rollout320-lr1e6-full -RunId r12-full-rollout320-lr1e6-001
+.\cloud\submit_tpu_job.ps1 submit-reward-only-rollout320-full -RunId r1-reward-only-rollout320-full-001
+.\cloud\submit_tpu_job.ps1 submit-r12-rollout320-lr1e6-full -RunId r4-r12-full-rollout320-lr1e6-001
 .\cloud\submit_tpu_job.ps1 submit-reward-only-r12-full -RunId reward-only-r12-full-001
 .\cloud\submit_tpu_job.ps1 submit-reward-only-r12-complete-from500 -RunId reward-only-r12-full-complete-001
 .\cloud\submit_tpu_job.ps1 submit-r12-best-large-eval -RunId r12-best-large-eval-001

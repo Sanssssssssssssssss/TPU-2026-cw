@@ -111,10 +111,10 @@ class OfficialRun:
 
 RUNS = [
     OfficialRun(
-        key="baseline",
+        key="R0",
         run_id="baseline-rollout320-full-001",
         branch="R0_baseline_rollout320",
-        legend="baseline dense32-rollout",
+        legend="R0 baseline dense32-rollout",
         reward_mode="baseline",
         num_generations=2,
         max_steps=3364,
@@ -125,10 +125,10 @@ RUNS = [
         alpha="64",
     ),
     OfficialRun(
-        key="reward_only",
-        run_id="reward-only-rollout320-full-001",
-        branch="R12_reward_only_rollout320",
-        legend="reward-only dense32-rollout",
+        key="R1",
+        run_id="r1-reward-only-rollout320-full-001",
+        branch="R1_reward_only_rollout320",
+        legend="R1 reward-only dense32-rollout",
         reward_mode="gsm8k_verifiable_simple",
         num_generations=2,
         max_steps=3364,
@@ -139,10 +139,10 @@ RUNS = [
         alpha="64",
     ),
     OfficialRun(
-        key="r12_full",
-        run_id="r12-full-rollout320-lr1e6-001",
-        branch="R12_full_lr1e-6_rollout320",
-        legend="R12 full-from-zero lr1e-6 dense32-rollout",
+        key="R4",
+        run_id="r4-r12-full-rollout320-lr1e6-001",
+        branch="R4_r12_full_lr1e-6_rollout320",
+        legend="R4 R12 full-from-zero lr1e-6 dense32-rollout",
         reward_mode="gsm8k_verifiable_simple",
         num_generations=8,
         max_steps=841,
@@ -164,9 +164,9 @@ TOKENS = {
 }
 
 SERIES_COLORS = {
-    "baseline": "#5477C4",
-    "reward_only": "#CC6F47",
-    "r12_full": "#71B436",
+    "R0": "#5477C4",
+    "R1": "#CC6F47",
+    "R4": "#71B436",
 }
 
 
@@ -669,7 +669,7 @@ def build_final_package(output_dir: Path, statuses: list[dict[str, Any]], ckpt_r
     (output_dir / "manifest_rollout320_three_line.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     (output_dir / "README.md").write_text(
         "# GRPO Rollout320 Three-Line Evidence\n\n"
-        "This package contains only the three official rollout-aligned lines: baseline, reward-only, and R12 full-from-zero lr1e-6. "
+        "This package contains only the three official rollout-aligned lines currently in scope: R0 baseline, R1 reward-only, and R4 R12 full-from-zero lr1e-6. "
         "The x-axis in all comparison figures is `rollouts_seen`, not raw training step. Old canonical runs, reward-only continuation, and tail winner runs are excluded from the main plots.\n",
         encoding="utf-8",
     )

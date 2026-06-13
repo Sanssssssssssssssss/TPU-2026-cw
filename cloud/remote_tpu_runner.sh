@@ -2240,7 +2240,7 @@ submit_reward_only_rollout320_full() {
   install_secrets
   bootstrap_env
   check_tpu_backend
-  write_k8_pilot_script "R12_reward_only_rollout320:gsm8k_verifiable_simple:0.08:3e-6:64:64:0.2"
+  write_k8_pilot_script "R1_reward_only_rollout320:gsm8k_verifiable_simple:0.08:3e-6:64:64:0.2"
 
   local session="tpu-k8-${RUN_ID//./-}"
   if tmux has-session -t "$session" 2>/dev/null; then
@@ -2264,7 +2264,7 @@ submit_r12_rollout320_lr1e6_full() {
   install_secrets
   bootstrap_env
   check_tpu_backend
-  write_k8_pilot_script "R12_full_lr1e-6_rollout320:gsm8k_verifiable_simple:0.04:1e-6:64:64:0.2"
+  write_k8_pilot_script "R4_r12_full_lr1e-6_rollout320:gsm8k_verifiable_simple:0.04:1e-6:64:64:0.2"
 
   local session="tpu-k8-${RUN_ID//./-}"
   if tmux has-session -t "$session" 2>/dev/null; then
