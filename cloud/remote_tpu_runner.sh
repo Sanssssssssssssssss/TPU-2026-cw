@@ -37,6 +37,9 @@ Usage:
   remote_tpu_runner.sh submit-k8-r11-fallback-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-k8-r12-simple-only --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-k8-r12-simple-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
+  remote_tpu_runner.sh submit-baseline-rollout320-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
+  remote_tpu_runner.sh submit-reward-only-rollout320-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
+  remote_tpu_runner.sh submit-r12-rollout320-lr1e6-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
   remote_tpu_runner.sh submit-reward-only-r12-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-reward-only-r12-complete-from500 --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
   remote_tpu_runner.sh submit-r12-tail-stability --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
@@ -1967,6 +1970,11 @@ sync_on_exit() {
 }
 trap sync_on_exit EXIT
 
+SOURCE_CHECKPOINT_JSON="null"
+if [[ -n "\${K8_SOURCE_CKPT_ROOT:-}" || -n "\${K8_SOURCE_STEP:-}" ]]; then
+  SOURCE_CHECKPOINT_JSON="{\"root\":\"\${K8_SOURCE_CKPT_ROOT:-}\",\"step\":\"\${K8_SOURCE_STEP:-}\"}"
+fi
+
 cat > "\$PARENT_ARTIFACT_DIR/reward_k8_pilot_manifest.json" <<JSON
 {
   "run_id": "$RUN_ID",
@@ -1986,7 +1994,10 @@ $manifest_runs
   "epsilon": "\${K8_EPSILON:-0.2}",
   "rank": "\${K8_RANK:-64}",
   "alpha": "\${K8_ALPHA:-64}",
+  "rollout_checkpoint_interval": "\${K8_ROLLOUT_CHECKPOINT_INTERVAL:-}",
   "checkpoint_eval_steps": "\${K8_CHECKPOINT_STEPS:-32 64 96 128 160 192 224 256}",
+  "checkpoint_rollouts": "\${K8_CHECKPOINT_ROLLOUTS:-}",
+  "source_checkpoint": \$SOURCE_CHECKPOINT_JSON,
   "run_spec_format": "run_id:reward_mode[:beta_override[:learning_rate_override[:rank_override[:alpha_override[:epsilon_override]]]]]"
 }
 JSON
@@ -2063,7 +2074,7 @@ JSON
   export ALPHA="\$BRANCH_ALPHA"
   mkdir -p "\$OBS_OUTPUT_DIR" "\$OBS_TRACE_DIR"
 
-  env | sort | grep -E '^(RUN_ID|REWARD_MODE|MAX_STEPS|LR_SCHEDULE_STEPS|WARMUP_STEPS|SAVE_INTERVAL_STEPS|MAX_TO_KEEP|EVAL_EVERY_N_STEPS|NUM_GENERATIONS|TOTAL_GENERATION_STEPS|LEARNING_RATE|BETA|EPSILON|RANK|ALPHA|K8_SOURCE_|CKPT_DIR|TENSORBOARD_DIR|OBS_)=' > "\$EXP_DIR/run_env.txt"
+  env | sort | grep -E '^(RUN_ID|REWARD_MODE|MAX_STEPS|LR_SCHEDULE_STEPS|WARMUP_STEPS|SAVE_INTERVAL_STEPS|MAX_TO_KEEP|EVAL_EVERY_N_STEPS|NUM_GENERATIONS|TOTAL_GENERATION_STEPS|LEARNING_RATE|BETA|EPSILON|RANK|ALPHA|K8_SOURCE_|K8_ROLLOUT_|K8_CHECKPOINT_ROLLOUTS|CKPT_DIR|TENSORBOARD_DIR|OBS_)=' > "\$EXP_DIR/run_env.txt"
   printf '%s\n' "\$MODE" > "\$EXP_DIR/reward_mode.txt"
 
   python -u train.py 2>&1 | tee -a "\$EXP_DIR/train.log"
@@ -2193,6 +2204,78 @@ submit_k8_r12_simple_full() {
   echo "==> Starting tmux session $session"
   tmux new-session -d -s "$session" "K8_MAX_STEPS=841 K8_LR_SCHEDULE_STEPS=841 K8_WARMUP_STEPS=84.1 K8_CHECKPOINT_STEPS='128 256 384 512 640 768 841' K8_MAX_TO_KEEP=16 K8_SAVE_INTERVAL_STEPS=128 K8_EVAL_EVERY_N_STEPS=64 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- k8 pilot exited (\$status) ---\"; exec bash"
   echo "Started R12 simple-verifiable K8 equivalent-full run. Attach with: tmux attach -t $session"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
+submit_baseline_rollout320_full() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R0_baseline_rollout320:baseline:0.08:3e-6:64:64:0.2"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  local rollout_steps="320 640 960 1280 1600 1920 2240 2560 2880 3200 3520 3840 4160 4480 4800 5120 5440 5760 6080 6400 6720 6728"
+  local checkpoint_steps="160 320 480 640 800 960 1120 1280 1440 1600 1760 1920 2080 2240 2400 2560 2720 2880 3040 3200 3360 3364"
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_ROLLOUT_CHECKPOINT_INTERVAL=320 K8_CHECKPOINT_ROLLOUTS='$rollout_steps' K8_MAX_STEPS=3364 K8_LR_SCHEDULE_STEPS=3364 K8_WARMUP_STEPS=336.4 K8_CHECKPOINT_STEPS='$checkpoint_steps' K8_MAX_TO_KEEP=30 K8_SAVE_INTERVAL_STEPS=160 K8_EVAL_EVERY_N_STEPS=160 K8_OBS_TRACE_EVERY_N_STEPS=1 K8_OBS_TRACE_MAX_ROWS=8192 K8_NUM_GENERATIONS=2 K8_BETA=0.08 K8_LEARNING_RATE=3e-6 K8_RANK=64 K8_ALPHA=64 K8_EPSILON=0.2 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- baseline rollout320 full exited (\$status) ---\"; exec bash"
+  echo "Started baseline rollout320 full run. Attach with: tmux attach -t $session"
+  echo "Rollout checkpoints: $rollout_steps"
+  echo "Checkpoint steps: $checkpoint_steps"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
+submit_reward_only_rollout320_full() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R12_reward_only_rollout320:gsm8k_verifiable_simple:0.08:3e-6:64:64:0.2"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  local rollout_steps="320 640 960 1280 1600 1920 2240 2560 2880 3200 3520 3840 4160 4480 4800 5120 5440 5760 6080 6400 6720 6728"
+  local checkpoint_steps="160 320 480 640 800 960 1120 1280 1440 1600 1760 1920 2080 2240 2400 2560 2720 2880 3040 3200 3360 3364"
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_ROLLOUT_CHECKPOINT_INTERVAL=320 K8_CHECKPOINT_ROLLOUTS='$rollout_steps' K8_MAX_STEPS=3364 K8_LR_SCHEDULE_STEPS=3364 K8_WARMUP_STEPS=336.4 K8_CHECKPOINT_STEPS='$checkpoint_steps' K8_MAX_TO_KEEP=30 K8_SAVE_INTERVAL_STEPS=160 K8_EVAL_EVERY_N_STEPS=160 K8_OBS_TRACE_EVERY_N_STEPS=1 K8_OBS_TRACE_MAX_ROWS=8192 K8_NUM_GENERATIONS=2 K8_BETA=0.08 K8_LEARNING_RATE=3e-6 K8_RANK=64 K8_ALPHA=64 K8_EPSILON=0.2 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- reward-only rollout320 full exited (\$status) ---\"; exec bash"
+  echo "Started reward-only rollout320 full run. Attach with: tmux attach -t $session"
+  echo "Rollout checkpoints: $rollout_steps"
+  echo "Checkpoint steps: $checkpoint_steps"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
+submit_r12_rollout320_lr1e6_full() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R12_full_lr1e-6_rollout320:gsm8k_verifiable_simple:0.04:1e-6:64:64:0.2"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  local rollout_steps="320 640 960 1280 1600 1920 2240 2560 2880 3200 3520 3840 4160 4480 4800 5120 5440 5760 6080 6400 6720 6728"
+  local checkpoint_steps="40 80 120 160 200 240 280 320 360 400 440 480 520 560 600 640 680 720 760 800 840 841"
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_ROLLOUT_CHECKPOINT_INTERVAL=320 K8_CHECKPOINT_ROLLOUTS='$rollout_steps' K8_MAX_STEPS=841 K8_LR_SCHEDULE_STEPS=1682 K8_WARMUP_STEPS=0 K8_CHECKPOINT_STEPS='$checkpoint_steps' K8_MAX_TO_KEEP=30 K8_SAVE_INTERVAL_STEPS=40 K8_EVAL_EVERY_N_STEPS=40 K8_OBS_TRACE_EVERY_N_STEPS=1 K8_OBS_TRACE_MAX_ROWS=8192 K8_NUM_GENERATIONS=8 K8_BETA=0.04 K8_LEARNING_RATE=1e-6 K8_RANK=64 K8_ALPHA=64 K8_EPSILON=0.2 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- R12 rollout320 lr1e-6 full exited (\$status) ---\"; exec bash"
+  echo "Started R12 rollout320 lr1e-6 full run. Attach with: tmux attach -t $session"
+  echo "Rollout checkpoints: $rollout_steps"
+  echo "Checkpoint steps: $checkpoint_steps"
   echo "Log: $RUN_DIR/pipeline.log"
 }
 
@@ -3465,6 +3548,15 @@ case "$COMMAND" in
     ;;
   submit-k8-r12-simple-full)
     submit_k8_r12_simple_full
+    ;;
+  submit-baseline-rollout320-full)
+    submit_baseline_rollout320_full
+    ;;
+  submit-reward-only-rollout320-full)
+    submit_reward_only_rollout320_full
+    ;;
+  submit-r12-rollout320-lr1e6-full)
+    submit_r12_rollout320_lr1e6_full
     ;;
   submit-reward-only-r12-full)
     submit_reward_only_r12_full
