@@ -3336,6 +3336,9 @@ status_k8_pilot() {
       if [[ -f "$child/reward_mode.txt" ]]; then
         echo "reward_mode: $(cat "$child/reward_mode.txt")"
       fi
+      if [[ -f "$child/run_env.txt" ]]; then
+        grep -E '^(RUN_ID|REWARD_MODE|MAX_STEPS|LR_SCHEDULE_STEPS|WARMUP_STEPS|SAVE_INTERVAL_STEPS|MAX_TO_KEEP|EVAL_EVERY_N_STEPS|NUM_GENERATIONS|LEARNING_RATE|BETA|EPSILON|RANK|ALPHA|K8_SOURCE_|K8_ROLLOUT_|K8_CHECKPOINT_ROLLOUTS|OBS_TRACE_)=' "$child/run_env.txt" || true
+      fi
       find "$child/ckpts/actor" -maxdepth 1 -type d -name '[0-9]*' 2>/dev/null | sed 's#.*/##' | sort -n | tail -n 30 | xargs -r echo "checkpoints:"
       if [[ -f "$child/artifacts/checkpoint_eval/checkpoint_eval_summary.json" ]]; then
         python - "$child/artifacts/checkpoint_eval/checkpoint_eval_summary.json" <<'PY' || true
@@ -3358,6 +3361,35 @@ PY
     done
   else
     echo "No runs/ directory found yet."
+  fi
+  echo
+  if [[ -f "$ARTIFACT_DIR/reward_k8_pilot_manifest.json" ]]; then
+    echo "K8 pilot manifest summary:"
+    python - "$ARTIFACT_DIR/reward_k8_pilot_manifest.json" <<'PY' || true
+import json, pathlib, sys
+payload = json.loads(pathlib.Path(sys.argv[1]).read_text())
+for key in (
+    "run_id",
+    "run_spec",
+    "max_steps",
+    "lr_schedule_steps",
+    "warmup_steps",
+    "save_interval_steps",
+    "max_to_keep",
+    "eval_every_n_steps",
+    "checkpoint_steps",
+    "rollout_checkpoint_interval",
+    "checkpoint_rollouts",
+    "num_generations",
+    "beta",
+    "learning_rate",
+    "rank",
+    "alpha",
+    "source_checkpoint",
+):
+    print(f"{key}: {payload.get(key)}")
+PY
+    echo
   fi
   echo
   echo "K8 artifacts:"
