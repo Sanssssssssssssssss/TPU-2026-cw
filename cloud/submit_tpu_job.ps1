@@ -57,7 +57,7 @@ Local Google TPU VM orchestrator for the GRPO baseline workflow.
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("preflight", "ensure-tpu", "ensure-storage", "bootstrap", "submit-baseline", "submit-reward-sweep", "submit-reward-continuation", "submit-candidate-eval", "submit-reward-dense", "submit-r7-large-eval", "submit-r12-best-large-eval", "submit-reward-r9", "submit-reward-r10", "submit-k8-pilot", "submit-k8-r10-only", "submit-k8-r11-fallback-only", "submit-k8-r12-simple-only", "submit-k8-r12-simple-full", "submit-baseline-rollout320-full", "submit-reward-only-rollout320-full", "submit-r12-rollout320-lr1e6-full", "submit-reward-only-r12-full", "submit-reward-only-r12-complete-from500", "submit-r12-non-r64-pilot", "submit-r12-lora-public-tuning", "submit-r12-r64-beta-clip-tuning", "submit-r12-r64-small-beta-tuning", "submit-r12-tail-stability", "submit-r12-tail-lr5e7", "submit-r12-tail-lr3e7", "submit-r12-tail-lr3e6-cos-g512", "submit-r12-high-rank-pilot", "submit-r12-high-rank-alpha64-only", "submit-r12-r64-lr-smoothing", "submit-r12-public-strong-tuning", "submit-k8-public-beta", "submit-k8-r13-public-beta-only", "submit-k8-r14-public-beta-only", "eval-checkpoints", "status", "status-sweep", "status-continuation", "status-candidate-eval", "status-reward-dense", "status-r7-large-eval", "status-r12-best-large-eval", "status-reward-r9", "status-reward-r10", "status-k8-pilot", "resume-k8-pilot", "stop-reward-r10", "stop-k8-pilot", "fetch", "fetch-sweep", "fetch-continuation", "fetch-candidate-eval", "fetch-reward-dense", "fetch-r7-large-eval", "fetch-r12-best-large-eval", "fetch-reward-r9", "fetch-reward-r10", "fetch-k8-pilot", "sync-storage", "restore-cache", "start-tpu", "stop-tpu", "delete-tpu")]
+    [ValidateSet("preflight", "ensure-tpu", "ensure-storage", "bootstrap", "submit-baseline", "submit-reward-sweep", "submit-reward-continuation", "submit-candidate-eval", "submit-reward-dense", "submit-r7-large-eval", "submit-r12-best-large-eval", "submit-reward-r9", "submit-reward-r10", "submit-k8-pilot", "submit-k8-r10-only", "submit-k8-r11-fallback-only", "submit-k8-r12-simple-only", "submit-k8-r12-simple-full", "submit-baseline-rollout320-full", "submit-reward-only-rollout320-full", "submit-r12-rollout320-lr1e6-full", "submit-reward-only-r12-full", "submit-reward-only-r12-complete-from500", "submit-r12-non-r64-pilot", "submit-r12-lora-public-tuning", "submit-r12-r64-beta-clip-tuning", "submit-r12-r64-small-beta-tuning", "submit-r12-tail-stability", "submit-r12-tail-lr5e7", "submit-r12-tail-lr3e7", "submit-r12-tail-lr3e6-cos-g512", "submit-r12-high-rank-pilot", "submit-r12-high-rank-alpha64-only", "submit-r12-r64-lr-smoothing", "submit-r12-public-strong-tuning", "submit-k8-public-beta", "submit-k8-r13-public-beta-only", "submit-k8-r14-public-beta-only", "eval-checkpoints", "status", "status-sweep", "status-continuation", "status-candidate-eval", "status-reward-dense", "status-r7-large-eval", "status-r12-best-large-eval", "status-reward-r9", "status-reward-r10", "status-k8-pilot", "resume-k8-pilot", "stop-reward-r10", "stop-k8-pilot", "repair-k8-pilot-manifest", "fetch", "fetch-sweep", "fetch-continuation", "fetch-candidate-eval", "fetch-reward-dense", "fetch-r7-large-eval", "fetch-r12-best-large-eval", "fetch-reward-r9", "fetch-reward-r10", "fetch-k8-pilot", "sync-storage", "restore-cache", "start-tpu", "stop-tpu", "delete-tpu")]
     [string]$Command = "preflight",
 
     [string]$RunId = ("baseline-" + (Get-Date -Format "yyyyMMdd-HHmmss")),
@@ -1146,6 +1146,12 @@ function Stop-K8Pilot {
     Invoke-RemoteRunner $runner "stop-k8-pilot"
 }
 
+function Repair-K8PilotManifest {
+    Assert-RunId
+    $runner = Upload-Runner
+    Invoke-RemoteRunner $runner "repair-k8-pilot-manifest"
+}
+
 function Fetch-Run {
     Assert-RunId
     Write-Step "Preparing remote result archive"
@@ -1420,6 +1426,7 @@ switch ($Command) {
     "resume-k8-pilot" { Resume-K8Pilot }
     "stop-reward-r10" { Stop-RewardR10 }
     "stop-k8-pilot" { Stop-K8Pilot }
+    "repair-k8-pilot-manifest" { Repair-K8PilotManifest }
     "fetch" { Fetch-Run }
     "fetch-sweep" { Fetch-Run }
     "fetch-continuation" { Fetch-Run }

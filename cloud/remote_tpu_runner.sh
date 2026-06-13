@@ -64,6 +64,7 @@ Usage:
   remote_tpu_runner.sh resume-k8-pilot --run-id RUN
   remote_tpu_runner.sh stop-reward-r10 --run-id RUN
   remote_tpu_runner.sh stop-k8-pilot --run-id RUN
+  remote_tpu_runner.sh repair-k8-pilot-manifest --run-id RUN
   remote_tpu_runner.sh status --run-id RUN
 
 Options:
@@ -3307,6 +3308,65 @@ resume_k8_pilot() {
   echo "Log: $RUN_DIR/pipeline.log"
 }
 
+repair_k8_pilot_manifest() {
+  require_run_id
+  prepare_paths
+  local manifest="$ARTIFACT_DIR/reward_k8_pilot_manifest.json"
+  if [[ ! -f "$manifest" ]]; then
+    echo "K8 pilot manifest not found: $manifest" >&2
+    exit 1
+  fi
+  python - "$manifest" <<'PY'
+import json
+import pathlib
+import shutil
+import sys
+
+path = pathlib.Path(sys.argv[1])
+data = json.loads(path.read_text(encoding="utf-8"))
+changed = False
+
+if not data.get("checkpoint_steps") and data.get("checkpoint_eval_steps"):
+    data["checkpoint_steps"] = data["checkpoint_eval_steps"]
+    changed = True
+
+if "source_checkpoint" not in data:
+    data["source_checkpoint"] = None
+    changed = True
+
+if not data.get("run_specs") and isinstance(data.get("runs"), list):
+    specs = []
+    for row in data["runs"]:
+        if not isinstance(row, dict):
+            continue
+        fields = [row.get("run_id") or "", row.get("reward_mode") or ""]
+        for key in (
+            "beta_override",
+            "learning_rate_override",
+            "rank_override",
+            "alpha_override",
+            "epsilon_override",
+        ):
+            value = row.get(key) or ""
+            if value or len(fields) > 2:
+                fields.append(value)
+        specs.append(":".join(fields).rstrip(":"))
+    if specs:
+        data["run_specs"] = " ".join(specs)
+        changed = True
+
+if changed:
+    backup = path.with_name(path.name + ".pre_repair")
+    if not backup.exists():
+        shutil.copy2(path, backup)
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(f"Updated manifest: {path}")
+    print(f"Backup: {backup}")
+else:
+    print(f"Manifest already has rollout320 compatibility fields: {path}")
+PY
+}
+
 status_k8_pilot() {
   require_run_id
   prepare_paths
@@ -3682,6 +3742,9 @@ case "$COMMAND" in
     ;;
   stop-k8-pilot)
     stop_k8_pilot
+    ;;
+  repair-k8-pilot-manifest)
+    repair_k8_pilot_manifest
     ;;
   resume-k8-pilot)
     resume_k8_pilot
