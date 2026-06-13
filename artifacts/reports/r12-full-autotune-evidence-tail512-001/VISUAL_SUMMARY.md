@@ -13,7 +13,9 @@ Winner retained in this package:
 
 These figures re-index the tail run so canonical checkpoint `512` becomes
 tail step `0`. Major grid lines are every `64` steps and minor grid lines are
-every `32` steps. Checkpoint eval is only plotted where a saved/restorable
+every `32` steps. The final tail step is `329`, which is global checkpoint
+`841`; the `320` tick is only the last regular 64-step grid line. Checkpoint
+eval is only plotted where a saved/restorable
 checkpoint actually exists; the denser views use TensorBoard scalar traces,
 not fabricated checkpoint evals.
 
@@ -75,7 +77,10 @@ rolling-mean comparison.
 ## Reading Notes
 
 - Checkpoint eval is the decisive performance read: the winner improves from
-  the source step 512 to step 841 and beats the canonical R12 full best.
+  the source step 512 to step 841. There is no tail collapse: exact accuracy
+  goes `62.5 -> 59.375 -> 60.9375 -> 62.5 -> 64.0625 -> 65.625`, so the final
+  checkpoint is the best saved/evaluated point and beats the canonical R12 full
+  best.
 - Reward composition latest for the winner is mostly numeric reward
   (`0.775` mean numeric component, `0.2` mean format component).
 - The retained raw run remains at

@@ -14,6 +14,8 @@ from matplotlib.ticker import MultipleLocator
 
 WINNER_RUN = "R12_tail_lr1e-6_beta004_from512"
 SOURCE_STEP = 512
+FINAL_GLOBAL_STEP = 841
+FINAL_TAIL_STEP = FINAL_GLOBAL_STEP - SOURCE_STEP
 
 
 def as_float(value: str | None) -> float | None:
@@ -100,12 +102,15 @@ def rolling_xy(values: list[tuple[int, float]], window: int) -> tuple[list[int],
     return xs, ys
 
 
-def setup_tail_axis(ax, xmax: int = 352) -> None:
+def setup_tail_axis(ax, xmax: int = 340, final_tail_step: int = FINAL_TAIL_STEP) -> None:
     ax.set_xlim(-4, xmax)
-    ax.xaxis.set_major_locator(MultipleLocator(64))
-    ax.xaxis.set_minor_locator(MultipleLocator(32))
+    major_ticks = [0, 64, 128, 192, 256, 320]
+    minor_ticks = [32, 96, 160, 224, 288]
+    ax.set_xticks(major_ticks)
+    ax.set_xticks(minor_ticks, minor=True)
     ax.grid(True, which="major", color="#e2e2e2", linewidth=0.8)
     ax.grid(True, which="minor", axis="x", color="#efefef", linewidth=0.5)
+    ax.axvline(final_tail_step, color="#555555", linestyle="--", linewidth=1.0, alpha=0.65)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
@@ -147,6 +152,17 @@ def write_checkpoint_plot(rows: list[dict[str, float | int | str]], out: Path) -
     for x, y in zip(xs, exact):
         ax.annotate(f"{y:.1f}", (x, y), textcoords="offset points", xytext=(0, 7), ha="center", fontsize=8)
     setup_tail_axis(ax)
+    if rows:
+        final = rows[-1]
+        ax.annotate(
+            "tail 329 / global 841",
+            (float(final["tail_step"]), float(final.get("accuracy", 0.0))),
+            textcoords="offset points",
+            xytext=(-7, -28),
+            ha="right",
+            fontsize=8,
+            color="#444444",
+        )
     ax.set_ylim(50, 72)
     ax.set_title("R12 tail512 winner checkpoint eval, source-normalized")
     ax.set_xlabel("tail step from source checkpoint 512")
@@ -155,7 +171,7 @@ def write_checkpoint_plot(rows: list[dict[str, float | int | str]], out: Path) -
     ax.text(
         0.0,
         -0.18,
-        "Only saved/restorable checkpoints are plotted. Minor grid lines mark 32-step spacing; checkpoint eval exists at 0, 64, 128, 192, 256, and 329.",
+        "Only saved/restorable checkpoints are plotted. Minor grid lines mark 32-step spacing; final tail step 329 is global checkpoint 841.",
         transform=ax.transAxes,
         fontsize=8,
         color="#555555",
