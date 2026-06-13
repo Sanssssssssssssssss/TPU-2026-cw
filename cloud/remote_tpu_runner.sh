@@ -1995,9 +1995,11 @@ $manifest_runs
   "rank": "\${K8_RANK:-64}",
   "alpha": "\${K8_ALPHA:-64}",
   "rollout_checkpoint_interval": "\${K8_ROLLOUT_CHECKPOINT_INTERVAL:-}",
+  "checkpoint_steps": "\${K8_CHECKPOINT_STEPS:-32 64 96 128 160 192 224 256}",
   "checkpoint_eval_steps": "\${K8_CHECKPOINT_STEPS:-32 64 96 128 160 192 224 256}",
   "checkpoint_rollouts": "\${K8_CHECKPOINT_ROLLOUTS:-}",
   "source_checkpoint": \$SOURCE_CHECKPOINT_JSON,
+  "run_specs": "$run_specs",
   "run_spec_format": "run_id:reward_mode[:beta_override[:learning_rate_override[:rank_override[:alpha_override[:epsilon_override]]]]]"
 }
 JSON
@@ -3378,6 +3380,7 @@ for key in (
     "max_to_keep",
     "eval_every_n_steps",
     "checkpoint_steps",
+    "checkpoint_eval_steps",
     "rollout_checkpoint_interval",
     "checkpoint_rollouts",
     "num_generations",
