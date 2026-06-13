@@ -1296,6 +1296,23 @@ fi
         $fileName = "$RunId-checkpoint-$runName-$step.tar.gz"
         $remoteCheckpointArchive = Get-RemotePath $remoteRunDir $fileName
         $localCheckpointArchive = Join-Path $localCheckpointArchiveDir $fileName
+        if (Test-Path -LiteralPath $localCheckpointArchive -PathType Leaf) {
+            $existingArchive = Get-Item -LiteralPath $localCheckpointArchive
+            if ($existingArchive.Length -gt 0) {
+                Write-Step "Using existing checkpoint archive $fileName"
+                Add-Content -LiteralPath $localArchiveList -Value ("checkpoint_archives/$fileName") -Encoding utf8
+
+                if (Get-Command "tar" -ErrorAction SilentlyContinue) {
+                    $runDest = Join-Path (Join-Path (Join-Path $localDest "runs") $runName) "ckpts\actor"
+                    New-Item -ItemType Directory -Path $runDest -Force | Out-Null
+                    & tar -xzf $localCheckpointArchive -C $runDest
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "checkpoint extraction failed: $localCheckpointArchive"
+                    }
+                }
+                continue
+            }
+        }
         $remoteCheckpointCommand = @"
 RUN_DIR=$remoteRunDir
 RUN_NAME=$runName
