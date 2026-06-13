@@ -9,26 +9,29 @@ Winner retained in this package:
 - Best checkpoint: step `841`, exact `65.625`, partial `67.1875`
 - Canonical R12 full best: exact `62.5`, partial `65.625`
 
-## Dense Tail-Step View
+## Global Full-Step View
 
-These figures re-index the tail run so canonical checkpoint `512` becomes
-tail step `0`. Major grid lines are every `64` steps and minor grid lines are
-every `32` steps. The final tail step is `329`, which is global checkpoint
-`841`; the `320` tick is only the last regular 64-step grid line. Checkpoint
-eval is only plotted where a saved/restorable
-checkpoint actually exists; the denser views use TensorBoard scalar traces,
-not fabricated checkpoint evals.
+These figures keep the original global training coordinate from `0` to `841`.
+They do not reset the x-axis at checkpoint `512`. The retained winner path uses
+canonical R12 full through source checkpoint `512`, then the best tail
+continuation through final checkpoint `841`. Checkpoint eval is only plotted
+where a saved/restorable checkpoint actually exists; the denser views use
+TensorBoard scalar traces, not fabricated checkpoint evals.
 
-![Dense checkpoint eval](figures/dense/01_checkpoint_eval_tail_step.png)
+![Global checkpoint eval](figures/global/01_checkpoint_eval_global_step.png)
 
-![Dense scalar performance](figures/dense/02_dense_scalar_performance_tail_step.png)
+![Global scalar performance](figures/global/02_dense_scalar_performance_global_step.png)
 
-![Dense reward components](figures/dense/03_dense_reward_components_tail_step.png)
+![Global reward components](figures/global/03_dense_reward_components_global_step.png)
 
-![Dense GRPO response health](figures/dense/04_dense_grpo_response_health_tail_step.png)
+![Global GRPO response health](figures/global/04_dense_grpo_response_health_global_step.png)
 
-Supporting table: `tables/winner_dense_scalar_grid_32.csv` samples the nearest
-recorded scalar values at `32`-step tail offsets.
+Supporting tables:
+
+- `tables/winner_global_checkpoint_eval.csv` stores the exact checkpoint eval
+  points used in the global checkpoint chart.
+- `tables/winner_global_scalar_grid_32.csv` samples the nearest recorded scalar
+  values every `32` global steps, plus final global step `841`.
 
 ## Combined Comparison
 
@@ -76,11 +79,11 @@ rolling-mean comparison.
 
 ## Reading Notes
 
-- Checkpoint eval is the decisive performance read: the winner improves from
-  the source step 512 to step 841. There is no tail collapse: exact accuracy
-  goes `62.5 -> 59.375 -> 60.9375 -> 62.5 -> 64.0625 -> 65.625`, so the final
-  checkpoint is the best saved/evaluated point and beats the canonical R12 full
-  best.
+- Checkpoint eval is the decisive performance read. In global coordinates, the
+  retained winner path goes `54.6875 -> 50.0 -> 62.5 -> 62.5 -> 59.375 ->
+  60.9375 -> 62.5 -> 64.0625 -> 65.625` across checkpoints `128, 256, 384,
+  512, 576, 640, 704, 768, 841`. The final checkpoint is the best
+  saved/evaluated point and beats the canonical R12 full best.
 - Reward composition latest for the winner is mostly numeric reward
   (`0.775` mean numeric component, `0.2` mean format component).
 - The retained raw run remains at
