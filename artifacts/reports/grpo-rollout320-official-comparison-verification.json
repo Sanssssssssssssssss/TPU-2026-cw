@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-06-14T13:41:43.603842+00:00",
+  "created_at": "2026-06-14T23:06:48.577286+00:00",
   "runs": [
     {
       "line": "R0",
@@ -99,6 +99,40 @@
       "final_checkpoint_step": 841,
       "final_checkpoint_exists": true,
       "scalar_rows": 730520,
+      "errors": [],
+      "warnings": [],
+      "passed": true
+    },
+    {
+      "line": "R5",
+      "run_id": "r5-lora-r16-rollout320-full-001",
+      "branch": "R5_lora_r16_rollout320",
+      "raw_dir": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001",
+      "manifest": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\artifacts\\reward_k8_pilot_manifest.json",
+      "run_env": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\run_env.txt",
+      "checkpoint_eval_csv": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "checkpoint_eval_rows": 22,
+      "checkpoint_archive_count": 23,
+      "final_checkpoint_step": 3364,
+      "final_checkpoint_exists": true,
+      "scalar_rows": 1142632,
+      "errors": [],
+      "warnings": [],
+      "passed": true
+    },
+    {
+      "line": "R6",
+      "run_id": "r6-lora-r32-rollout320-full-002",
+      "branch": "R6_lora_r32_rollout320",
+      "raw_dir": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002",
+      "manifest": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\artifacts\\reward_k8_pilot_manifest.json",
+      "run_env": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\run_env.txt",
+      "checkpoint_eval_csv": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "checkpoint_eval_rows": 22,
+      "checkpoint_archive_count": 23,
+      "final_checkpoint_step": 3364,
+      "final_checkpoint_exists": true,
+      "scalar_rows": 1142632,
       "errors": [],
       "warnings": [],
       "passed": true

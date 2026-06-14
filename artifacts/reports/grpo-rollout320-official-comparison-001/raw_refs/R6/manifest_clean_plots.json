@@ -1,0 +1,30 @@
+{
+  "created_at": "2026-06-14T23:06:48.571585+00:00",
+  "run": {
+    "line": "R6",
+    "run_id": "r6-lora-r32-rollout320-full-002",
+    "branch": "R6_lora_r32_rollout320",
+    "raw_dir": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002",
+    "manifest": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\artifacts\\reward_k8_pilot_manifest.json",
+    "run_env": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\run_env.txt",
+    "checkpoint_eval_csv": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+    "checkpoint_eval_rows": 22,
+    "checkpoint_archive_count": 23,
+    "final_checkpoint_step": 3364,
+    "final_checkpoint_exists": true,
+    "scalar_rows": 1142632,
+    "errors": [],
+    "warnings": [],
+    "passed": true
+  },
+  "tables": [
+    "tables/checkpoint_eval_rollout.csv",
+    "tables/scalar_long.csv"
+  ],
+  "figures": [
+    "figures\\01_checkpoint_exact_accuracy_by_rollouts.png",
+    "figures\\02_checkpoint_partial_accuracy_by_rollouts.png",
+    "figures\\03_train_reward_by_rollouts.png",
+    "figures\\04_extracted_none_by_rollouts.png"
+  ]
+}

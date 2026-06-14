@@ -4,8 +4,12 @@ Clean report-ready static figures and compact web-readable data for the selected
 
 Lines:
 - R0 baseline: K=2, 3,364 steps, 6,728 rollouts.
+- R1 format-aware reward-only: K=2, 3,364 steps, 6,728 rollouts.
 - R2 baseline K=8: 841 steps, beta=0.04, lr=3e-6, 6,728 rollouts.
+- R3 leave-one-out advantage: K=2, 3,364 steps, 6,728 rollouts.
 - R4 selected format-aware run: K=8, beta=0.04, lr=3e-6, 841 steps, 6,728 rollouts.
+- R5 LoRA rank16 baseline: K=2, 3,364 steps, rank/alpha=16/16, 6,728 rollouts.
+- R6 LoRA rank32 baseline: K=2, 3,364 steps, rank/alpha=32/32, 6,728 rollouts.
 
 All trend plots use `rollouts_seen = step * num_generations` on the x-axis.
 Report-facing `train_reward_score` and `eval_reward_score` are rewritten onto the shared baseline 0-10 reward scale.
@@ -29,6 +33,10 @@ Figures:
 - `figures\per_run\R3_health_answer_quality.png` - R3 rollout health and answer quality. Per-run numeric exact, format, empty response, and no-answer rates.
 - `figures\per_run\R4_format_lr3e6_reward_and_kl.png` - R4_format_lr3e6 reward and KL over GRPO training. Per-run total reward and KL with train/eval traces where available.
 - `figures\per_run\R4_format_lr3e6_health_answer_quality.png` - R4_format_lr3e6 rollout health and answer quality. Per-run numeric exact, format, empty response, and no-answer rates.
+- `figures\per_run\R5_reward_and_kl.png` - R5 reward and KL over GRPO training. Per-run total reward and KL with train/eval traces where available.
+- `figures\per_run\R5_health_answer_quality.png` - R5 rollout health and answer quality. Per-run numeric exact, format, empty response, and no-answer rates.
+- `figures\per_run\R6_reward_and_kl.png` - R6 reward and KL over GRPO training. Per-run total reward and KL with train/eval traces where available.
+- `figures\per_run\R6_health_answer_quality.png` - R6 rollout health and answer quality. Per-run numeric exact, format, empty response, and no-answer rates.
 - `figures\02_checkpoint_exact_accuracy_ci.png` - Held-out exact accuracy. Exact held-out accuracy with uncertainty and best/final markers.
 - `figures\03_checkpoint_eval_three_panel.png` - Checkpoint evaluation panel. Three checkpoint metrics aligned by generated rollouts.
 - `figures\04_training_answer_quality_rates.png` - Training batch answer-quality rates. Training exact/partial/format rates as smoothed trajectories.

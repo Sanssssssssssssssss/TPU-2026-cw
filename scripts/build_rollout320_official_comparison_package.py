@@ -1,7 +1,7 @@
 """Package rollout320 official lines plus R4 alternatives.
 
 This keeps the original three-line package immutable while adding the official
-R2 line and side-by-side R4 alternatives for final selection.
+R2/R3/LoRA-rank lines and side-by-side R4 alternatives for final selection.
 """
 
 from __future__ import annotations
@@ -102,6 +102,34 @@ RUNS = [
         rank="64",
         alpha="64",
     ),
+    base.OfficialRun(
+        key="R5",
+        run_id="r5-lora-r16-rollout320-full-001",
+        branch="R5_lora_r16_rollout320",
+        legend="R5 LoRA rank16 baseline dense32-rollout",
+        reward_mode="baseline",
+        num_generations=2,
+        max_steps=3364,
+        checkpoint_steps=base.EXPECTED_K2_STEPS,
+        learning_rate="3e-6",
+        beta="0.08",
+        rank="16",
+        alpha="16",
+    ),
+    base.OfficialRun(
+        key="R6",
+        run_id="r6-lora-r32-rollout320-full-002",
+        branch="R6_lora_r32_rollout320",
+        legend="R6 LoRA rank32 baseline dense32-rollout",
+        reward_mode="baseline",
+        num_generations=2,
+        max_steps=3364,
+        checkpoint_steps=base.EXPECTED_K2_STEPS,
+        learning_rate="3e-6",
+        beta="0.08",
+        rank="32",
+        alpha="32",
+    ),
 ]
 
 SERIES_COLORS = {
@@ -111,6 +139,8 @@ SERIES_COLORS = {
     "R3": "#BD569B",
     "R4_lr1e6": "#5477C4",
     "R4_format_lr3e6": "#8B6BBE",
+    "R5": "#2AA198",
+    "R6": "#D97706",
 }
 
 OFFICIAL_SCALAR_METRICS = {
@@ -243,7 +273,7 @@ def build_official_comparison_package(
         ckpt_rows,
         "accuracy",
         "Checkpoint exact accuracy by aligned rollouts",
-        "R0/R1/R2/R3 official lines plus R4 alternatives; x-axis is generated rollouts.",
+        "R0/R1/R2/R3/R5/R6 official lines plus R4 alternatives; x-axis is generated rollouts.",
         output_dir / "figures" / "01_checkpoint_exact_accuracy_by_rollouts.png",
     )
     base.plot_checkpoint_metric(
@@ -300,12 +330,13 @@ def build_official_comparison_package(
 
     manifest = {
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "purpose": "Rollout-aligned official comparison package for R0/R1/R2/R3 and R4 alternatives.",
+        "purpose": "Rollout-aligned official comparison package for R0/R1/R2/R3/R5/R6 and R4 alternatives.",
         "rollout_axis": "rollouts_seen = step * num_generations",
         "expected_rollouts": base.EXPECTED_ROLLOUTS,
         "r1_status": "new R1 uses the current format-aware reward; old simple R1 is superseded and kept only as historical evidence.",
         "r3_status": "R3 changes only the Tunix GRPO advantage estimator from grpo to rloo.",
         "r4_selection_status": "R4_lr1e6 is the accuracy reference; format-aware R4 alternatives repair strict format reward before final R4 selection.",
+        "lora_rank_status": "R5 and R6 compare against R0 by changing only LoRA rank/alpha to 16/16 and 32/32 respectively.",
         "reward_score_policy": {
             "report_primary_reward_values_are_rewritten": True,
             "target_scale": "baseline_0_10",
@@ -352,9 +383,10 @@ def build_official_comparison_package(
     (output_dir / "manifest_rollout320_official_comparison.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     (output_dir / "README.md").write_text(
         "# GRPO Rollout320 Official Comparison\n\n"
-        "This package compares fixed official R0/R1/R2/R3 lines and the R4 slot. "
+        "This package compares fixed official R0/R1/R2/R3/R5/R6 lines and the R4 slot. "
         "R1 now uses the current format-aware reward, while the earlier simple-reward R1 is superseded. "
         "R3 changes only the advantage estimator from Tunix GRPO to RLOO. "
+        "R5 and R6 change only LoRA rank/alpha relative to R0 baseline. "
         "R4 currently has the lr1e-6 reference plus format-aware full-from-zero alternatives until final selection. "
         "The primary reward scalar values in `tables/scalar_long_rollout_aligned.csv` are already on the shared baseline 0-10 scale; "
         "native TensorBoard reward values are retained as `value_native`. "

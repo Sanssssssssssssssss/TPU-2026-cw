@@ -5,7 +5,9 @@
     "R1",
     "R2",
     "R3",
-    "R4_format_lr3e6"
+    "R4_format_lr3e6",
+    "R5",
+    "R6"
   ],
   "rollout_axis": "rollouts_seen = step * num_generations",
   "reward_alignment": {
@@ -957,6 +959,370 @@
       "source": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001\\runs\\R4_r12_format_lr3e-6_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.json",
       "package_path": "data\\R4_format_lr3e6\\checkpoint_eval\\checkpoint_eval_summary.json",
       "size_bytes": "22170"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\artifacts\\sweep_analysis\\tables\\scalar_pivot.csv",
+      "package_path": "data\\R5\\tensorboard_derived\\scalar_pivot_raw.csv",
+      "size_bytes": "10140785",
+      "role": "raw_tensorboard_derived_scalar_pivot"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\artifacts\\sweep_analysis\\tables\\scalar_pivot.csv",
+      "package_path": "data\\R5\\tensorboard_derived\\scalar_pivot.csv",
+      "size_bytes": "11356586",
+      "role": "report_primary_scalar_pivot_reward_scores_rewritten_to_baseline_0_10"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\artifacts\\sweep_analysis\\tables\\trace_audit_by_call.csv",
+      "package_path": "data\\R5\\trace\\trace_audit_by_call.csv",
+      "size_bytes": "1464158"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\analysis\\trace_summary.csv",
+      "package_path": "data\\R5\\analysis\\trace_summary.csv",
+      "size_bytes": "628878"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\analysis\\trace_summary.json",
+      "package_path": "data\\R5\\analysis\\trace_summary.json",
+      "size_bytes": "3480355"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\analysis\\trace_rows_sample.json",
+      "package_path": "data\\R5\\analysis\\trace_rows_sample.json",
+      "size_bytes": "1664013"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\analysis\\tensorboard_tags.json",
+      "package_path": "data\\R5\\analysis\\tensorboard_tags.json",
+      "size_bytes": "9689"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\artifacts\\reward_k8_pilot_manifest.json",
+      "package_path": "data\\R5\\manifest\\reward_k8_pilot_manifest.json",
+      "size_bytes": "1376"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\run_manifest.json",
+      "package_path": "data\\R5\\manifest\\run_manifest.json",
+      "size_bytes": "3958"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\run_env.txt",
+      "package_path": "data\\R5\\manifest\\run_env.txt",
+      "size_bytes": "708"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1120_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_1120_eval.json",
+      "size_bytes": "1391"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1280_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_1280_eval.json",
+      "size_bytes": "1387"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1440_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_1440_eval.json",
+      "size_bytes": "1389"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1600_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_1600_eval.json",
+      "size_bytes": "1391"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_160_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_160_eval.json",
+      "size_bytes": "1379"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1760_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_1760_eval.json",
+      "size_bytes": "1390"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1920_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_1920_eval.json",
+      "size_bytes": "1391"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2080_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_2080_eval.json",
+      "size_bytes": "1387"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2240_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_2240_eval.json",
+      "size_bytes": "1390"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2400_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_2400_eval.json",
+      "size_bytes": "1385"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2560_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_2560_eval.json",
+      "size_bytes": "1382"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2720_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_2720_eval.json",
+      "size_bytes": "1387"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2880_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_2880_eval.json",
+      "size_bytes": "1388"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_3040_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_3040_eval.json",
+      "size_bytes": "1387"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_3200_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_3200_eval.json",
+      "size_bytes": "1389"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_320_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_320_eval.json",
+      "size_bytes": "1390"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_3360_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_3360_eval.json",
+      "size_bytes": "1388"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_3364_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_3364_eval.json",
+      "size_bytes": "1388"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_480_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_480_eval.json",
+      "size_bytes": "1384"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_640_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_640_eval.json",
+      "size_bytes": "1387"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_800_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_800_eval.json",
+      "size_bytes": "1380"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_960_eval.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_960_eval.json",
+      "size_bytes": "1384"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_accuracy.pdf",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_accuracy.pdf",
+      "size_bytes": "30995"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_accuracy.png",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_accuracy.png",
+      "size_bytes": "17717"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "size_bytes": "6041"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.json",
+      "package_path": "data\\R5\\checkpoint_eval\\checkpoint_eval_summary.json",
+      "size_bytes": "22185"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\artifacts\\sweep_analysis\\tables\\scalar_pivot.csv",
+      "package_path": "data\\R6\\tensorboard_derived\\scalar_pivot_raw.csv",
+      "size_bytes": "10205206",
+      "role": "raw_tensorboard_derived_scalar_pivot"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\artifacts\\sweep_analysis\\tables\\scalar_pivot.csv",
+      "package_path": "data\\R6\\tensorboard_derived\\scalar_pivot.csv",
+      "size_bytes": "11422131",
+      "role": "report_primary_scalar_pivot_reward_scores_rewritten_to_baseline_0_10"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\artifacts\\sweep_analysis\\tables\\trace_audit_by_call.csv",
+      "package_path": "data\\R6\\trace\\trace_audit_by_call.csv",
+      "size_bytes": "1477613"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\analysis\\trace_summary.csv",
+      "package_path": "data\\R6\\analysis\\trace_summary.csv",
+      "size_bytes": "629332"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\analysis\\trace_summary.json",
+      "package_path": "data\\R6\\analysis\\trace_summary.json",
+      "size_bytes": "3480809"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\analysis\\trace_rows_sample.json",
+      "package_path": "data\\R6\\analysis\\trace_rows_sample.json",
+      "size_bytes": "1661787"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\analysis\\tensorboard_tags.json",
+      "package_path": "data\\R6\\analysis\\tensorboard_tags.json",
+      "size_bytes": "9689"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\artifacts\\reward_k8_pilot_manifest.json",
+      "package_path": "data\\R6\\manifest\\reward_k8_pilot_manifest.json",
+      "size_bytes": "1376"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\run_manifest.json",
+      "package_path": "data\\R6\\manifest\\run_manifest.json",
+      "size_bytes": "3958"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\run_env.txt",
+      "package_path": "data\\R6\\manifest\\run_env.txt",
+      "size_bytes": "708"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1120_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_1120_eval.json",
+      "size_bytes": "1386"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1280_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_1280_eval.json",
+      "size_bytes": "1389"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1440_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_1440_eval.json",
+      "size_bytes": "1391"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1600_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_1600_eval.json",
+      "size_bytes": "1380"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_160_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_160_eval.json",
+      "size_bytes": "1382"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1760_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_1760_eval.json",
+      "size_bytes": "1382"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1920_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_1920_eval.json",
+      "size_bytes": "1386"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2080_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_2080_eval.json",
+      "size_bytes": "1379"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2240_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_2240_eval.json",
+      "size_bytes": "1388"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2400_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_2400_eval.json",
+      "size_bytes": "1384"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2560_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_2560_eval.json",
+      "size_bytes": "1383"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2720_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_2720_eval.json",
+      "size_bytes": "1387"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2880_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_2880_eval.json",
+      "size_bytes": "1384"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_3040_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_3040_eval.json",
+      "size_bytes": "1384"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_3200_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_3200_eval.json",
+      "size_bytes": "1384"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_320_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_320_eval.json",
+      "size_bytes": "1389"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_3360_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_3360_eval.json",
+      "size_bytes": "1381"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_3364_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_3364_eval.json",
+      "size_bytes": "1381"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_480_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_480_eval.json",
+      "size_bytes": "1389"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_640_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_640_eval.json",
+      "size_bytes": "1375"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_800_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_800_eval.json",
+      "size_bytes": "1383"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_960_eval.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_960_eval.json",
+      "size_bytes": "1380"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_accuracy.pdf",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_accuracy.pdf",
+      "size_bytes": "33633"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_accuracy.png",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_accuracy.png",
+      "size_bytes": "20549"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "size_bytes": "5977"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.json",
+      "package_path": "data\\R6\\checkpoint_eval\\checkpoint_eval_summary.json",
+      "size_bytes": "22111"
     }
   ],
   "omitted_large_local_sources": [
@@ -1138,6 +1504,78 @@
       "run": "R4_format_lr3e6",
       "source": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001\\artifacts\\sweep_analysis\\tables\\trace_rows_flat.csv",
       "size_mb": "121.09",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R5",
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\tensorboard\\events.out.tfevents.1781448239.t1v-n-ada277a8-w-0",
+      "size_mb": "24.65",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R5",
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\tensorboard\\observability\\events.out.tfevents.1781448218.t1v-n-ada277a8-w-0",
+      "size_mb": "132.19",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R5",
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\analysis\\scalar_metrics.csv",
+      "size_mb": "117.77",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R5",
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\analysis\\scalar_metrics.json",
+      "size_mb": "232.29",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R5",
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\artifacts\\sweep_analysis\\tables\\scalar_long.csv",
+      "size_mb": "156.77",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R5",
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\artifacts\\sweep_analysis\\tables\\trace_rows_flat.csv",
+      "size_mb": "32.69",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R6",
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\tensorboard\\events.out.tfevents.1781464122.t1v-n-ada277a8-w-0",
+      "size_mb": "24.65",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R6",
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\tensorboard\\observability\\events.out.tfevents.1781464100.t1v-n-ada277a8-w-0",
+      "size_mb": "126.54",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R6",
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\analysis\\scalar_metrics.csv",
+      "size_mb": "117.79",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R6",
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\analysis\\scalar_metrics.json",
+      "size_mb": "232.30",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R6",
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\artifacts\\sweep_analysis\\tables\\scalar_long.csv",
+      "size_mb": "156.79",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R6",
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\artifacts\\sweep_analysis\\tables\\trace_rows_flat.csv",
+      "size_mb": "35.29",
       "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
     }
   ]
