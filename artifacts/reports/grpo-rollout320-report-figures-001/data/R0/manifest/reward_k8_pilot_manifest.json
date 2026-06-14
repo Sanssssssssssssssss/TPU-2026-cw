@@ -1,0 +1,34 @@
+{
+  "run_id": "baseline-rollout320-full-001",
+  "runs": [
+    {
+      "run_id": "R0_baseline_rollout320",
+      "reward_mode": "baseline",
+      "beta_override": "0.08",
+      "learning_rate_override": "3e-6",
+      "rank_override": "64",
+      "alpha_override": "64",
+      "epsilon_override": "0.2"
+    }
+  ],
+  "max_steps": "3364",
+  "lr_schedule_steps": "3364",
+  "warmup_steps": "336.4",
+  "save_interval_steps": "160",
+  "max_to_keep": "30",
+  "eval_every_n_steps": "160",
+  "num_generations": "2",
+  "total_generation_steps": "768",
+  "learning_rate": "3e-6",
+  "beta": "0.08",
+  "epsilon": "0.2",
+  "rank": "64",
+  "alpha": "64",
+  "rollout_checkpoint_interval": "320",
+  "checkpoint_eval_steps": "160 320 480 640 800 960 1120 1280 1440 1600 1760 1920 2080 2240 2400 2560 2720 2880 3040 3200 3360 3364",
+  "checkpoint_rollouts": "320 640 960 1280 1600 1920 2240 2560 2880 3200 3520 3840 4160 4480 4800 5120 5440 5760 6080 6400 6720 6728",
+  "source_checkpoint": null,
+  "run_spec_format": "run_id:reward_mode[:beta_override[:learning_rate_override[:rank_override[:alpha_override[:epsilon_override]]]]]",
+  "checkpoint_steps": "160 320 480 640 800 960 1120 1280 1440 1600 1760 1920 2080 2240 2400 2560 2720 2880 3040 3200 3360 3364",
+  "run_specs": "R0_baseline_rollout320:baseline:0.08:3e-6:64:64:0.2"
+}

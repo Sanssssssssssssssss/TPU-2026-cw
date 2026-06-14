@@ -1,0 +1,50 @@
+{
+  "created_at": "2026-06-13T22:08:05.994284+00:00",
+  "data": {
+    "num_test_batches": 64,
+    "source": "tfds",
+    "train_micro_batch_size": 1
+  },
+  "generation": {
+    "config": {
+      "temperature": null,
+      "top_k": 1,
+      "top_p": null
+    },
+    "max_generation_steps": 768,
+    "num_passes": 1,
+    "preset": "greedy"
+  },
+  "git_commit": null,
+  "metrics": {
+    "accuracy": 51.5625,
+    "correct": 33,
+    "failure_counts": {
+      "correct": 32,
+      "empty_completion": 0,
+      "format_fail_only": 2,
+      "missing_answer_close": 0,
+      "missing_answer_open": 4,
+      "multiple_numbers": 0,
+      "no_number": 0,
+      "trailing_text_after_close": 0,
+      "wrong_number": 26
+    },
+    "format_accuracy": 90.625,
+    "no_close_answer_rate": 0.0,
+    "partial_accuracy": 53.125,
+    "robust_numeric_exact_rate": 0.53125,
+    "text_after_close_rate": 0.0,
+    "total": 64
+  },
+  "model": {
+    "checkpoint_dir": "/home/ext_sansxu1009_gmail_com/tpu-runs/r4-r12-format-rollout320-lr3e6-001/runs/R4_r12_format_lr3e-6_rollout320/ckpts/actor",
+    "checkpoint_restored": true,
+    "policy": "lora",
+    "requested_step": 800,
+    "restored_step": 800
+  },
+  "outputs": {
+    "examples_jsonl": "/home/ext_sansxu1009_gmail_com/tpu-runs/r4-r12-format-rollout320-lr3e6-001/runs/R4_r12_format_lr3e-6_rollout320/artifacts/checkpoint_eval_examples/checkpoint_800_examples.jsonl"
+  }
+}

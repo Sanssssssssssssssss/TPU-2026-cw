@@ -160,6 +160,30 @@ class DenseNumericRewardTests(unittest.TestCase):
         self.assertAlmostEqual(rewards._gsm8k_simple_format_score(solution_start + "100"), 0.1)
         self.assertEqual(rewards._gsm8k_simple_format_score("The answer is 100."), 0.0)
 
+    def test_reasoning_structure_format_reward(self):
+        strict = "<reasoning>Compute 50 + 50.</reasoning><answer>100</answer>"
+        answer_only = answer("100")
+        informal_reasoning = "reasoning:\nCompute 50 + 50.\n<answer>100</answer>"
+        no_answer_tag = "Compute 50 + 50 = 100."
+
+        self.assertAlmostEqual(rewards._reasoning_structure_format_score(strict), 0.6)
+        self.assertGreater(
+            rewards._reasoning_structure_format_score(strict),
+            rewards._reasoning_structure_format_score(answer_only),
+        )
+        self.assertGreater(
+            rewards._reasoning_structure_format_score(answer_only),
+            rewards._reasoning_structure_format_score(informal_reasoning),
+        )
+        self.assertEqual(rewards._reasoning_structure_format_score(no_answer_tag), 0.0)
+
+    def test_gsm8k_verifiable_format_mode_components(self):
+        self.assertEqual(
+            rewards.reward_components_for_mode("gsm8k_verifiable_format"),
+            ["gsm8k_simple_numeric", "gsm8k_simple_format", "reasoning_structure_format"],
+        )
+        self.assertEqual(len(rewards.reward_functions_for_mode("gsm8k_verifiable_format")), 3)
+
 
 if __name__ == "__main__":
     unittest.main()

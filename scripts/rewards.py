@@ -44,6 +44,7 @@ REWARD_MODES = (
     "numeric_guarded",
     "numeric_guarded_fallback",
     "gsm8k_verifiable_simple",
+    "gsm8k_verifiable_format",
 )
 
 match_format = re.compile(
@@ -442,6 +443,52 @@ def _gsm8k_simple_format_score(response: str) -> float:
     return 0.0
 
 
+def _reasoning_structure_format_score(response: str) -> float:
+    """Dense reward for the full course reasoning/answer envelope.
+
+    This repairs the R12 simple branch's blind spot: it rewarded answer tags but
+    did not directly reward the required <reasoning>...</reasoning> structure.
+    """
+    text = response.strip()
+    if not text:
+        return 0.0
+    if match_format.search(response) is not None:
+        return 0.6
+
+    counts = _tag_counts(response)
+    score = 0.0
+    score += 0.10 if counts["reasoning_start"] == 1 else 0.0
+    score += 0.10 if counts["reasoning_end"] == 1 else 0.0
+    score += 0.10 if counts["solution_start"] == 1 else 0.0
+    score += 0.10 if counts["solution_end"] == 1 else 0.0
+    score += 0.10 if text.startswith(reasoning_start) else 0.0
+
+    ordered = (
+        counts["reasoning_start"] == 1
+        and counts["reasoning_end"] == 1
+        and counts["solution_start"] == 1
+        and counts["solution_end"] == 1
+        and response.find(reasoning_start) < response.find(reasoning_end) < response.find(solution_start) < response.find(solution_end)
+    )
+    if ordered:
+        score += 0.10
+
+    if text.lower().startswith("reasoning") and not text.startswith(reasoning_start):
+        score -= 0.10
+    if solution_start in response and solution_end not in response:
+        score -= 0.20
+    if solution_end in response and _text_after_solution_close(response):
+        score -= 0.10
+    if counts["reasoning_start"] > 1 or counts["reasoning_end"] > 1:
+        score -= 0.20
+    if counts["reasoning_start"] == 1 and counts["reasoning_end"] == 1 and response.find(reasoning_start) > response.find(reasoning_end):
+        score -= 0.20
+    if (counts["solution_start"] or counts["solution_end"]) and _duplicate_or_broken_answer_tag(response):
+        score -= 0.20
+
+    return max(-0.3, min(0.6, score))
+
+
 def _answer_hygiene_dense_score(response: str) -> float:
     if not response.strip():
         return 0.0
@@ -663,6 +710,11 @@ def gsm8k_simple_format(prompts, completions, **kwargs):
     return [_gsm8k_simple_format_score(response) for response in completions]
 
 
+def reasoning_structure_format(prompts, completions, **kwargs):
+    """Dense full-template reward for the format-aware R4 branch."""
+    return [_reasoning_structure_format_score(response) for response in completions]
+
+
 def _baseline_components(response: str, answer: Any) -> dict[str, Any]:
     format_match = match_format.search(response)
     number_match = match_numbers.search(response)
@@ -756,6 +808,7 @@ def reward_diagnostics_for_observability(
         fallback_numeric_exact, fallback_numeric_partial = _robust_numeric_flags(fallback_extracted_number, answer)
         gsm8k_simple_numeric_score = _gsm8k_simple_numeric_score(completion, answer)
         gsm8k_simple_format_score = _gsm8k_simple_format_score(completion)
+        reasoning_structure_format_score = _reasoning_structure_format_score(completion)
         length_penalty_score = _length_penalty_len1200(completion)
         length_penalty_short_score = _length_penalty_short(completion)
         format_light_total = format_strict_light_score + answer_tag_light_score
@@ -781,6 +834,7 @@ def reward_diagnostics_for_observability(
             "numeric_guarded_fallback_total": numeric_guarded_fallback_total_score,
             "gsm8k_simple_numeric": gsm8k_simple_numeric_score,
             "gsm8k_simple_format": gsm8k_simple_format_score,
+            "reasoning_structure_format": reasoning_structure_format_score,
             "length_penalty_1200": length_penalty_score,
             "length_penalty_short": length_penalty_short_score,
         }
@@ -810,6 +864,7 @@ def reward_diagnostics_for_observability(
                 "numeric_guarded_fallback_total": numeric_guarded_fallback_total_score,
                 "gsm8k_simple_numeric": gsm8k_simple_numeric_score,
                 "gsm8k_simple_format": gsm8k_simple_format_score,
+                "reasoning_structure_format": reasoning_structure_format_score,
                 "length_penalty_1200": length_penalty_score,
                 "length_penalty_short": length_penalty_short_score,
                 "format_light_total": format_light_total,
@@ -869,6 +924,8 @@ def reward_components_for_mode(mode: str) -> list[str]:
         return ["numeric_guarded_fallback", "answer_hygiene_fallback"]
     if mode == "gsm8k_verifiable_simple":
         return ["gsm8k_simple_numeric", "gsm8k_simple_format"]
+    if mode == "gsm8k_verifiable_format":
+        return ["gsm8k_simple_numeric", "gsm8k_simple_format", "reasoning_structure_format"]
     raise ValueError(f"Unknown REWARD_MODE '{mode}'. Valid modes: {', '.join(REWARD_MODES)}")
 
 
@@ -900,6 +957,8 @@ def reward_functions_for_mode(mode: str):
         return [numeric_guarded_fallback_total]
     if mode == "gsm8k_verifiable_simple":
         return [gsm8k_simple_numeric, gsm8k_simple_format]
+    if mode == "gsm8k_verifiable_format":
+        return [gsm8k_simple_numeric, gsm8k_simple_format, reasoning_structure_format]
     raise ValueError(f"Unknown REWARD_MODE '{mode}'. Valid modes: {', '.join(REWARD_MODES)}")
 
 

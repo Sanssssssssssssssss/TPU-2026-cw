@@ -103,6 +103,7 @@ class OfficialRun:
     beta: str
     rank: str
     alpha: str
+    advantage_estimator: str = "grpo"
 
     @property
     def final_step(self) -> int:
@@ -384,6 +385,8 @@ def verify_one(run_dir: Path, run: OfficialRun) -> tuple[dict[str, Any], list[di
         "MAX_TO_KEEP": "30",
         "K8_ROLLOUT_CHECKPOINT_INTERVAL": "320",
     }
+    if run.advantage_estimator != "grpo":
+        expected_env["GRPO_ADVANTAGE_ESTIMATOR"] = run.advantage_estimator
     manifest_key_by_env = {
         "MAX_STEPS": "max_steps",
         "LEARNING_RATE": "learning_rate",
@@ -392,6 +395,7 @@ def verify_one(run_dir: Path, run: OfficialRun) -> tuple[dict[str, Any], list[di
         "ALPHA": "alpha",
         "MAX_TO_KEEP": "max_to_keep",
         "K8_ROLLOUT_CHECKPOINT_INTERVAL": "rollout_checkpoint_interval",
+        "GRPO_ADVANTAGE_ESTIMATOR": "advantage_estimator",
     }
     for key, expected in expected_env.items():
         manifest_key = manifest_key_by_env.get(key, key.lower())
@@ -476,7 +480,7 @@ def setup_matplotlib() -> Any:
             "grid.color": TOKENS["grid"],
             "grid.linewidth": 0.7,
             "grid.alpha": 0.95,
-            "font.family": ["Aptos", "Inter", "Segoe UI", "DejaVu Sans", "Arial", "sans-serif"],
+            "font.family": ["DejaVu Sans", "Segoe UI", "Arial", "sans-serif"],
             "font.size": 10,
             "axes.labelsize": 10,
             "xtick.labelsize": 9,

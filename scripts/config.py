@@ -61,6 +61,20 @@ NUM_GENERATIONS = _env_int("NUM_GENERATIONS", 2)
 NUM_ITERATIONS = _env_int("NUM_ITERATIONS", 1)
 BETA = _env_float("BETA", 0.08)
 EPSILON = _env_float("EPSILON", 0.2)
+_ADVANTAGE_RAW = (
+    os.environ.get("GRPO_ADVANTAGE_ESTIMATOR")
+    or os.environ.get("GRPO_ADVANTAGE_MODE")
+    or "grpo"
+).strip().lower()
+GRPO_ADVANTAGE_ESTIMATOR = {
+    "leave_one_out": "rloo",
+    "leave-one-out": "rloo",
+    "loo": "rloo",
+    "rloo": "rloo",
+    "group_mean": "grpo",
+    "group-mean": "grpo",
+    "grpo": "grpo",
+}.get(_ADVANTAGE_RAW, _ADVANTAGE_RAW)
 
 # ====== Training ======
 TRAIN_MICRO_BATCH_SIZE = _env_int("TRAIN_MICRO_BATCH_SIZE", 1)

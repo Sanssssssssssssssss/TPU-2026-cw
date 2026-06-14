@@ -39,6 +39,9 @@ Usage:
   remote_tpu_runner.sh submit-k8-r12-simple-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-baseline-rollout320-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
   remote_tpu_runner.sh submit-reward-only-rollout320-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
+  remote_tpu_runner.sh submit-r1-format-rollout320-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
+  remote_tpu_runner.sh submit-r3-loo-advantage-rollout320-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
+  remote_tpu_runner.sh submit-r2-k8-beta004-rollout320-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
   remote_tpu_runner.sh submit-r12-rollout320-lr1e6-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
   remote_tpu_runner.sh submit-reward-only-r12-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-reward-only-r12-complete-from500 --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
@@ -1914,10 +1917,10 @@ write_k8_pilot_script() {
   local run_specs="${1:-R9_closed_answer_minimal:closed_answer_minimal R10_numeric_guarded:numeric_guarded}"
   local manifest_runs=""
   local manifest_sep=""
-  local spec exp_id mode spec_beta spec_lr spec_rank spec_alpha spec_epsilon
+  local spec exp_id mode spec_beta spec_lr spec_rank spec_alpha spec_epsilon spec_advantage_estimator
   for spec in $run_specs; do
-    IFS=':' read -r exp_id mode spec_beta spec_lr spec_rank spec_alpha spec_epsilon <<< "$spec"
-    manifest_runs+="${manifest_sep}    {\"run_id\": \"$exp_id\", \"reward_mode\": \"$mode\", \"beta_override\": \"${spec_beta:-}\", \"learning_rate_override\": \"${spec_lr:-}\", \"rank_override\": \"${spec_rank:-}\", \"alpha_override\": \"${spec_alpha:-}\", \"epsilon_override\": \"${spec_epsilon:-}\"}"
+    IFS=':' read -r exp_id mode spec_beta spec_lr spec_rank spec_alpha spec_epsilon spec_advantage_estimator <<< "$spec"
+    manifest_runs+="${manifest_sep}    {\"run_id\": \"$exp_id\", \"reward_mode\": \"$mode\", \"beta_override\": \"${spec_beta:-}\", \"learning_rate_override\": \"${spec_lr:-}\", \"rank_override\": \"${spec_rank:-}\", \"alpha_override\": \"${spec_alpha:-}\", \"epsilon_override\": \"${spec_epsilon:-}\", \"advantage_estimator_override\": \"${spec_advantage_estimator:-}\"}"
     manifest_sep=$',\n'
   done
   cat > "$run_script" <<EOF
@@ -1993,6 +1996,7 @@ $manifest_runs
   "learning_rate": "\${K8_LEARNING_RATE:-3e-6}",
   "beta": "\${K8_BETA:-0.04}",
   "epsilon": "\${K8_EPSILON:-0.2}",
+  "advantage_estimator": "\${K8_GRPO_ADVANTAGE_ESTIMATOR:-grpo}",
   "rank": "\${K8_RANK:-64}",
   "alpha": "\${K8_ALPHA:-64}",
   "rollout_checkpoint_interval": "\${K8_ROLLOUT_CHECKPOINT_INTERVAL:-}",
@@ -2001,7 +2005,7 @@ $manifest_runs
   "checkpoint_rollouts": "\${K8_CHECKPOINT_ROLLOUTS:-}",
   "source_checkpoint": \$SOURCE_CHECKPOINT_JSON,
   "run_specs": "$run_specs",
-  "run_spec_format": "run_id:reward_mode[:beta_override[:learning_rate_override[:rank_override[:alpha_override[:epsilon_override]]]]]"
+  "run_spec_format": "run_id:reward_mode[:beta_override[:learning_rate_override[:rank_override[:alpha_override[:epsilon_override[:advantage_estimator_override]]]]]]"
 }
 JSON
 
@@ -2018,12 +2022,13 @@ fi
 read -r -a K8_RUNS <<< "\$K8_RUN_SPECS"
 
 for spec in "\${K8_RUNS[@]}"; do
-  IFS=':' read -r EXP_ID MODE SPEC_BETA SPEC_LEARNING_RATE SPEC_RANK SPEC_ALPHA SPEC_EPSILON <<< "\$spec"
+  IFS=':' read -r EXP_ID MODE SPEC_BETA SPEC_LEARNING_RATE SPEC_RANK SPEC_ALPHA SPEC_EPSILON SPEC_ADVANTAGE_ESTIMATOR <<< "\$spec"
   BRANCH_BETA="\${SPEC_BETA:-\${K8_BETA:-0.04}}"
   BRANCH_LEARNING_RATE="\${SPEC_LEARNING_RATE:-\${K8_LEARNING_RATE:-3e-6}}"
   BRANCH_RANK="\${SPEC_RANK:-\${K8_RANK:-64}}"
   BRANCH_ALPHA="\${SPEC_ALPHA:-\${K8_ALPHA:-64}}"
   BRANCH_EPSILON="\${SPEC_EPSILON:-\${K8_EPSILON:-0.2}}"
+  BRANCH_ADVANTAGE_ESTIMATOR="\${SPEC_ADVANTAGE_ESTIMATOR:-\${K8_GRPO_ADVANTAGE_ESTIMATOR:-grpo}}"
   EXP_DIR="\$RUN_DIR/runs/\$EXP_ID"
   ARTIFACT_DIR="\$EXP_DIR/artifacts"
   mkdir -p "\$EXP_DIR" "\$ARTIFACT_DIR" "\$EXP_DIR/ckpts" "\$EXP_DIR/intermediate_ckpt" "\$EXP_DIR/tensorboard"
@@ -2051,7 +2056,7 @@ JSON
   fi
 
   echo
-  echo "==> K8 pilot run \$EXP_ID mode=\$MODE beta=\$BRANCH_BETA lr=\$BRANCH_LEARNING_RATE rank=\$BRANCH_RANK alpha=\$BRANCH_ALPHA epsilon=\$BRANCH_EPSILON"
+  echo "==> K8 pilot run \$EXP_ID mode=\$MODE beta=\$BRANCH_BETA lr=\$BRANCH_LEARNING_RATE rank=\$BRANCH_RANK alpha=\$BRANCH_ALPHA epsilon=\$BRANCH_EPSILON advantage=\$BRANCH_ADVANTAGE_ESTIMATOR"
   export RUN_ID="\$K8_ID-\$EXP_ID"
   export WANDB_RUN_ID="\$K8_ID-\$EXP_ID"
   export REWARD_MODE="\$MODE"
@@ -2073,11 +2078,12 @@ JSON
   export LEARNING_RATE="\$BRANCH_LEARNING_RATE"
   export BETA="\$BRANCH_BETA"
   export EPSILON="\$BRANCH_EPSILON"
+  export GRPO_ADVANTAGE_ESTIMATOR="\$BRANCH_ADVANTAGE_ESTIMATOR"
   export RANK="\$BRANCH_RANK"
   export ALPHA="\$BRANCH_ALPHA"
   mkdir -p "\$OBS_OUTPUT_DIR" "\$OBS_TRACE_DIR"
 
-  env | sort | grep -E '^(RUN_ID|REWARD_MODE|MAX_STEPS|LR_SCHEDULE_STEPS|WARMUP_STEPS|SAVE_INTERVAL_STEPS|MAX_TO_KEEP|EVAL_EVERY_N_STEPS|NUM_GENERATIONS|TOTAL_GENERATION_STEPS|LEARNING_RATE|BETA|EPSILON|RANK|ALPHA|K8_SOURCE_|K8_ROLLOUT_|K8_CHECKPOINT_ROLLOUTS|CKPT_DIR|TENSORBOARD_DIR|OBS_)=' > "\$EXP_DIR/run_env.txt"
+  env | sort | grep -E '^(RUN_ID|REWARD_MODE|MAX_STEPS|LR_SCHEDULE_STEPS|WARMUP_STEPS|SAVE_INTERVAL_STEPS|MAX_TO_KEEP|EVAL_EVERY_N_STEPS|NUM_GENERATIONS|TOTAL_GENERATION_STEPS|LEARNING_RATE|BETA|EPSILON|GRPO_ADVANTAGE_ESTIMATOR|RANK|ALPHA|K8_SOURCE_|K8_ROLLOUT_|K8_CHECKPOINT_ROLLOUTS|CKPT_DIR|TENSORBOARD_DIR|OBS_)=' > "\$EXP_DIR/run_env.txt"
   printf '%s\n' "\$MODE" > "\$EXP_DIR/reward_mode.txt"
 
   python -u train.py 2>&1 | tee -a "\$EXP_DIR/train.log"
@@ -2258,6 +2264,79 @@ submit_reward_only_rollout320_full() {
   echo "Log: $RUN_DIR/pipeline.log"
 }
 
+submit_r1_format_rollout320_full() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R1_format_reward_rollout320:gsm8k_verifiable_format:0.08:3e-6:64:64:0.2:grpo"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  local rollout_steps="320 640 960 1280 1600 1920 2240 2560 2880 3200 3520 3840 4160 4480 4800 5120 5440 5760 6080 6400 6720 6728"
+  local checkpoint_steps="160 320 480 640 800 960 1120 1280 1440 1600 1760 1920 2080 2240 2400 2560 2720 2880 3040 3200 3360 3364"
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_ROLLOUT_CHECKPOINT_INTERVAL=320 K8_CHECKPOINT_ROLLOUTS='$rollout_steps' K8_MAX_STEPS=3364 K8_LR_SCHEDULE_STEPS=3364 K8_WARMUP_STEPS=336.4 K8_CHECKPOINT_STEPS='$checkpoint_steps' K8_MAX_TO_KEEP=30 K8_SAVE_INTERVAL_STEPS=160 K8_EVAL_EVERY_N_STEPS=160 K8_OBS_TRACE_EVERY_N_STEPS=1 K8_OBS_TRACE_MAX_ROWS=8192 K8_NUM_GENERATIONS=2 K8_BETA=0.08 K8_LEARNING_RATE=3e-6 K8_RANK=64 K8_ALPHA=64 K8_EPSILON=0.2 K8_GRPO_ADVANTAGE_ESTIMATOR=grpo bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- R1 format-aware rollout320 full exited (\$status) ---\"; exec bash"
+  echo "Started R1 format-aware rollout320 full run. Attach with: tmux attach -t $session"
+  echo "Rollout checkpoints: $rollout_steps"
+  echo "Checkpoint steps: $checkpoint_steps"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
+submit_r2_k8_beta004_rollout320_full() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R2_k8_beta004_rollout320:baseline:0.04:3e-6:64:64:0.2"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  local rollout_steps="320 640 960 1280 1600 1920 2240 2560 2880 3200 3520 3840 4160 4480 4800 5120 5440 5760 6080 6400 6720 6728"
+  local checkpoint_steps="40 80 120 160 200 240 280 320 360 400 440 480 520 560 600 640 680 720 760 800 840 841"
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_ROLLOUT_CHECKPOINT_INTERVAL=320 K8_CHECKPOINT_ROLLOUTS='$rollout_steps' K8_MAX_STEPS=841 K8_LR_SCHEDULE_STEPS=841 K8_WARMUP_STEPS=84.1 K8_CHECKPOINT_STEPS='$checkpoint_steps' K8_MAX_TO_KEEP=30 K8_SAVE_INTERVAL_STEPS=40 K8_EVAL_EVERY_N_STEPS=40 K8_OBS_TRACE_EVERY_N_STEPS=1 K8_OBS_TRACE_MAX_ROWS=8192 K8_NUM_GENERATIONS=8 K8_BETA=0.04 K8_LEARNING_RATE=3e-6 K8_RANK=64 K8_ALPHA=64 K8_EPSILON=0.2 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- R2 K8 beta=0.04 rollout320 full exited (\$status) ---\"; exec bash"
+  echo "Started R2 K8 beta=0.04 rollout320 full run. Attach with: tmux attach -t $session"
+  echo "Rollout checkpoints: $rollout_steps"
+  echo "Checkpoint steps: $checkpoint_steps"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
+submit_r3_loo_advantage_rollout320_full() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R3_loo_advantage_rollout320:baseline:0.08:3e-6:64:64:0.2:rloo"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  local rollout_steps="320 640 960 1280 1600 1920 2240 2560 2880 3200 3520 3840 4160 4480 4800 5120 5440 5760 6080 6400 6720 6728"
+  local checkpoint_steps="160 320 480 640 800 960 1120 1280 1440 1600 1760 1920 2080 2240 2400 2560 2720 2880 3040 3200 3360 3364"
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_ROLLOUT_CHECKPOINT_INTERVAL=320 K8_CHECKPOINT_ROLLOUTS='$rollout_steps' K8_MAX_STEPS=3364 K8_LR_SCHEDULE_STEPS=3364 K8_WARMUP_STEPS=336.4 K8_CHECKPOINT_STEPS='$checkpoint_steps' K8_MAX_TO_KEEP=30 K8_SAVE_INTERVAL_STEPS=160 K8_EVAL_EVERY_N_STEPS=160 K8_OBS_TRACE_EVERY_N_STEPS=1 K8_OBS_TRACE_MAX_ROWS=8192 K8_NUM_GENERATIONS=2 K8_BETA=0.08 K8_LEARNING_RATE=3e-6 K8_RANK=64 K8_ALPHA=64 K8_EPSILON=0.2 K8_GRPO_ADVANTAGE_ESTIMATOR=rloo bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- R3 leave-one-out advantage rollout320 full exited (\$status) ---\"; exec bash"
+  echo "Started R3 leave-one-out advantage rollout320 full run. Attach with: tmux attach -t $session"
+  echo "Rollout checkpoints: $rollout_steps"
+  echo "Checkpoint steps: $checkpoint_steps"
+  echo "Advantage estimator: rloo"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
 submit_r12_rollout320_lr1e6_full() {
   require_run_id
   unpack_bundle
@@ -2277,6 +2356,78 @@ submit_r12_rollout320_lr1e6_full() {
   echo "==> Starting tmux session $session"
   tmux new-session -d -s "$session" "K8_ROLLOUT_CHECKPOINT_INTERVAL=320 K8_CHECKPOINT_ROLLOUTS='$rollout_steps' K8_MAX_STEPS=841 K8_LR_SCHEDULE_STEPS=1682 K8_WARMUP_STEPS=0 K8_CHECKPOINT_STEPS='$checkpoint_steps' K8_MAX_TO_KEEP=30 K8_SAVE_INTERVAL_STEPS=40 K8_EVAL_EVERY_N_STEPS=40 K8_OBS_TRACE_EVERY_N_STEPS=1 K8_OBS_TRACE_MAX_ROWS=8192 K8_NUM_GENERATIONS=8 K8_BETA=0.04 K8_LEARNING_RATE=1e-6 K8_RANK=64 K8_ALPHA=64 K8_EPSILON=0.2 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- R12 rollout320 lr1e-6 full exited (\$status) ---\"; exec bash"
   echo "Started R12 rollout320 lr1e-6 full run. Attach with: tmux attach -t $session"
+  echo "Rollout checkpoints: $rollout_steps"
+  echo "Checkpoint steps: $checkpoint_steps"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
+submit_r4_rollout320_lr3e6_full() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R4_r12_full_lr3e-6_rollout320:gsm8k_verifiable_simple:0.04:3e-6:64:64:0.2"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  local rollout_steps="320 640 960 1280 1600 1920 2240 2560 2880 3200 3520 3840 4160 4480 4800 5120 5440 5760 6080 6400 6720 6728"
+  local checkpoint_steps="40 80 120 160 200 240 280 320 360 400 440 480 520 560 600 640 680 720 760 800 840 841"
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_ROLLOUT_CHECKPOINT_INTERVAL=320 K8_CHECKPOINT_ROLLOUTS='$rollout_steps' K8_MAX_STEPS=841 K8_LR_SCHEDULE_STEPS=1682 K8_WARMUP_STEPS=0 K8_CHECKPOINT_STEPS='$checkpoint_steps' K8_MAX_TO_KEEP=30 K8_SAVE_INTERVAL_STEPS=40 K8_EVAL_EVERY_N_STEPS=40 K8_OBS_TRACE_EVERY_N_STEPS=1 K8_OBS_TRACE_MAX_ROWS=8192 K8_NUM_GENERATIONS=8 K8_BETA=0.04 K8_LEARNING_RATE=3e-6 K8_RANK=64 K8_ALPHA=64 K8_EPSILON=0.2 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- R4 rollout320 lr3e-6 full exited (\$status) ---\"; exec bash"
+  echo "Started R4 rollout320 lr3e-6 full run. Attach with: tmux attach -t $session"
+  echo "Rollout checkpoints: $rollout_steps"
+  echo "Checkpoint steps: $checkpoint_steps"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
+submit_r4_rollout320_lr3e6_format_full() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R4_r12_format_lr3e-6_rollout320:gsm8k_verifiable_format:0.04:3e-6:64:64:0.2"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  local rollout_steps="320 640 960 1280 1600 1920 2240 2560 2880 3200 3520 3840 4160 4480 4800 5120 5440 5760 6080 6400 6720 6728"
+  local checkpoint_steps="40 80 120 160 200 240 280 320 360 400 440 480 520 560 600 640 680 720 760 800 840 841"
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_ROLLOUT_CHECKPOINT_INTERVAL=320 K8_CHECKPOINT_ROLLOUTS='$rollout_steps' K8_MAX_STEPS=841 K8_LR_SCHEDULE_STEPS=1682 K8_WARMUP_STEPS=0 K8_CHECKPOINT_STEPS='$checkpoint_steps' K8_MAX_TO_KEEP=30 K8_SAVE_INTERVAL_STEPS=40 K8_EVAL_EVERY_N_STEPS=40 K8_OBS_TRACE_EVERY_N_STEPS=1 K8_OBS_TRACE_MAX_ROWS=8192 K8_NUM_GENERATIONS=8 K8_BETA=0.04 K8_LEARNING_RATE=3e-6 K8_RANK=64 K8_ALPHA=64 K8_EPSILON=0.2 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- R4 rollout320 lr3e-6 format full exited (\$status) ---\"; exec bash"
+  echo "Started R4 rollout320 lr3e-6 format-aware full run. Attach with: tmux attach -t $session"
+  echo "Rollout checkpoints: $rollout_steps"
+  echo "Checkpoint steps: $checkpoint_steps"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
+submit_r4_rollout320_lr1e6_format_full() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R4_r12_format_lr1e-6_rollout320:gsm8k_verifiable_format:0.04:1e-6:64:64:0.2"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  local rollout_steps="320 640 960 1280 1600 1920 2240 2560 2880 3200 3520 3840 4160 4480 4800 5120 5440 5760 6080 6400 6720 6728"
+  local checkpoint_steps="40 80 120 160 200 240 280 320 360 400 440 480 520 560 600 640 680 720 760 800 840 841"
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_ROLLOUT_CHECKPOINT_INTERVAL=320 K8_CHECKPOINT_ROLLOUTS='$rollout_steps' K8_MAX_STEPS=841 K8_LR_SCHEDULE_STEPS=1682 K8_WARMUP_STEPS=0 K8_CHECKPOINT_STEPS='$checkpoint_steps' K8_MAX_TO_KEEP=30 K8_SAVE_INTERVAL_STEPS=40 K8_EVAL_EVERY_N_STEPS=40 K8_OBS_TRACE_EVERY_N_STEPS=1 K8_OBS_TRACE_MAX_ROWS=8192 K8_NUM_GENERATIONS=8 K8_BETA=0.04 K8_LEARNING_RATE=1e-6 K8_RANK=64 K8_ALPHA=64 K8_EPSILON=0.2 bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- R4 rollout320 lr1e-6 format full exited (\$status) ---\"; exec bash"
+  echo "Started R4 rollout320 lr1e-6 format-aware full run. Attach with: tmux attach -t $session"
   echo "Rollout checkpoints: $rollout_steps"
   echo "Checkpoint steps: $checkpoint_steps"
   echo "Log: $RUN_DIR/pipeline.log"
@@ -3399,9 +3550,144 @@ status_k8_pilot() {
         echo "reward_mode: $(cat "$child/reward_mode.txt")"
       fi
       if [[ -f "$child/run_env.txt" ]]; then
-        grep -E '^(RUN_ID|REWARD_MODE|MAX_STEPS|LR_SCHEDULE_STEPS|WARMUP_STEPS|SAVE_INTERVAL_STEPS|MAX_TO_KEEP|EVAL_EVERY_N_STEPS|NUM_GENERATIONS|LEARNING_RATE|BETA|EPSILON|RANK|ALPHA|K8_SOURCE_|K8_ROLLOUT_|K8_CHECKPOINT_ROLLOUTS|OBS_TRACE_)=' "$child/run_env.txt" || true
+        grep -E '^(RUN_ID|REWARD_MODE|MAX_STEPS|LR_SCHEDULE_STEPS|WARMUP_STEPS|SAVE_INTERVAL_STEPS|MAX_TO_KEEP|EVAL_EVERY_N_STEPS|NUM_GENERATIONS|LEARNING_RATE|BETA|EPSILON|GRPO_ADVANTAGE_ESTIMATOR|RANK|ALPHA|K8_SOURCE_|K8_ROLLOUT_|K8_CHECKPOINT_ROLLOUTS|OBS_TRACE_)=' "$child/run_env.txt" || true
       fi
       find "$child/ckpts/actor" -maxdepth 1 -type d -name '[0-9]*' 2>/dev/null | sed 's#.*/##' | sort -n | tail -n 30 | xargs -r echo "checkpoints:"
+      if compgen -G "$child/artifacts/rollout_traces/*.jsonl" >/dev/null; then
+        python - "$child/artifacts/rollout_traces" <<'PY' || true
+import json
+import math
+import pathlib
+import sys
+from collections import defaultdict
+
+trace_dir = pathlib.Path(sys.argv[1])
+groups = defaultdict(lambda: {
+    "n": 0,
+    "reward_sum": 0.0,
+    "reward_n": 0,
+    "recomputed_sum": 0.0,
+    "recomputed_n": 0,
+    "numeric_sum": 0.0,
+    "numeric_n": 0,
+    "simple_format_sum": 0.0,
+    "simple_format_n": 0,
+    "reasoning_format_sum": 0.0,
+    "reasoning_format_n": 0,
+    "format_ok": 0,
+    "numeric_exact": 0,
+    "extracted_none": 0,
+})
+
+def fnum(value):
+    if value is None or value == "":
+        return None
+    try:
+        out = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(out):
+        return None
+    return out
+
+for path in sorted(trace_dir.glob("*.jsonl")):
+    with path.open(encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            call = int(row.get("call_index") or 0)
+            raw_role = row.get("dataset_role") or "unknown"
+            if isinstance(raw_role, list):
+                roles = [str(item) for item in raw_role if item not in (None, "")]
+                role = roles[0] if roles and len(set(roles)) == 1 else "|".join(sorted(set(roles))) or "unknown"
+            else:
+                role = str(raw_role)
+                if role.startswith("[") and "train" in role and "val" not in role:
+                    role = "train"
+                elif role.startswith("[") and "val" in role and "train" not in role:
+                    role = "val"
+            item = groups[(role, call)]
+            item["n"] += 1
+            for source_key, sum_key, n_key in (
+                ("reward_total", "reward_sum", "reward_n"),
+                ("reward_total_recomputed", "recomputed_sum", "recomputed_n"),
+            ):
+                value = fnum(row.get(source_key))
+                if value is not None:
+                    item[sum_key] += value
+                    item[n_key] += 1
+            components = row.get("reward_components") or {}
+            for source_key, sum_key, n_key in (
+                ("gsm8k_simple_numeric", "numeric_sum", "numeric_n"),
+                ("gsm8k_simple_format", "simple_format_sum", "simple_format_n"),
+                ("reasoning_structure_format", "reasoning_format_sum", "reasoning_format_n"),
+            ):
+                value = fnum(components.get(source_key))
+                if value is not None:
+                    item[sum_key] += value
+                    item[n_key] += 1
+            if bool(row.get("format_ok")):
+                item["format_ok"] += 1
+            if bool(row.get("numeric_exact")):
+                item["numeric_exact"] += 1
+            if row.get("extracted_number") in (None, ""):
+                item["extracted_none"] += 1
+
+by_role = defaultdict(list)
+for (role, call), item in groups.items():
+    by_role[role].append((call, item))
+
+def mean(sum_key, n_key, items):
+    denom = sum(item[n_key] for _, item in items)
+    if denom <= 0:
+        return None
+    return sum(item[sum_key] for _, item in items) / denom
+
+def rate(key, items):
+    denom = sum(item["n"] for _, item in items)
+    if denom <= 0:
+        return None
+    return sum(item[key] for _, item in items) / denom
+
+def fmt(value):
+    if value is None:
+        return "NA"
+    return f"{value:.4f}"
+
+print("trace_reward_trend:")
+for role in sorted(by_role):
+    series = sorted(by_role[role])
+    if not series:
+        continue
+    window = min(32, max(1, len(series) // 4 or 1))
+    slices = [
+        ("early", series[:window]),
+        ("mid", series[max(0, len(series)//2 - window//2): max(0, len(series)//2 - window//2) + window]),
+        ("latest", series[-window:]),
+    ]
+    print(f"  role={role} calls={len(series)} call_range={series[0][0]}..{series[-1][0]} window={window}")
+    for label, items in slices:
+        if not items:
+            continue
+        call_start, call_end = items[0][0], items[-1][0]
+        print(
+            "    "
+            f"{label} calls={call_start}..{call_end} "
+            f"reward={fmt(mean('reward_sum', 'reward_n', items))} "
+            f"recomputed={fmt(mean('recomputed_sum', 'recomputed_n', items))} "
+            f"numeric={fmt(mean('numeric_sum', 'numeric_n', items))} "
+            f"answer_fmt={fmt(mean('simple_format_sum', 'simple_format_n', items))} "
+            f"reason_fmt={fmt(mean('reasoning_format_sum', 'reasoning_format_n', items))} "
+            f"exact={fmt(rate('numeric_exact', items))} "
+            f"format_ok={fmt(rate('format_ok', items))} "
+            f"extracted_none={fmt(rate('extracted_none', items))}"
+        )
+PY
+      fi
       if [[ -f "$child/artifacts/checkpoint_eval/checkpoint_eval_summary.json" ]]; then
         python - "$child/artifacts/checkpoint_eval/checkpoint_eval_summary.json" <<'PY' || true
 import json, pathlib, sys
@@ -3650,8 +3936,26 @@ case "$COMMAND" in
   submit-reward-only-rollout320-full)
     submit_reward_only_rollout320_full
     ;;
+  submit-r1-format-rollout320-full)
+    submit_r1_format_rollout320_full
+    ;;
+  submit-r2-k8-beta004-rollout320-full)
+    submit_r2_k8_beta004_rollout320_full
+    ;;
+  submit-r3-loo-advantage-rollout320-full)
+    submit_r3_loo_advantage_rollout320_full
+    ;;
   submit-r12-rollout320-lr1e6-full)
     submit_r12_rollout320_lr1e6_full
+    ;;
+  submit-r4-rollout320-lr3e6-full)
+    submit_r4_rollout320_lr3e6_full
+    ;;
+  submit-r4-rollout320-lr3e6-format-full)
+    submit_r4_rollout320_lr3e6_format_full
+    ;;
+  submit-r4-rollout320-lr1e6-format-full)
+    submit_r4_rollout320_lr1e6_format_full
     ;;
   submit-reward-only-r12-full)
     submit_reward_only_r12_full

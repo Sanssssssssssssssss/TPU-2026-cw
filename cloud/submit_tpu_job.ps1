@@ -31,7 +31,13 @@ Local Google TPU VM orchestrator for the GRPO baseline workflow.
 .\cloud\submit_tpu_job.ps1 submit-k8-r12-simple-full -RunId reward-k8-beta004-r12-full-001
 .\cloud\submit_tpu_job.ps1 submit-baseline-rollout320-full -RunId baseline-rollout320-full-001
 .\cloud\submit_tpu_job.ps1 submit-reward-only-rollout320-full -RunId r1-reward-only-rollout320-full-001
+.\cloud\submit_tpu_job.ps1 submit-r1-format-rollout320-full -RunId r1-format-rollout320-full-001
+.\cloud\submit_tpu_job.ps1 submit-r2-k8-beta004-rollout320-full -RunId r2-k8-beta004-rollout320-full-001
+.\cloud\submit_tpu_job.ps1 submit-r3-loo-advantage-rollout320-full -RunId r3-loo-advantage-rollout320-full-001
 .\cloud\submit_tpu_job.ps1 submit-r12-rollout320-lr1e6-full -RunId r4-r12-full-rollout320-lr1e6-001
+.\cloud\submit_tpu_job.ps1 submit-r4-rollout320-lr3e6-full -RunId r4-r12-full-rollout320-lr3e6-001
+.\cloud\submit_tpu_job.ps1 submit-r4-rollout320-lr3e6-format-full -RunId r4-r12-format-rollout320-lr3e6-001
+.\cloud\submit_tpu_job.ps1 submit-r4-rollout320-lr1e6-format-full -RunId r4-r12-format-rollout320-lr1e6-001
 .\cloud\submit_tpu_job.ps1 submit-reward-only-r12-full -RunId reward-only-r12-full-001
 .\cloud\submit_tpu_job.ps1 submit-reward-only-r12-complete-from500 -RunId reward-only-r12-full-complete-001
 .\cloud\submit_tpu_job.ps1 submit-r12-best-large-eval -RunId r12-best-large-eval-001
@@ -57,7 +63,7 @@ Local Google TPU VM orchestrator for the GRPO baseline workflow.
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("preflight", "ensure-tpu", "ensure-storage", "bootstrap", "submit-baseline", "submit-reward-sweep", "submit-reward-continuation", "submit-candidate-eval", "submit-reward-dense", "submit-r7-large-eval", "submit-r12-best-large-eval", "submit-reward-r9", "submit-reward-r10", "submit-k8-pilot", "submit-k8-r10-only", "submit-k8-r11-fallback-only", "submit-k8-r12-simple-only", "submit-k8-r12-simple-full", "submit-baseline-rollout320-full", "submit-reward-only-rollout320-full", "submit-r12-rollout320-lr1e6-full", "submit-reward-only-r12-full", "submit-reward-only-r12-complete-from500", "submit-r12-non-r64-pilot", "submit-r12-lora-public-tuning", "submit-r12-r64-beta-clip-tuning", "submit-r12-r64-small-beta-tuning", "submit-r12-tail-stability", "submit-r12-tail-lr5e7", "submit-r12-tail-lr3e7", "submit-r12-tail-lr3e6-cos-g512", "submit-r12-high-rank-pilot", "submit-r12-high-rank-alpha64-only", "submit-r12-r64-lr-smoothing", "submit-r12-public-strong-tuning", "submit-k8-public-beta", "submit-k8-r13-public-beta-only", "submit-k8-r14-public-beta-only", "eval-checkpoints", "status", "status-sweep", "status-continuation", "status-candidate-eval", "status-reward-dense", "status-r7-large-eval", "status-r12-best-large-eval", "status-reward-r9", "status-reward-r10", "status-k8-pilot", "resume-k8-pilot", "stop-reward-r10", "stop-k8-pilot", "repair-k8-pilot-manifest", "fetch", "fetch-sweep", "fetch-continuation", "fetch-candidate-eval", "fetch-reward-dense", "fetch-r7-large-eval", "fetch-r12-best-large-eval", "fetch-reward-r9", "fetch-reward-r10", "fetch-k8-pilot", "sync-storage", "restore-cache", "start-tpu", "stop-tpu", "delete-tpu")]
+    [ValidateSet("preflight", "ensure-tpu", "ensure-storage", "bootstrap", "submit-baseline", "submit-reward-sweep", "submit-reward-continuation", "submit-candidate-eval", "submit-reward-dense", "submit-r7-large-eval", "submit-r12-best-large-eval", "submit-reward-r9", "submit-reward-r10", "submit-k8-pilot", "submit-k8-r10-only", "submit-k8-r11-fallback-only", "submit-k8-r12-simple-only", "submit-k8-r12-simple-full", "submit-baseline-rollout320-full", "submit-reward-only-rollout320-full", "submit-r1-format-rollout320-full", "submit-r2-k8-beta004-rollout320-full", "submit-r3-loo-advantage-rollout320-full", "submit-r12-rollout320-lr1e6-full", "submit-r4-rollout320-lr3e6-full", "submit-r4-rollout320-lr3e6-format-full", "submit-r4-rollout320-lr1e6-format-full", "submit-reward-only-r12-full", "submit-reward-only-r12-complete-from500", "submit-r12-non-r64-pilot", "submit-r12-lora-public-tuning", "submit-r12-r64-beta-clip-tuning", "submit-r12-r64-small-beta-tuning", "submit-r12-tail-stability", "submit-r12-tail-lr5e7", "submit-r12-tail-lr3e7", "submit-r12-tail-lr3e6-cos-g512", "submit-r12-high-rank-pilot", "submit-r12-high-rank-alpha64-only", "submit-r12-r64-lr-smoothing", "submit-r12-public-strong-tuning", "submit-k8-public-beta", "submit-k8-r13-public-beta-only", "submit-k8-r14-public-beta-only", "eval-checkpoints", "status", "status-sweep", "status-continuation", "status-candidate-eval", "status-reward-dense", "status-r7-large-eval", "status-r12-best-large-eval", "status-reward-r9", "status-reward-r10", "status-k8-pilot", "resume-k8-pilot", "stop-reward-r10", "stop-k8-pilot", "repair-k8-pilot-manifest", "fetch", "fetch-sweep", "fetch-continuation", "fetch-candidate-eval", "fetch-reward-dense", "fetch-r7-large-eval", "fetch-r12-best-large-eval", "fetch-reward-r9", "fetch-reward-r10", "fetch-k8-pilot", "sync-storage", "restore-cache", "start-tpu", "stop-tpu", "delete-tpu")]
     [string]$Command = "preflight",
 
     [string]$RunId = ("baseline-" + (Get-Date -Format "yyyyMMdd-HHmmss")),
@@ -239,10 +245,27 @@ function Start-OpenSshIapTunnel {
         Write-Host "[dry-run] $display"
         return [PSCustomObject]@{ Port = $port; Target = $target }
     }
-    Write-Host $display -ForegroundColor DarkGray
-    $process = Start-Process -FilePath $gcloud -ArgumentList $args -WindowStyle Hidden -PassThru
-    Wait-LocalPort $port
-    return [PSCustomObject]@{ Port = $port; Target = $target; ProcessId = $process.Id }
+    $lastError = $null
+    $maxAttempts = 5
+    for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+        if ($attempt -gt 1) {
+            Write-Warning "Retrying IAP tunnel startup on local port $port (attempt $attempt/$maxAttempts)."
+            Start-Sleep -Seconds 5
+        }
+        Write-Host $display -ForegroundColor DarkGray
+        $process = Start-Process -FilePath $gcloud -ArgumentList $args -WindowStyle Hidden -PassThru
+        try {
+            Wait-LocalPort $port
+            return [PSCustomObject]@{ Port = $port; Target = $target; ProcessId = $process.Id }
+        }
+        catch {
+            $lastError = $_
+            if ($process -and -not $process.HasExited) {
+                Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+    throw $lastError
 }
 
 function Stop-OpenSshIapTunnel($Tunnel) {
@@ -821,6 +844,45 @@ function Submit-RewardOnlyRollout320Full {
     }
 }
 
+function Submit-R1FormatRollout320Full {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-r1-format-rollout320-full" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
+function Submit-R2K8Beta004Rollout320Full {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-r2-k8-beta004-rollout320-full" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
+function Submit-R3LooAdvantageRollout320Full {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-r3-loo-advantage-rollout320-full" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
 function Submit-R12Rollout320Lr1e6Full {
     Assert-RunId
     $bundle = New-CodeBundle
@@ -829,6 +891,45 @@ function Submit-R12Rollout320Lr1e6Full {
         $remoteBundle = Upload-Bundle $bundle
         $remoteSecrets = Upload-SecretsIfPresent
         Invoke-RemoteRunner $runner "submit-r12-rollout320-lr1e6-full" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
+function Submit-R4Rollout320Lr3e6Full {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-r4-rollout320-lr3e6-full" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
+function Submit-R4Rollout320Lr3e6FormatFull {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-r4-rollout320-lr3e6-format-full" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
+function Submit-R4Rollout320Lr1e6FormatFull {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-r4-rollout320-lr1e6-format-full" $remoteBundle $remoteSecrets
     } finally {
         Remove-CodeBundle $bundle
     }
@@ -1278,6 +1379,12 @@ fi
         return
     }
 
+    if ($env:SKIP_CHECKPOINT_ARCHIVES -eq "1") {
+        Write-Host "Skipping checkpoint archive downloads because SKIP_CHECKPOINT_ARCHIVES=1."
+        Write-Host "Fetched reward analysis outputs to $localDest"
+        return
+    }
+
     if (-not (Test-Path -LiteralPath $localArchiveList -PathType Leaf)) {
         Write-Warning "No checkpoint archive list downloaded."
         return
@@ -1302,7 +1409,7 @@ fi
                 Write-Step "Using existing checkpoint archive $fileName"
                 Add-Content -LiteralPath $localArchiveList -Value ("checkpoint_archives/$fileName") -Encoding utf8
 
-                if (Get-Command "tar" -ErrorAction SilentlyContinue) {
+                if ($env:SKIP_CHECKPOINT_EXTRACT -ne "1" -and (Get-Command "tar" -ErrorAction SilentlyContinue)) {
                     $runDest = Join-Path (Join-Path (Join-Path $localDest "runs") $runName) "ckpts\actor"
                     New-Item -ItemType Directory -Path $runDest -Force | Out-Null
                     & tar -xzf $localCheckpointArchive -C $runDest
@@ -1328,10 +1435,15 @@ tar -czf "`$ARCHIVE" -C "`$CHILD/ckpts/actor" "`$STEP"
 
         Write-Step "Downloading checkpoint archive $fileName"
         Invoke-RemoteScp "${TpuName}:$remoteCheckpointArchive" $localCheckpointArchive
-        Invoke-Remote "rm -f $remoteCheckpointArchive"
+        try {
+            Invoke-Remote "rm -f $remoteCheckpointArchive"
+        }
+        catch {
+            Write-Warning "Could not remove remote temporary checkpoint archive ${remoteCheckpointArchive}: $_"
+        }
         Add-Content -LiteralPath $localArchiveList -Value ("checkpoint_archives/$fileName") -Encoding utf8
 
-        if (Get-Command "tar" -ErrorAction SilentlyContinue) {
+        if ($env:SKIP_CHECKPOINT_EXTRACT -ne "1" -and (Get-Command "tar" -ErrorAction SilentlyContinue)) {
             $runDest = Join-Path (Join-Path (Join-Path $localDest "runs") $runName) "ckpts\actor"
             New-Item -ItemType Directory -Path $runDest -Force | Out-Null
             & tar -xzf $localCheckpointArchive -C $runDest
@@ -1411,7 +1523,13 @@ switch ($Command) {
     "submit-k8-r12-simple-full" { Submit-K8R12SimpleFull }
     "submit-baseline-rollout320-full" { Submit-BaselineRollout320Full }
     "submit-reward-only-rollout320-full" { Submit-RewardOnlyRollout320Full }
+    "submit-r1-format-rollout320-full" { Submit-R1FormatRollout320Full }
+    "submit-r2-k8-beta004-rollout320-full" { Submit-R2K8Beta004Rollout320Full }
+    "submit-r3-loo-advantage-rollout320-full" { Submit-R3LooAdvantageRollout320Full }
     "submit-r12-rollout320-lr1e6-full" { Submit-R12Rollout320Lr1e6Full }
+    "submit-r4-rollout320-lr3e6-full" { Submit-R4Rollout320Lr3e6Full }
+    "submit-r4-rollout320-lr3e6-format-full" { Submit-R4Rollout320Lr3e6FormatFull }
+    "submit-r4-rollout320-lr1e6-format-full" { Submit-R4Rollout320Lr1e6FormatFull }
     "submit-reward-only-r12-full" { Submit-RewardOnlyR12Full }
     "submit-reward-only-r12-complete-from500" { Submit-RewardOnlyR12CompleteFrom500 }
     "submit-r12-non-r64-pilot" { Submit-R12NonR64Pilot }

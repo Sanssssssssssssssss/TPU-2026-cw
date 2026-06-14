@@ -945,17 +945,17 @@ def write_readme(
     lines = [
         "# reward-grid-001 visual report package",
         "",
-        "训练已经完成并已 fetch 到本地。本目录只做本地可视化和证据整理，不连接、不启动、不停止课程 TPU。",
+        "Training has completed and has already been fetched locally. This directory only performs local visualization and evidence packaging; it does not connect to, start, or stop the course TPU.",
         "",
-        "## 关键路径",
+        "## Key Paths",
         "",
-        f"- 原始 fetched 数据: `{input_dir.resolve()}`",
-        f"- 本报告包: `{output_dir.resolve()}`",
-        "- 分版本图: `figures/by_run/<run_id>/`",
-        "- 合并对比图: `figures/combined/`",
-        "- 完整表格副本: `tables/`",
+        f"- Raw fetched data: `{input_dir.resolve()}`",
+        f"- Report package: `{output_dir.resolve()}`",
+        "- Per-run figures: `figures/by_run/<run_id>/`",
+        "- Combined comparison figures: `figures/combined/`",
+        "- Complete table copies: `tables/`",
         "",
-        "## 结果摘要",
+        "## Result Summary",
         "",
         "| run_id | reward_mode | best_step | best_accuracy | best_partial | best_format | status | elimination_reasons |",
         "|---|---:|---:|---:|---:|---:|---|---|",
@@ -969,20 +969,20 @@ def write_readme(
     lines.extend(
         [
             "",
-            "## 读取说明",
+            "## Reading Notes",
             "",
-            "- checkpoint eval 的 step 是 LoRA checkpoint step，分别为 256、512、768。",
-            "- scalar timeline 的 x 轴是 TensorBoard logged scalar step，保留 `scalar_pivot.csv` 里全部点。",
-            "- `scalar_long.csv`、`trace_rows_flat.csv` 是完整明细表，不是 summary；图表使用这些表的派生视图。",
-            "- 所有图是干净信息图：白底、统一坐标、metric key 可追溯，不使用装饰性卡片或 PPT 风格版式。",
+            "- Checkpoint-evaluation steps are LoRA checkpoint steps: 256, 512, and 768.",
+            "- The scalar timeline x-axis is the TensorBoard logged scalar step; all points are retained in `scalar_pivot.csv`.",
+            "- `scalar_long.csv` and `trace_rows_flat.csv` are complete detail tables, not summaries; figures use derived views from these tables.",
+            "- All figures are clean information graphics: white background, unified axes, traceable metric keys, and no decorative card or slide styling.",
             "",
-            "## 生成文件",
+            "## Generated Files",
             "",
         ]
     )
     for path in generated:
         lines.append(f"- `{Path(path).relative_to(output_dir)}`")
-    lines.extend(["", "## 表格副本", ""])
+    lines.extend(["", "## Table Copies", ""])
     for path in copied_tables:
         lines.append(f"- `{Path(path).relative_to(output_dir)}`")
     (output_dir / "README.md").write_text("\n".join(lines) + "\n", encoding="utf-8")

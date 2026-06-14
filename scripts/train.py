@@ -38,6 +38,7 @@ from config import (
     DATA_SOURCE,
     EPSILON,
     EVAL_EVERY_N_STEPS,
+    GRPO_ADVANTAGE_ESTIMATOR,
     LEARNING_RATE,
     LR_SCHEDULE_STEPS,
     MAX_GRAD_NORM,
@@ -207,6 +208,7 @@ def main():
         num_iterations=NUM_ITERATIONS,
         beta=BETA,
         epsilon=EPSILON,
+        advantage_estimator=GRPO_ADVANTAGE_ESTIMATOR,
     )
 
     rl_cluster = rl_cluster_lib.RLCluster(
@@ -222,7 +224,8 @@ def main():
     print(
         "Starting GRPO training. "
         f"CKPT_DIR={CKPT_DIR}  MAX_STEPS={MAX_STEPS}  "
-        f"LR_SCHEDULE_STEPS={LR_SCHEDULE_STEPS}  WARMUP_STEPS={WARMUP_STEPS}"
+        f"LR_SCHEDULE_STEPS={LR_SCHEDULE_STEPS}  WARMUP_STEPS={WARMUP_STEPS}  "
+        f"GRPO_ADVANTAGE_ESTIMATOR={GRPO_ADVANTAGE_ESTIMATOR}"
     )
     status = "failed"
     try:
@@ -240,6 +243,7 @@ def main():
                 "lr_schedule_steps": LR_SCHEDULE_STEPS,
                 "eval_every_n_steps": EVAL_EVERY_N_STEPS,
                 "save_interval_steps": SAVE_INTERVAL_STEPS,
+                "grpo_advantage_estimator": GRPO_ADVANTAGE_ESTIMATOR,
             },
         )
 
