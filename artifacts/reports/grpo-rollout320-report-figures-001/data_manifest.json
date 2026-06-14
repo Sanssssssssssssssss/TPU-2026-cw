@@ -4,6 +4,7 @@
     "R0",
     "R1",
     "R2",
+    "R3",
     "R4_format_lr3e6"
   ],
   "rollout_axis": "rollouts_seen = step * num_generations",
@@ -594,6 +595,188 @@
       "size_bytes": "22029"
     },
     {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\artifacts\\sweep_analysis\\tables\\scalar_pivot.csv",
+      "package_path": "data\\R3\\tensorboard_derived\\scalar_pivot_raw.csv",
+      "size_bytes": "10001982",
+      "role": "raw_tensorboard_derived_scalar_pivot"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\artifacts\\sweep_analysis\\tables\\scalar_pivot.csv",
+      "package_path": "data\\R3\\tensorboard_derived\\scalar_pivot.csv",
+      "size_bytes": "11307633",
+      "role": "report_primary_scalar_pivot_reward_scores_rewritten_to_baseline_0_10"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\artifacts\\sweep_analysis\\tables\\trace_audit_by_call.csv",
+      "package_path": "data\\R3\\trace\\trace_audit_by_call.csv",
+      "size_bytes": "1539104"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\analysis\\trace_summary.csv",
+      "package_path": "data\\R3\\analysis\\trace_summary.csv",
+      "size_bytes": "634105"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\analysis\\trace_summary.json",
+      "package_path": "data\\R3\\analysis\\trace_summary.json",
+      "size_bytes": "3485582"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\analysis\\trace_rows_sample.json",
+      "package_path": "data\\R3\\analysis\\trace_rows_sample.json",
+      "size_bytes": "1670679"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\analysis\\tensorboard_tags.json",
+      "package_path": "data\\R3\\analysis\\tensorboard_tags.json",
+      "size_bytes": "9689"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\artifacts\\reward_k8_pilot_manifest.json",
+      "package_path": "data\\R3\\manifest\\reward_k8_pilot_manifest.json",
+      "size_bytes": "1391"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\run_manifest.json",
+      "package_path": "data\\R3\\manifest\\run_manifest.json",
+      "size_bytes": "4088"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\run_env.txt",
+      "package_path": "data\\R3\\manifest\\run_env.txt",
+      "size_bytes": "738"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1120_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_1120_eval.json",
+      "size_bytes": "1412"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1280_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_1280_eval.json",
+      "size_bytes": "1411"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1440_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_1440_eval.json",
+      "size_bytes": "1403"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1600_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_1600_eval.json",
+      "size_bytes": "1404"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_160_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_160_eval.json",
+      "size_bytes": "1407"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1760_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_1760_eval.json",
+      "size_bytes": "1401"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1920_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_1920_eval.json",
+      "size_bytes": "1404"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2080_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_2080_eval.json",
+      "size_bytes": "1398"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2240_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_2240_eval.json",
+      "size_bytes": "1400"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2400_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_2400_eval.json",
+      "size_bytes": "1404"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2560_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_2560_eval.json",
+      "size_bytes": "1408"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2720_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_2720_eval.json",
+      "size_bytes": "1403"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2880_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_2880_eval.json",
+      "size_bytes": "1403"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_3040_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_3040_eval.json",
+      "size_bytes": "1407"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_3200_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_3200_eval.json",
+      "size_bytes": "1407"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_320_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_320_eval.json",
+      "size_bytes": "1397"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_3360_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_3360_eval.json",
+      "size_bytes": "1403"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_3364_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_3364_eval.json",
+      "size_bytes": "1403"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_480_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_480_eval.json",
+      "size_bytes": "1398"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_640_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_640_eval.json",
+      "size_bytes": "1399"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_800_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_800_eval.json",
+      "size_bytes": "1399"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_960_eval.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_960_eval.json",
+      "size_bytes": "1403"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_accuracy.pdf",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_accuracy.pdf",
+      "size_bytes": "30574"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_accuracy.png",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_accuracy.png",
+      "size_bytes": "17454"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "size_bytes": "6176"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.json",
+      "package_path": "data\\R3\\checkpoint_eval\\checkpoint_eval_summary.json",
+      "size_bytes": "22346"
+    },
+    {
       "source": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001\\artifacts\\sweep_analysis\\tables\\scalar_pivot.csv",
       "package_path": "data\\R4_format_lr3e6\\tensorboard_derived\\scalar_pivot_raw.csv",
       "size_bytes": "8640161",
@@ -883,6 +1066,42 @@
       "run": "R2",
       "source": "artifacts\\cloud\\r2-k8-beta004-rollout320-full-001\\artifacts\\sweep_analysis\\tables\\trace_rows_flat.csv",
       "size_mb": "118.70",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R3",
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\tensorboard\\events.out.tfevents.1781425434.t1v-n-ada277a8-w-0",
+      "size_mb": "24.65",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R3",
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\tensorboard\\observability\\events.out.tfevents.1781425411.t1v-n-ada277a8-w-0",
+      "size_mb": "151.10",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R3",
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\analysis\\scalar_metrics.csv",
+      "size_mb": "117.51",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R3",
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\analysis\\scalar_metrics.json",
+      "size_mb": "232.03",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R3",
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\artifacts\\sweep_analysis\\tables\\scalar_long.csv",
+      "size_mb": "162.24",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R3",
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\artifacts\\sweep_analysis\\tables\\trace_rows_flat.csv",
+      "size_mb": "45.35",
       "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
     },
     {

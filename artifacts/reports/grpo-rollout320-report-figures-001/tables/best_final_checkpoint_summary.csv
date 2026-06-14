@@ -2,4 +2,5 @@ line,label,best_exact,best_exact_rollouts,best_partial,best_partial_rollouts,fin
 R0,R0 baseline,48.4375,1920,51.5625,1920,3.125,6.25,12.5
 R1,R1 format-aware reward-only,54.6875,640,59.375,640,3.125,3.125,56.25
 R2,"R2 baseline K=8, beta=0.04",59.375,2560,67.1875,5440,56.25,60.9375,87.5
+R3,R3 leave-one-out advantage,57.8125,320,60.9375,320,40.625,45.3125,62.5
 R4_format_lr3e6,"R4 format-aware K=8, lr=3e-6",60.9375,5440,64.0625,4160,56.25,59.375,92.1875

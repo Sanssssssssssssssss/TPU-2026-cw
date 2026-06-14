@@ -102,20 +102,6 @@ RUNS = [
         rank="64",
         alpha="64",
     ),
-    base.OfficialRun(
-        key="R4_format_lr1e6",
-        run_id="r4-r12-format-rollout320-lr1e6-001",
-        branch="R4_r12_format_lr1e-6_rollout320",
-        legend="R4 format-aware full-from-zero lr1e-6 dense32-rollout",
-        reward_mode="gsm8k_verifiable_format",
-        num_generations=8,
-        max_steps=841,
-        checkpoint_steps=base.EXPECTED_K8_STEPS,
-        learning_rate="1e-6",
-        beta="0.04",
-        rank="64",
-        alpha="64",
-    ),
 ]
 
 SERIES_COLORS = {
@@ -125,7 +111,6 @@ SERIES_COLORS = {
     "R3": "#BD569B",
     "R4_lr1e6": "#5477C4",
     "R4_format_lr3e6": "#8B6BBE",
-    "R4_format_lr1e6": "#C48B3D",
 }
 
 OFFICIAL_SCALAR_METRICS = {

@@ -40,6 +40,7 @@ COLORS = {
     "R0": "#6F768A",
     "R1": "#CC6F47",
     "R2": "#4B9A62",
+    "R3": "#BD569B",
     "R4_lr1e6": "#5477C4",
     "R4_format_lr3e6": "#3B6EDB",
     "reward": "#F0A21A",
@@ -138,6 +139,15 @@ RUNS = [
         label="R2 baseline K=8, beta=0.04",
         num_generations=8,
         max_steps=841,
+        reward_mode="baseline",
+    ),
+    RunSpec(
+        key="R3",
+        run_id="r3-loo-advantage-rollout320-full-001",
+        branch="R3_loo_advantage_rollout320",
+        label="R3 leave-one-out advantage",
+        num_generations=2,
+        max_steps=3364,
         reward_mode="baseline",
     ),
     RunSpec(

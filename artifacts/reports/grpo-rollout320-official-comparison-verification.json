@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-06-14T08:21:54.166430+00:00",
+  "created_at": "2026-06-14T13:41:43.603842+00:00",
   "runs": [
     {
       "line": "R0",
@@ -57,11 +57,17 @@
       "run_id": "r3-loo-advantage-rollout320-full-001",
       "branch": "R3_loo_advantage_rollout320",
       "raw_dir": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001",
-      "passed": false,
-      "errors": [
-        "missing fetched run directory: artifacts\\cloud\\r3-loo-advantage-rollout320-full-001"
-      ],
-      "warnings": []
+      "manifest": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\artifacts\\reward_k8_pilot_manifest.json",
+      "run_env": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\run_env.txt",
+      "checkpoint_eval_csv": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "checkpoint_eval_rows": 22,
+      "checkpoint_archive_count": 23,
+      "final_checkpoint_step": 3364,
+      "final_checkpoint_exists": true,
+      "scalar_rows": 1142632,
+      "errors": [],
+      "warnings": [],
+      "passed": true
     },
     {
       "line": "R4_lr1e6",
@@ -96,17 +102,6 @@
       "errors": [],
       "warnings": [],
       "passed": true
-    },
-    {
-      "line": "R4_format_lr1e6",
-      "run_id": "r4-r12-format-rollout320-lr1e6-001",
-      "branch": "R4_r12_format_lr1e-6_rollout320",
-      "raw_dir": "artifacts\\cloud\\r4-r12-format-rollout320-lr1e6-001",
-      "passed": false,
-      "errors": [
-        "missing fetched run directory: artifacts\\cloud\\r4-r12-format-rollout320-lr1e6-001"
-      ],
-      "warnings": []
     }
   ]
 }
