@@ -123,6 +123,15 @@ RUNS = [
         reward_mode="baseline",
     ),
     RunSpec(
+        key="R1",
+        run_id="r1-format-rollout320-full-001",
+        branch="R1_format_reward_rollout320",
+        label="R1 format-aware reward-only",
+        num_generations=2,
+        max_steps=3364,
+        reward_mode="gsm8k_verifiable_format",
+    ),
+    RunSpec(
         key="R2",
         run_id="r2-k8-beta004-rollout320-full-001",
         branch="R2_k8_beta004_rollout320",

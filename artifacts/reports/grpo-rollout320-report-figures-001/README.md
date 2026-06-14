@@ -21,6 +21,8 @@ Figures:
 - `figures\01c_all_runs_health_answer_quality.png` - All selected runs: answer quality and format health. All selected runs shown together for answer-quality diagnostics.
 - `figures\per_run\R0_reward_and_kl.png` - R0 reward and KL over GRPO training. Per-run total reward and KL with train/eval traces where available.
 - `figures\per_run\R0_health_answer_quality.png` - R0 rollout health and answer quality. Per-run numeric exact, format, empty response, and no-answer rates.
+- `figures\per_run\R1_reward_and_kl.png` - R1 reward and KL over GRPO training. Per-run total reward and KL with train/eval traces where available.
+- `figures\per_run\R1_health_answer_quality.png` - R1 rollout health and answer quality. Per-run numeric exact, format, empty response, and no-answer rates.
 - `figures\per_run\R2_reward_and_kl.png` - R2 reward and KL over GRPO training. Per-run total reward and KL with train/eval traces where available.
 - `figures\per_run\R2_health_answer_quality.png` - R2 rollout health and answer quality. Per-run numeric exact, format, empty response, and no-answer rates.
 - `figures\per_run\R4_format_lr3e6_reward_and_kl.png` - R4_format_lr3e6 reward and KL over GRPO training. Per-run total reward and KL with train/eval traces where available.

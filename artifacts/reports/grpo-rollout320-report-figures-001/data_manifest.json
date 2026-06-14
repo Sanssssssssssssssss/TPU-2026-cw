@@ -2,6 +2,7 @@
   "purpose": "Web-readable GRPO report data bundle. Contains plots plus compact TensorBoard-derived CSV/JSON tables.",
   "selected_runs": [
     "R0",
+    "R1",
     "R2",
     "R4_format_lr3e6"
   ],
@@ -227,6 +228,188 @@
       "source": "artifacts\\cloud\\baseline-rollout320-full-001\\runs\\R0_baseline_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.json",
       "package_path": "data\\R0\\checkpoint_eval\\checkpoint_eval_summary.json",
       "size_bytes": "22001"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\artifacts\\sweep_analysis\\tables\\scalar_pivot.csv",
+      "package_path": "data\\R1\\tensorboard_derived\\scalar_pivot_raw.csv",
+      "size_bytes": "12105074",
+      "role": "raw_tensorboard_derived_scalar_pivot"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\artifacts\\sweep_analysis\\tables\\scalar_pivot.csv",
+      "package_path": "data\\R1\\tensorboard_derived\\scalar_pivot.csv",
+      "size_bytes": "13310621",
+      "role": "report_primary_scalar_pivot_reward_scores_rewritten_to_baseline_0_10"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\artifacts\\sweep_analysis\\tables\\trace_audit_by_call.csv",
+      "package_path": "data\\R1\\trace\\trace_audit_by_call.csv",
+      "size_bytes": "1983558"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\analysis\\trace_summary.csv",
+      "package_path": "data\\R1\\analysis\\trace_summary.csv",
+      "size_bytes": "898006"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\analysis\\trace_summary.json",
+      "package_path": "data\\R1\\analysis\\trace_summary.json",
+      "size_bytes": "3749483"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\analysis\\trace_rows_sample.json",
+      "package_path": "data\\R1\\analysis\\trace_rows_sample.json",
+      "size_bytes": "1681265"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\analysis\\tensorboard_tags.json",
+      "package_path": "data\\R1\\analysis\\tensorboard_tags.json",
+      "size_bytes": "9638"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\artifacts\\reward_k8_pilot_manifest.json",
+      "package_path": "data\\R1\\manifest\\reward_k8_pilot_manifest.json",
+      "size_bytes": "1414"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\run_manifest.json",
+      "package_path": "data\\R1\\manifest\\run_manifest.json",
+      "size_bytes": "3989"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\run_env.txt",
+      "package_path": "data\\R1\\manifest\\run_env.txt",
+      "size_bytes": "732"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1120_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_1120_eval.json",
+      "size_bytes": "1391"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1280_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_1280_eval.json",
+      "size_bytes": "1390"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1440_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_1440_eval.json",
+      "size_bytes": "1394"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1600_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_1600_eval.json",
+      "size_bytes": "1386"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_160_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_160_eval.json",
+      "size_bytes": "1387"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1760_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_1760_eval.json",
+      "size_bytes": "1391"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_1920_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_1920_eval.json",
+      "size_bytes": "1391"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2080_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_2080_eval.json",
+      "size_bytes": "1394"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2240_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_2240_eval.json",
+      "size_bytes": "1389"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2400_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_2400_eval.json",
+      "size_bytes": "1394"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2560_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_2560_eval.json",
+      "size_bytes": "1392"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2720_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_2720_eval.json",
+      "size_bytes": "1391"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_2880_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_2880_eval.json",
+      "size_bytes": "1391"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_3040_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_3040_eval.json",
+      "size_bytes": "1393"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_3200_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_3200_eval.json",
+      "size_bytes": "1391"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_320_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_320_eval.json",
+      "size_bytes": "1388"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_3360_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_3360_eval.json",
+      "size_bytes": "1385"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_3364_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_3364_eval.json",
+      "size_bytes": "1385"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_480_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_480_eval.json",
+      "size_bytes": "1391"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_640_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_640_eval.json",
+      "size_bytes": "1371"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_800_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_800_eval.json",
+      "size_bytes": "1388"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_960_eval.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_960_eval.json",
+      "size_bytes": "1387"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_accuracy.pdf",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_accuracy.pdf",
+      "size_bytes": "31687"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_accuracy.png",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_accuracy.png",
+      "size_bytes": "18470"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "size_bytes": "6023"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.json",
+      "package_path": "data\\R1\\checkpoint_eval\\checkpoint_eval_summary.json",
+      "size_bytes": "22157"
     },
     {
       "source": "artifacts\\cloud\\r2-k8-beta004-rollout320-full-001\\artifacts\\sweep_analysis\\tables\\scalar_pivot.csv",
@@ -628,6 +811,42 @@
       "run": "R0",
       "source": "artifacts\\cloud\\baseline-rollout320-full-001\\artifacts\\sweep_analysis\\tables\\trace_rows_flat.csv",
       "size_mb": "37.75",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R1",
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\tensorboard\\events.out.tfevents.1781394331.t1v-n-ada277a8-w-0",
+      "size_mb": "24.46",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R1",
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\tensorboard\\observability\\events.out.tfevents.1781394309.t1v-n-ada277a8-w-0",
+      "size_mb": "136.04",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R1",
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\analysis\\scalar_metrics.csv",
+      "size_mb": "119.12",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R1",
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\analysis\\scalar_metrics.json",
+      "size_mb": "233.31",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R1",
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\artifacts\\sweep_analysis\\tables\\scalar_long.csv",
+      "size_mb": "180.85",
+      "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
+    },
+    {
+      "run": "R1",
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\artifacts\\sweep_analysis\\tables\\trace_rows_flat.csv",
+      "size_mb": "49.57",
       "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud"
     },
     {
