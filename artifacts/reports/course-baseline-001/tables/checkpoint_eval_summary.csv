@@ -1,6 +1,0 @@
-accuracy,accuracy_ci95_high,accuracy_ci95_low,correct,file,format_accuracy,label,partial_accuracy,policy,restored_step,step,total
-51.5625,63.3666514342161,39.581392243999034,33,/home/ext_sansxu1009_gmail_com/tpu-runs/course-baseline-001/artifacts/checkpoint_eval/base_eval.json,6.25,base,53.125,base,,,64
-28.125,40.1341623995035,18.593226105484582,18,/home/ext_sansxu1009_gmail_com/tpu-runs/course-baseline-001/artifacts/checkpoint_eval/checkpoint_2000_eval.json,35.9375,ckpt-2000,29.6875,lora,2000,2000,64
-20.3125,31.713867551216595,12.273302562695813,13,/home/ext_sansxu1009_gmail_com/tpu-runs/course-baseline-001/artifacts/checkpoint_eval/checkpoint_2500_eval.json,31.25,ckpt-2500,23.4375,lora,2500,2500,64
-6.25,14.997696642496885,2.457080367479293,4,/home/ext_sansxu1009_gmail_com/tpu-runs/course-baseline-001/artifacts/checkpoint_eval/checkpoint_3000_eval.json,12.5,ckpt-3000,7.8125,lora,3000,3000,64
-3.125,10.697493882294248,0.8611957712516592,2,/home/ext_sansxu1009_gmail_com/tpu-runs/course-baseline-001/artifacts/checkpoint_eval/checkpoint_3364_eval.json,12.5,ckpt-3364,6.25,lora,3364,3364,64

@@ -1,6 +1,0 @@
-label,step,policy,restored_step,correct,total,accuracy,accuracy_ci95_low,accuracy_ci95_high,partial_accuracy,format_accuracy,file
-base,,base,,33,64,51.5625,39.581392243999034,63.3666514342161,53.125,6.25,/home/ext_sansxu1009_gmail_com/tpu-runs/course-baseline-001/artifacts/checkpoint_eval/base_eval.json
-ckpt-2000,2000,lora,2000,18,64,28.125,18.593226105484582,40.1341623995035,29.6875,35.9375,/home/ext_sansxu1009_gmail_com/tpu-runs/course-baseline-001/artifacts/checkpoint_eval/checkpoint_2000_eval.json
-ckpt-2500,2500,lora,2500,13,64,20.3125,12.273302562695813,31.713867551216595,23.4375,31.25,/home/ext_sansxu1009_gmail_com/tpu-runs/course-baseline-001/artifacts/checkpoint_eval/checkpoint_2500_eval.json
-ckpt-3000,3000,lora,3000,4,64,6.25,2.457080367479293,14.997696642496885,7.8125,12.5,/home/ext_sansxu1009_gmail_com/tpu-runs/course-baseline-001/artifacts/checkpoint_eval/checkpoint_3000_eval.json
-ckpt-3364,3364,lora,3364,2,64,3.125,0.8611957712516592,10.697493882294248,6.25,12.5,/home/ext_sansxu1009_gmail_com/tpu-runs/course-baseline-001/artifacts/checkpoint_eval/checkpoint_3364_eval.json
