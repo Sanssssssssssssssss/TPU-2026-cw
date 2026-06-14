@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-06-13T23:38:17.521523+00:00",
+  "created_at": "2026-06-14T01:14:36.702140+00:00",
   "run": {
     "line": "R4_lr1e6",
     "run_id": "r4-r12-full-rollout320-lr1e6-001",
@@ -12,7 +12,7 @@
     "checkpoint_archive_count": 23,
     "final_checkpoint_step": 841,
     "final_checkpoint_exists": true,
-    "scalar_rows": 0,
+    "scalar_rows": 719725,
     "errors": [],
     "warnings": [],
     "passed": true
@@ -23,6 +23,8 @@
   ],
   "figures": [
     "figures\\01_checkpoint_exact_accuracy_by_rollouts.png",
-    "figures\\02_checkpoint_partial_accuracy_by_rollouts.png"
+    "figures\\02_checkpoint_partial_accuracy_by_rollouts.png",
+    "figures\\03_train_reward_by_rollouts.png",
+    "figures\\04_extracted_none_by_rollouts.png"
   ]
 }

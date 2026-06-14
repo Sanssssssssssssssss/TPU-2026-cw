@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-06-13T23:38:19.020512+00:00",
+  "created_at": "2026-06-14T01:14:52.167127+00:00",
   "runs": [
     {
       "line": "R0",
@@ -13,7 +13,7 @@
       "checkpoint_archive_count": 23,
       "final_checkpoint_step": 3364,
       "final_checkpoint_exists": true,
-      "scalar_rows": 0,
+      "scalar_rows": 1127654,
       "errors": [],
       "warnings": [],
       "passed": true
@@ -41,7 +41,7 @@
       "checkpoint_archive_count": 23,
       "final_checkpoint_step": 841,
       "final_checkpoint_exists": true,
-      "scalar_rows": 0,
+      "scalar_rows": 721451,
       "errors": [],
       "warnings": [],
       "passed": true
@@ -69,7 +69,7 @@
       "checkpoint_archive_count": 23,
       "final_checkpoint_step": 841,
       "final_checkpoint_exists": true,
-      "scalar_rows": 0,
+      "scalar_rows": 719725,
       "errors": [],
       "warnings": [],
       "passed": true
@@ -86,7 +86,7 @@
       "checkpoint_archive_count": 23,
       "final_checkpoint_step": 841,
       "final_checkpoint_exists": true,
-      "scalar_rows": 0,
+      "scalar_rows": 730520,
       "errors": [],
       "warnings": [],
       "passed": true

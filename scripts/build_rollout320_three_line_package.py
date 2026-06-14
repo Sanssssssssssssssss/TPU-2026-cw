@@ -285,7 +285,7 @@ def canonical_metric_name(tag: str) -> str:
 def read_tensorboard_scalars(tensorboard_dir: Path, run: OfficialRun) -> list[dict[str, Any]]:
     event_accumulator = load_event_accumulator()
     if event_accumulator is None or not tensorboard_dir.exists():
-        return []
+        return read_scalar_pivot_fallback(tensorboard_dir, run)
     rows: list[dict[str, Any]] = []
     event_dirs = sorted({path.parent for path in tensorboard_dir.rglob("events.out.tfevents*")})
     for directory in event_dirs:
@@ -313,6 +313,47 @@ def read_tensorboard_scalars(tensorboard_dir: Path, run: OfficialRun) -> list[di
                         "value": float(event.value),
                     }
                 )
+    rows.sort(key=lambda row: (row["line"], row["metric"], row["step"], row["tag"]))
+    return rows
+
+
+def read_scalar_pivot_fallback(tensorboard_dir: Path, run: OfficialRun) -> list[dict[str, Any]]:
+    """Read compact sweep scalar tables when TensorBoard event parsing is unavailable."""
+    try:
+        run_dir = tensorboard_dir.parent.parent.parent
+    except IndexError:
+        return []
+    pivot_path = run_dir / "artifacts" / "sweep_analysis" / "tables" / "scalar_pivot.csv"
+    pivot_rows = read_csv_rows(pivot_path)
+    if not pivot_rows:
+        return []
+    metadata = {"step", "line", "line_label", "run_id", "branch", "num_generations", "rollouts_seen"}
+    rows: list[dict[str, Any]] = []
+    for raw in pivot_rows:
+        try:
+            step = int(float(raw.get("step") or 0))
+        except (TypeError, ValueError):
+            continue
+        for metric, value in raw.items():
+            if metric in metadata:
+                continue
+            number = metric_float(value)
+            if number is None:
+                continue
+            rows.append(
+                {
+                    "line": run.key,
+                    "run_id": run.run_id,
+                    "branch": run.branch,
+                    "legend": run.legend,
+                    "metric": metric,
+                    "tag": f"scalar_pivot/{metric}",
+                    "step": step,
+                    "rollouts_seen": step * run.num_generations,
+                    "wall_time": "",
+                    "value": number,
+                }
+            )
     rows.sort(key=lambda row: (row["line"], row["metric"], row["step"], row["tag"]))
     return rows
 

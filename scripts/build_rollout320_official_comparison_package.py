@@ -128,6 +128,77 @@ SERIES_COLORS = {
     "R4_format_lr1e6": "#C48B3D",
 }
 
+OFFICIAL_SCALAR_METRICS = {
+    "train_reward_score",
+    "eval_reward_score",
+    "train_kl",
+    "eval_kl",
+    "train_loss",
+    "eval_loss",
+    "train_official_numeric_exact_rate",
+    "train_format_accuracy",
+    "train_rollout_extracted_none_rate",
+    "train_rollout_empty_response_rate",
+    "train_grpo_frac_reward_zero_std",
+    "train_grpo_group_reward_std_mean",
+}
+
+REWARD_NATIVE_MAX = {
+    "baseline": 10.0,
+    "gsm8k_verifiable_simple": 1.2,
+    "gsm8k_verifiable_format": 1.8,
+}
+
+REWARD_MECHANISMS = {
+    "baseline": {
+        "native_max": 10.0,
+        "components": {
+            "match_format_exactly": 3.0,
+            "match_format_approximately": 2.5,
+            "check_answer": 3.0,
+            "check_numbers": 1.5,
+        },
+    },
+    "gsm8k_verifiable_simple": {
+        "native_max": 1.2,
+        "components": {
+            "gsm8k_simple_numeric": 1.0,
+            "gsm8k_simple_format": 0.2,
+        },
+    },
+    "gsm8k_verifiable_format": {
+        "native_max": 1.8,
+        "components": {
+            "gsm8k_simple_numeric": 1.0,
+            "gsm8k_simple_format": 0.2,
+            "reasoning_structure_format": 0.6,
+        },
+    },
+}
+
+
+def normalize_scalar_reward_rows(rows: list[dict[str, Any]], run: base.OfficialRun) -> list[dict[str, Any]]:
+    """Rewrite report-facing reward scalar values to the shared baseline 0-10 scale."""
+    native_max = REWARD_NATIVE_MAX[run.reward_mode]
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        updated = dict(row)
+        if updated.get("metric") in {"train_reward_score", "eval_reward_score"}:
+            native_value = base.metric_float(updated.get("value"))
+            updated["reward_mode"] = run.reward_mode
+            updated["reward_native_max"] = native_max
+            updated["reward_score_scale"] = "baseline_0_10"
+            if native_value is not None:
+                updated["value_native"] = native_value
+                updated["value"] = native_value / native_max * 10.0
+                updated["value_native_pct"] = native_value / native_max * 100.0
+        out.append(updated)
+    return out
+
+
+def compact_official_scalar_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [row for row in rows if row.get("metric") in OFFICIAL_SCALAR_METRICS]
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -208,7 +279,7 @@ def build_official_comparison_package(
         scalar_rows,
         "train_reward_score",
         "Train reward by aligned rollouts",
-        "TensorBoard scalar rows retained in tables/scalar_long_rollout_aligned.csv.",
+        "Report-facing reward values are rewritten to the shared baseline 0-10 scale; native values are retained as value_native.",
         output_dir / "figures" / "04_train_reward_by_rollouts.png",
     )
     base.plot_scalar_metric(
@@ -250,6 +321,18 @@ def build_official_comparison_package(
         "r1_status": "new R1 uses the current format-aware reward; old simple R1 is superseded and kept only as historical evidence.",
         "r3_status": "R3 changes only the Tunix GRPO advantage estimator from grpo to rloo.",
         "r4_selection_status": "R4_lr1e6 is the accuracy reference; format-aware R4 alternatives repair strict format reward before final R4 selection.",
+        "reward_score_policy": {
+            "report_primary_reward_values_are_rewritten": True,
+            "target_scale": "baseline_0_10",
+            "formula": "value = value_native / reward_native_max * 10.0 for train_reward_score and eval_reward_score rows",
+            "native_values_retained_as": "value_native",
+            "native_mechanisms": REWARD_MECHANISMS,
+        },
+        "scalar_table_policy": {
+            "tables/scalar_long_rollout_aligned.csv": "Compact long table with core metrics used by the official comparison figures.",
+            "full_width_scalar_tables": "See artifacts/reports/grpo-rollout320-report-figures-001/data/<line>/tensorboard_derived/scalar_pivot.csv.",
+            "included_metrics": sorted(OFFICIAL_SCALAR_METRICS),
+        },
         "lines": [
             {
                 "key": run.key,
@@ -288,6 +371,9 @@ def build_official_comparison_package(
         "R1 now uses the current format-aware reward, while the earlier simple-reward R1 is superseded. "
         "R3 changes only the advantage estimator from Tunix GRPO to RLOO. "
         "R4 currently has the lr1e-6 reference plus format-aware full-from-zero alternatives until final selection. "
+        "The primary reward scalar values in `tables/scalar_long_rollout_aligned.csv` are already on the shared baseline 0-10 scale; "
+        "native TensorBoard reward values are retained as `value_native`. "
+        "The official scalar long table is intentionally compact; full per-run scalar pivots live in the report-figures package. "
         "The original three-line evidence package is not overwritten. "
         "All comparison figures use `rollouts_seen`, not raw step.\n",
         encoding="utf-8",
@@ -321,9 +407,10 @@ def main() -> int:
             )
             continue
         status, ckpt_rows, scalar_rows = base.verify_one(run_dir, run)
+        scalar_rows = normalize_scalar_reward_rows(scalar_rows, run)
         statuses.append(status)
         all_ckpt_rows.extend(ckpt_rows)
-        all_scalar_rows.extend(scalar_rows)
+        all_scalar_rows.extend(compact_official_scalar_rows(scalar_rows))
         if status["passed"]:
             base.build_clean_report(run, args.reports_root / f"{run.run_id}-clean", status, ckpt_rows, scalar_rows)
 

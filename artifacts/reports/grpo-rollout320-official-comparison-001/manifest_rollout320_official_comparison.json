@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-06-13T23:38:20.917974+00:00",
+  "created_at": "2026-06-14T01:14:59.962912+00:00",
   "purpose": "Rollout-aligned official comparison package for R0/R1/R2/R3 and R4 alternatives.",
   "rollout_axis": "rollouts_seen = step * num_generations",
   "expected_rollouts": [
@@ -29,6 +29,56 @@
   "r1_status": "new R1 uses the current format-aware reward; old simple R1 is superseded and kept only as historical evidence.",
   "r3_status": "R3 changes only the Tunix GRPO advantage estimator from grpo to rloo.",
   "r4_selection_status": "R4_lr1e6 is the accuracy reference; format-aware R4 alternatives repair strict format reward before final R4 selection.",
+  "reward_score_policy": {
+    "report_primary_reward_values_are_rewritten": true,
+    "target_scale": "baseline_0_10",
+    "formula": "value = value_native / reward_native_max * 10.0 for train_reward_score and eval_reward_score rows",
+    "native_values_retained_as": "value_native",
+    "native_mechanisms": {
+      "baseline": {
+        "native_max": 10.0,
+        "components": {
+          "match_format_exactly": 3.0,
+          "match_format_approximately": 2.5,
+          "check_answer": 3.0,
+          "check_numbers": 1.5
+        }
+      },
+      "gsm8k_verifiable_simple": {
+        "native_max": 1.2,
+        "components": {
+          "gsm8k_simple_numeric": 1.0,
+          "gsm8k_simple_format": 0.2
+        }
+      },
+      "gsm8k_verifiable_format": {
+        "native_max": 1.8,
+        "components": {
+          "gsm8k_simple_numeric": 1.0,
+          "gsm8k_simple_format": 0.2,
+          "reasoning_structure_format": 0.6
+        }
+      }
+    }
+  },
+  "scalar_table_policy": {
+    "tables/scalar_long_rollout_aligned.csv": "Compact long table with core metrics used by the official comparison figures.",
+    "full_width_scalar_tables": "See artifacts/reports/grpo-rollout320-report-figures-001/data/<line>/tensorboard_derived/scalar_pivot.csv.",
+    "included_metrics": [
+      "eval_kl",
+      "eval_loss",
+      "eval_reward_score",
+      "train_format_accuracy",
+      "train_grpo_frac_reward_zero_std",
+      "train_grpo_group_reward_std_mean",
+      "train_kl",
+      "train_loss",
+      "train_official_numeric_exact_rate",
+      "train_reward_score",
+      "train_rollout_empty_response_rate",
+      "train_rollout_extracted_none_rate"
+    ]
+  },
   "lines": [
     {
       "key": "R0",
@@ -499,7 +549,7 @@
       "checkpoint_archive_count": 23,
       "final_checkpoint_step": 3364,
       "final_checkpoint_exists": true,
-      "scalar_rows": 0,
+      "scalar_rows": 1127654,
       "errors": [],
       "warnings": [],
       "passed": true
@@ -527,7 +577,7 @@
       "checkpoint_archive_count": 23,
       "final_checkpoint_step": 841,
       "final_checkpoint_exists": true,
-      "scalar_rows": 0,
+      "scalar_rows": 721451,
       "errors": [],
       "warnings": [],
       "passed": true
@@ -555,7 +605,7 @@
       "checkpoint_archive_count": 23,
       "final_checkpoint_step": 841,
       "final_checkpoint_exists": true,
-      "scalar_rows": 0,
+      "scalar_rows": 719725,
       "errors": [],
       "warnings": [],
       "passed": true
@@ -572,7 +622,7 @@
       "checkpoint_archive_count": 23,
       "final_checkpoint_step": 841,
       "final_checkpoint_exists": true,
-      "scalar_rows": 0,
+      "scalar_rows": 730520,
       "errors": [],
       "warnings": [],
       "passed": true

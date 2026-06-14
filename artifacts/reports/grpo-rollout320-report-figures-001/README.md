@@ -8,6 +8,8 @@ Lines:
 - R4 selected format-aware run: K=8, beta=0.04, lr=3e-6, 841 steps, 6,728 rollouts.
 
 All trend plots use `rollouts_seen = step * num_generations` on the x-axis.
+Report-facing `train_reward_score` and `eval_reward_score` are rewritten onto the shared baseline 0-10 reward scale.
+Original TensorBoard-derived native reward values are retained as `*_reward_score_native` and in each run's `data/<line>/tensorboard_derived/scalar_pivot_raw.csv`.
 Checkpoint plots contain exactly the 22 official rollout-aligned eval points.
 Compact TensorBoard-derived scalar tables, checkpoint evals, run manifests, run env files, and trace summaries are under `data/`.
 Very large local raw sources such as TensorBoard event files, scalar_metrics JSON, flat trace rows, and checkpoint archives are listed in `data_manifest.json` but omitted from Git.
@@ -15,7 +17,7 @@ Very large local raw sources such as TensorBoard event files, scalar_metrics JSO
 Figures:
 - `figures\00_contact_sheet.png` - Contact sheet. Quick visual index of all generated report figures.
 - `figures\01_training_reward_and_kl.png` - All selected runs: training reward and KL. Raw and smoothed training reward/KL traces.
-- `figures\01b_training_reward_scaled_to_native_max.png` - Training reward scaled to native maximum. Total reward scaled by each reward mechanism's theoretical maximum.
+- `figures\01b_training_reward_aligned_baseline_0_10.png` - Training reward on the unified report scale. Report-facing reward score on the shared baseline 0-10 reward range.
 - `figures\01c_all_runs_health_answer_quality.png` - All selected runs: answer quality and format health. All selected runs shown together for answer-quality diagnostics.
 - `figures\per_run\R0_reward_and_kl.png` - R0 reward and KL over GRPO training. Per-run total reward and KL with train/eval traces where available.
 - `figures\per_run\R0_health_answer_quality.png` - R0 rollout health and answer quality. Per-run numeric exact, format, empty response, and no-answer rates.

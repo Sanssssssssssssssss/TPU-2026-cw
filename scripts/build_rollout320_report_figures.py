@@ -58,6 +58,40 @@ REWARD_SCALE_MAX = {
     "gsm8k_verifiable_format": 1.8,
 }
 
+BASELINE_REWARD_SCALE = 10.0
+
+REWARD_MECHANISMS = {
+    "baseline": {
+        "native_max": 10.0,
+        "components": {
+            "match_format_exactly": 3.0,
+            "match_format_approximately": 2.5,
+            "check_answer": 3.0,
+            "check_numbers": 1.5,
+        },
+        "notes": "Original course reward: strict full-template format, approximate tag format, bracketed answer correctness, and numeric fallback.",
+    },
+    "gsm8k_verifiable_simple": {
+        "native_max": 1.2,
+        "components": {
+            "gsm8k_simple_numeric": 1.0,
+            "gsm8k_simple_format": 0.2,
+        },
+        "notes": "Numeric GSM8K-style correctness plus a small answer-tag helper.",
+    },
+    "gsm8k_verifiable_format": {
+        "native_max": 1.8,
+        "components": {
+            "gsm8k_simple_numeric": 1.0,
+            "gsm8k_simple_format": 0.2,
+            "reasoning_structure_format": 0.6,
+        },
+        "notes": "Current R1/R4 reward: numeric correctness, answer-tag helper, and explicit reasoning/answer envelope reward.",
+    },
+}
+
+REWARD_ALIGNMENT_FORMULA = "reward_score_report = reward_score_native / reward_native_max * 10.0"
+
 
 @dataclass(frozen=True)
 class RunSpec:
@@ -225,6 +259,7 @@ def load_scalar(run: RunSpec) -> pd.DataFrame:
     df["line_label"] = run.label
     df["num_generations"] = run.num_generations
     df["rollouts_seen"] = df["step"] * run.num_generations
+    df = normalize_reward_scores_for_report(df, run)
     return df.sort_values(["line", "step"])
 
 
@@ -249,6 +284,33 @@ def metric_series(df: pd.DataFrame, metric: str, run: RunSpec, percent: bool = F
     out["smooth"] = values.rolling(window=window, min_periods=min_periods, center=True).mean()
     out["smooth"] = out["smooth"].fillna(values.rolling(window=max(3, min_periods), min_periods=1).mean())
     return out[["rollouts_seen", "value", "smooth"]]
+
+
+def reward_native_max(run: RunSpec) -> float:
+    try:
+        return REWARD_SCALE_MAX[run.reward_mode]
+    except KeyError as exc:
+        raise KeyError(f"Unknown reward mode for scaling: {run.reward_mode}") from exc
+
+
+def normalize_reward_scores_for_report(df: pd.DataFrame, run: RunSpec) -> pd.DataFrame:
+    """Rewrite report-facing reward score columns to the shared baseline 0-10 scale."""
+    out = df.copy()
+    native_max = reward_native_max(run)
+    out["reward_mode"] = run.reward_mode
+    out["reward_native_max"] = native_max
+    out["reward_score_scale"] = "baseline_0_10"
+    for prefix in ("train", "eval"):
+        source = f"{prefix}_reward_score"
+        if source not in out.columns:
+            continue
+        raw = pd.to_numeric(out[source], errors="coerce")
+        out[f"{prefix}_reward_score_native"] = raw
+        out[source] = raw / native_max * BASELINE_REWARD_SCALE
+        out[f"{prefix}_reward_score_native_max"] = native_max
+        out[f"{prefix}_reward_score_native_pct"] = raw / native_max * 100.0
+        out[f"{prefix}_reward_native_max"] = native_max
+    return out
 
 
 def plot_raw_and_smooth(ax: plt.Axes, data: pd.DataFrame, run: RunSpec, label: str | None = None) -> None:
@@ -323,14 +385,11 @@ def annotate_peak_latest(
 
 
 def scaled_reward_series(df: pd.DataFrame, run: RunSpec) -> pd.DataFrame:
-    data = metric_series(df, "train_reward_score", run)
-    if data.empty:
-        return data
-    max_reward = REWARD_SCALE_MAX[run.reward_mode]
-    out = data.copy()
-    out["value"] = out["value"] / max_reward * 100.0
-    out["smooth"] = out["smooth"] / max_reward * 100.0
-    return out
+    return metric_series(df, "train_reward_score_native_pct", run)
+
+
+def aligned_reward_series(df: pd.DataFrame, run: RunSpec) -> pd.DataFrame:
+    return metric_series(df, "train_reward_score", run)
 
 
 def figure_run_health_panel(run: RunSpec, df: pd.DataFrame, manifest: list[dict[str, str]]) -> None:
@@ -404,7 +463,7 @@ def figure_all_health_panel(scalars: dict[str, pd.DataFrame], manifest: list[dic
 
 def figure_run_reward_kl(run: RunSpec, df: pd.DataFrame, manifest: list[dict[str, str]]) -> None:
     title = f"{run.key} reward and KL over GRPO training"
-    subtitle = "Faint lines are raw TensorBoard-derived step values; solid lines are rollout-aligned moving averages."
+    subtitle = "Report reward columns are rewritten to the shared baseline 0-10 scale; solid lines are rollout-aligned moving averages."
     fig, axes = plt.subplots(2, 1, figsize=(11.2, 7.2), sharex=True)
     add_header(fig, title, subtitle)
 
@@ -424,7 +483,7 @@ def figure_run_reward_kl(run: RunSpec, df: pd.DataFrame, manifest: list[dict[str
                 xy=(0.98, 0.88 if "train" in label else 0.62),
             )
     axes[0].set_title("Reward score", loc="left", fontsize=12, fontweight="semibold", pad=6)
-    axes[0].set_ylabel("Reward score")
+    axes[0].set_ylabel("Reward score (baseline 0-10)")
     axes[0].axhline(0, color=TOKENS["axis"], linewidth=0.8)
     style_axes(axes[0])
     axes[0].legend(loc="upper left", frameon=True, facecolor="white", edgecolor=TOKENS["axis"], ncol=2)
@@ -464,11 +523,11 @@ def figure_run_reward_kl(run: RunSpec, df: pd.DataFrame, manifest: list[dict[str
 
 def figure_reward_kl(scalars: dict[str, pd.DataFrame], manifest: list[dict[str, str]]) -> None:
     title = "All selected runs: training reward and KL"
-    subtitle = "Native training reward scale and KL to reference; faint traces are raw steps, solid lines are rollout-aligned moving averages."
+    subtitle = "Reward score is rewritten to the shared baseline 0-10 scale; faint traces are step values and solid lines are moving averages."
     fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.2), sharex=True)
     add_header(fig, title, subtitle)
     for ax, metric, ylabel in [
-        (axes[0], "train_reward_score", "Mean total reward"),
+        (axes[0], "train_reward_score", "Mean total reward (baseline 0-10)"),
         (axes[1], "train_kl", "KL to reference"),
     ]:
         for run in RUNS:
@@ -487,22 +546,22 @@ def figure_reward_kl(scalars: dict[str, pd.DataFrame], manifest: list[dict[str, 
 
 
 def figure_scaled_reward(scalars: dict[str, pd.DataFrame], manifest: list[dict[str, str]]) -> None:
-    title = "Training reward scaled to native maximum"
-    subtitle = "Each total reward is divided by that reward mechanism's theoretical maximum: baseline=10.0, simple=1.2, format-aware=1.8."
+    title = "Training reward on the unified report scale"
+    subtitle = "Same report-facing reward field used in source CSVs: baseline native reward remains unchanged; other modes are rewritten onto 0-10."
     fig, ax = plt.subplots(figsize=(11.2, 4.6))
     add_header(fig, title, subtitle)
     for run in RUNS:
-        data = scaled_reward_series(scalars[run.key], run)
+        data = aligned_reward_series(scalars[run.key], run)
         if not data.empty:
             ax.plot(data["rollouts_seen"], data["smooth"], color=COLORS[run.key], linewidth=1.9, label=run.label)
-    style_axes(ax, percent=True)
+    style_axes(ax)
     ax.set_xlabel("Generated rollouts")
-    ax.set_ylabel("Reward / native max (%)")
+    ax.set_ylabel("Aligned reward (baseline 0-10)")
     ax.set_xlim(0, 6800)
     ax.axhline(0, color=TOKENS["axis"], linewidth=0.8)
     ax.legend(loc="upper left", frameon=True, facecolor="white", edgecolor=TOKENS["axis"], ncol=1)
     fig.subplots_adjust(top=0.80)
-    save_figure(fig, "01b_training_reward_scaled_to_native_max", manifest, title, "Total reward scaled by each reward mechanism's theoretical maximum.")
+    save_figure(fig, "01b_training_reward_aligned_baseline_0_10", manifest, title, "Report-facing reward score on the shared baseline 0-10 reward range.")
 
 
 def plot_checkpoint_metric(
@@ -881,6 +940,48 @@ def copy_file_if_exists(src: Path, dst: Path) -> dict[str, str] | None:
     }
 
 
+def write_aligned_scalar_bundle(run: RunSpec, dst_dir: Path) -> list[dict[str, str]]:
+    source = run.sweep_tables / "scalar_pivot.csv"
+    copied: list[dict[str, str]] = []
+    if not source.is_file():
+        return copied
+
+    raw_target = dst_dir / "scalar_pivot_raw.csv"
+    aligned_target = dst_dir / "scalar_pivot.csv"
+    raw_target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, raw_target)
+    copied.append(
+        {
+            "source": str(source.relative_to(REPO)),
+            "package_path": str(raw_target.relative_to(OUT_DIR)),
+            "size_bytes": str(source.stat().st_size),
+            "role": "raw_tensorboard_derived_scalar_pivot",
+        }
+    )
+
+    aligned = pd.read_csv(source)
+    aligned["step"] = pd.to_numeric(aligned["step"], errors="coerce")
+    aligned = aligned[aligned["step"].notna()].copy()
+    aligned["step"] = aligned["step"].astype(int)
+    aligned["line"] = run.key
+    aligned["line_label"] = run.label
+    aligned["run_id"] = run.run_id
+    aligned["branch"] = run.branch
+    aligned["num_generations"] = run.num_generations
+    aligned["rollouts_seen"] = aligned["step"] * run.num_generations
+    aligned = normalize_reward_scores_for_report(aligned, run)
+    aligned.to_csv(aligned_target, index=False)
+    copied.append(
+        {
+            "source": str(source.relative_to(REPO)),
+            "package_path": str(aligned_target.relative_to(OUT_DIR)),
+            "size_bytes": str(aligned_target.stat().st_size),
+            "role": "report_primary_scalar_pivot_reward_scores_rewritten_to_baseline_0_10",
+        }
+    )
+    return copied
+
+
 def collect_omitted_large_sources(run: RunSpec) -> list[dict[str, str]]:
     patterns = [
         "runs/*/tensorboard/events.out.tfevents*",
@@ -912,6 +1013,17 @@ def copy_web_readable_sources() -> None:
         "purpose": "Web-readable GRPO report data bundle. Contains plots plus compact TensorBoard-derived CSV/JSON tables.",
         "selected_runs": [run.key for run in RUNS],
         "rollout_axis": "rollouts_seen = step * num_generations",
+        "reward_alignment": {
+            "target": "baseline_0_10",
+            "formula": REWARD_ALIGNMENT_FORMULA,
+            "report_primary_reward_columns_are_rewritten": True,
+            "raw_native_values_are_retained_as": [
+                "train_reward_score_native",
+                "eval_reward_score_native",
+                "tensorboard_derived/scalar_pivot_raw.csv",
+            ],
+            "native_mechanisms": REWARD_MECHANISMS,
+        },
         "included_files": [],
         "omitted_large_local_sources": [],
     }
@@ -920,12 +1032,7 @@ def copy_web_readable_sources() -> None:
 
     for run in RUNS:
         run_dir = OUT_DIR / "data" / run.key
-        included_file = copy_file_if_exists(
-            run.sweep_tables / "scalar_pivot.csv",
-            run_dir / "tensorboard_derived" / "scalar_pivot.csv",
-        )
-        if included_file:
-            included.append(included_file)
+        included.extend(write_aligned_scalar_bundle(run, run_dir / "tensorboard_derived"))
         included_file = copy_file_if_exists(
             run.sweep_tables / "trace_audit_by_call.csv",
             run_dir / "trace" / "trace_audit_by_call.csv",
@@ -964,6 +1071,10 @@ def copy_web_readable_sources() -> None:
     data_manifest["included_files"] = included
     data_manifest["omitted_large_local_sources"] = omitted
     (OUT_DIR / "data_manifest.json").write_text(json.dumps(data_manifest, indent=2), encoding="utf-8")
+    (OUT_DIR / "reward_alignment_manifest.json").write_text(
+        json.dumps(data_manifest["reward_alignment"], indent=2),
+        encoding="utf-8",
+    )
 
 
 def write_manifest(manifest_rows: list[dict[str, str]]) -> None:
@@ -984,6 +1095,8 @@ def write_manifest(manifest_rows: list[dict[str, str]]) -> None:
         "- R4 selected format-aware run: K=8, beta=0.04, lr=3e-6, 841 steps, 6,728 rollouts.",
         "",
         "All trend plots use `rollouts_seen = step * num_generations` on the x-axis.",
+        "Report-facing `train_reward_score` and `eval_reward_score` are rewritten onto the shared baseline 0-10 reward scale.",
+        "Original TensorBoard-derived native reward values are retained as `*_reward_score_native` and in each run's `data/<line>/tensorboard_derived/scalar_pivot_raw.csv`.",
         "Checkpoint plots contain exactly the 22 official rollout-aligned eval points.",
         "Compact TensorBoard-derived scalar tables, checkpoint evals, run manifests, run env files, and trace summaries are under `data/`.",
         "Very large local raw sources such as TensorBoard event files, scalar_metrics JSON, flat trace rows, and checkpoint archives are listed in `data_manifest.json` but omitted from Git.",

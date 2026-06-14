@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-06-13T23:38:16.275631+00:00",
+  "created_at": "2026-06-14T01:14:21.745193+00:00",
   "run": {
     "line": "R2",
     "run_id": "r2-k8-beta004-rollout320-full-001",
@@ -12,7 +12,7 @@
     "checkpoint_archive_count": 23,
     "final_checkpoint_step": 841,
     "final_checkpoint_exists": true,
-    "scalar_rows": 0,
+    "scalar_rows": 721451,
     "errors": [],
     "warnings": [],
     "passed": true
@@ -23,6 +23,8 @@
   ],
   "figures": [
     "figures\\01_checkpoint_exact_accuracy_by_rollouts.png",
-    "figures\\02_checkpoint_partial_accuracy_by_rollouts.png"
+    "figures\\02_checkpoint_partial_accuracy_by_rollouts.png",
+    "figures\\03_train_reward_by_rollouts.png",
+    "figures\\04_extracted_none_by_rollouts.png"
   ]
 }
