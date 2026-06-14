@@ -34,6 +34,8 @@ Local Google TPU VM orchestrator for the GRPO baseline workflow.
 .\cloud\submit_tpu_job.ps1 submit-r1-format-rollout320-full -RunId r1-format-rollout320-full-001
 .\cloud\submit_tpu_job.ps1 submit-r2-k8-beta004-rollout320-full -RunId r2-k8-beta004-rollout320-full-001
 .\cloud\submit_tpu_job.ps1 submit-r3-loo-advantage-rollout320-full -RunId r3-loo-advantage-rollout320-full-001
+.\cloud\submit_tpu_job.ps1 submit-r5-lora-r16-rollout320-full -RunId r5-lora-r16-rollout320-full-001
+.\cloud\submit_tpu_job.ps1 submit-r6-lora-r32-rollout320-full -RunId r6-lora-r32-rollout320-full-001
 .\cloud\submit_tpu_job.ps1 submit-r12-rollout320-lr1e6-full -RunId r4-r12-full-rollout320-lr1e6-001
 .\cloud\submit_tpu_job.ps1 submit-r4-rollout320-lr3e6-full -RunId r4-r12-full-rollout320-lr3e6-001
 .\cloud\submit_tpu_job.ps1 submit-r4-rollout320-lr3e6-format-full -RunId r4-r12-format-rollout320-lr3e6-001
@@ -63,7 +65,7 @@ Local Google TPU VM orchestrator for the GRPO baseline workflow.
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("preflight", "ensure-tpu", "ensure-storage", "bootstrap", "submit-baseline", "submit-reward-sweep", "submit-reward-continuation", "submit-candidate-eval", "submit-reward-dense", "submit-r7-large-eval", "submit-r12-best-large-eval", "submit-reward-r9", "submit-reward-r10", "submit-k8-pilot", "submit-k8-r10-only", "submit-k8-r11-fallback-only", "submit-k8-r12-simple-only", "submit-k8-r12-simple-full", "submit-baseline-rollout320-full", "submit-reward-only-rollout320-full", "submit-r1-format-rollout320-full", "submit-r2-k8-beta004-rollout320-full", "submit-r3-loo-advantage-rollout320-full", "submit-r12-rollout320-lr1e6-full", "submit-r4-rollout320-lr3e6-full", "submit-r4-rollout320-lr3e6-format-full", "submit-r4-rollout320-lr1e6-format-full", "submit-reward-only-r12-full", "submit-reward-only-r12-complete-from500", "submit-r12-non-r64-pilot", "submit-r12-lora-public-tuning", "submit-r12-r64-beta-clip-tuning", "submit-r12-r64-small-beta-tuning", "submit-r12-tail-stability", "submit-r12-tail-lr5e7", "submit-r12-tail-lr3e7", "submit-r12-tail-lr3e6-cos-g512", "submit-r12-high-rank-pilot", "submit-r12-high-rank-alpha64-only", "submit-r12-r64-lr-smoothing", "submit-r12-public-strong-tuning", "submit-k8-public-beta", "submit-k8-r13-public-beta-only", "submit-k8-r14-public-beta-only", "eval-checkpoints", "status", "status-sweep", "status-continuation", "status-candidate-eval", "status-reward-dense", "status-r7-large-eval", "status-r12-best-large-eval", "status-reward-r9", "status-reward-r10", "status-k8-pilot", "resume-k8-pilot", "stop-reward-r10", "stop-k8-pilot", "repair-k8-pilot-manifest", "fetch", "fetch-sweep", "fetch-continuation", "fetch-candidate-eval", "fetch-reward-dense", "fetch-r7-large-eval", "fetch-r12-best-large-eval", "fetch-reward-r9", "fetch-reward-r10", "fetch-k8-pilot", "sync-storage", "restore-cache", "start-tpu", "stop-tpu", "delete-tpu")]
+    [ValidateSet("preflight", "ensure-tpu", "ensure-storage", "bootstrap", "submit-baseline", "submit-reward-sweep", "submit-reward-continuation", "submit-candidate-eval", "submit-reward-dense", "submit-r7-large-eval", "submit-r12-best-large-eval", "submit-reward-r9", "submit-reward-r10", "submit-k8-pilot", "submit-k8-r10-only", "submit-k8-r11-fallback-only", "submit-k8-r12-simple-only", "submit-k8-r12-simple-full", "submit-baseline-rollout320-full", "submit-reward-only-rollout320-full", "submit-r1-format-rollout320-full", "submit-r2-k8-beta004-rollout320-full", "submit-r3-loo-advantage-rollout320-full", "submit-r5-lora-r16-rollout320-full", "submit-r6-lora-r32-rollout320-full", "submit-r12-rollout320-lr1e6-full", "submit-r4-rollout320-lr3e6-full", "submit-r4-rollout320-lr3e6-format-full", "submit-r4-rollout320-lr1e6-format-full", "submit-reward-only-r12-full", "submit-reward-only-r12-complete-from500", "submit-r12-non-r64-pilot", "submit-r12-lora-public-tuning", "submit-r12-r64-beta-clip-tuning", "submit-r12-r64-small-beta-tuning", "submit-r12-tail-stability", "submit-r12-tail-lr5e7", "submit-r12-tail-lr3e7", "submit-r12-tail-lr3e6-cos-g512", "submit-r12-high-rank-pilot", "submit-r12-high-rank-alpha64-only", "submit-r12-r64-lr-smoothing", "submit-r12-public-strong-tuning", "submit-k8-public-beta", "submit-k8-r13-public-beta-only", "submit-k8-r14-public-beta-only", "eval-checkpoints", "status", "status-sweep", "status-continuation", "status-candidate-eval", "status-reward-dense", "status-r7-large-eval", "status-r12-best-large-eval", "status-reward-r9", "status-reward-r10", "status-k8-pilot", "resume-k8-pilot", "stop-reward-r10", "stop-k8-pilot", "repair-k8-pilot-manifest", "fetch", "fetch-sweep", "fetch-continuation", "fetch-candidate-eval", "fetch-reward-dense", "fetch-r7-large-eval", "fetch-r12-best-large-eval", "fetch-reward-r9", "fetch-reward-r10", "fetch-k8-pilot", "sync-storage", "restore-cache", "start-tpu", "stop-tpu", "delete-tpu")]
     [string]$Command = "preflight",
 
     [string]$RunId = ("baseline-" + (Get-Date -Format "yyyyMMdd-HHmmss")),
@@ -883,6 +885,32 @@ function Submit-R3LooAdvantageRollout320Full {
     }
 }
 
+function Submit-R5LoraR16Rollout320Full {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-r5-lora-r16-rollout320-full" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
+function Submit-R6LoraR32Rollout320Full {
+    Assert-RunId
+    $bundle = New-CodeBundle
+    try {
+        $runner = Upload-Runner
+        $remoteBundle = Upload-Bundle $bundle
+        $remoteSecrets = Upload-SecretsIfPresent
+        Invoke-RemoteRunner $runner "submit-r6-lora-r32-rollout320-full" $remoteBundle $remoteSecrets
+    } finally {
+        Remove-CodeBundle $bundle
+    }
+}
+
 function Submit-R12Rollout320Lr1e6Full {
     Assert-RunId
     $bundle = New-CodeBundle
@@ -1526,6 +1554,8 @@ switch ($Command) {
     "submit-r1-format-rollout320-full" { Submit-R1FormatRollout320Full }
     "submit-r2-k8-beta004-rollout320-full" { Submit-R2K8Beta004Rollout320Full }
     "submit-r3-loo-advantage-rollout320-full" { Submit-R3LooAdvantageRollout320Full }
+    "submit-r5-lora-r16-rollout320-full" { Submit-R5LoraR16Rollout320Full }
+    "submit-r6-lora-r32-rollout320-full" { Submit-R6LoraR32Rollout320Full }
     "submit-r12-rollout320-lr1e6-full" { Submit-R12Rollout320Lr1e6Full }
     "submit-r4-rollout320-lr3e6-full" { Submit-R4Rollout320Lr3e6Full }
     "submit-r4-rollout320-lr3e6-format-full" { Submit-R4Rollout320Lr3e6FormatFull }

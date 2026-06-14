@@ -43,6 +43,8 @@ Usage:
   remote_tpu_runner.sh submit-r3-loo-advantage-rollout320-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
   remote_tpu_runner.sh submit-r2-k8-beta004-rollout320-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
   remote_tpu_runner.sh submit-r12-rollout320-lr1e6-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
+  remote_tpu_runner.sh submit-r5-lora-r16-rollout320-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
+  remote_tpu_runner.sh submit-r6-lora-r32-rollout320-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
   remote_tpu_runner.sh submit-reward-only-r12-full --run-id RUN --bundle /path/code.zip [--secrets /path/.env] [--tiny-smoke]
   remote_tpu_runner.sh submit-reward-only-r12-complete-from500 --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
   remote_tpu_runner.sh submit-r12-tail-stability --run-id RUN --bundle /path/code.zip [--secrets /path/.env]
@@ -2337,6 +2339,56 @@ submit_r3_loo_advantage_rollout320_full() {
   echo "Log: $RUN_DIR/pipeline.log"
 }
 
+submit_r5_lora_r16_rollout320_full() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R5_lora_r16_rollout320:baseline:0.08:3e-6:16:16:0.2:grpo"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  local rollout_steps="320 640 960 1280 1600 1920 2240 2560 2880 3200 3520 3840 4160 4480 4800 5120 5440 5760 6080 6400 6720 6728"
+  local checkpoint_steps="160 320 480 640 800 960 1120 1280 1440 1600 1760 1920 2080 2240 2400 2560 2720 2880 3040 3200 3360 3364"
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_ROLLOUT_CHECKPOINT_INTERVAL=320 K8_CHECKPOINT_ROLLOUTS='$rollout_steps' K8_MAX_STEPS=3364 K8_LR_SCHEDULE_STEPS=3364 K8_WARMUP_STEPS=336.4 K8_CHECKPOINT_STEPS='$checkpoint_steps' K8_MAX_TO_KEEP=30 K8_SAVE_INTERVAL_STEPS=160 K8_EVAL_EVERY_N_STEPS=160 K8_OBS_TRACE_EVERY_N_STEPS=1 K8_OBS_TRACE_MAX_ROWS=8192 K8_NUM_GENERATIONS=2 K8_BETA=0.08 K8_LEARNING_RATE=3e-6 K8_RANK=16 K8_ALPHA=16 K8_EPSILON=0.2 K8_GRPO_ADVANTAGE_ESTIMATOR=grpo bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- R5 LoRA rank16 rollout320 full exited (\$status) ---\"; exec bash"
+  echo "Started R5 LoRA rank16 rollout320 full run. Attach with: tmux attach -t $session"
+  echo "Rollout checkpoints: $rollout_steps"
+  echo "Checkpoint steps: $checkpoint_steps"
+  echo "LoRA rank/alpha: 16/16"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
+submit_r6_lora_r32_rollout320_full() {
+  require_run_id
+  unpack_bundle
+  install_secrets
+  bootstrap_env
+  check_tpu_backend
+  write_k8_pilot_script "R6_lora_r32_rollout320:baseline:0.08:3e-6:32:32:0.2:grpo"
+
+  local session="tpu-k8-${RUN_ID//./-}"
+  if tmux has-session -t "$session" 2>/dev/null; then
+    echo "tmux session $session already exists; not starting a duplicate." >&2
+    exit 1
+  fi
+
+  local rollout_steps="320 640 960 1280 1600 1920 2240 2560 2880 3200 3520 3840 4160 4480 4800 5120 5440 5760 6080 6400 6720 6728"
+  local checkpoint_steps="160 320 480 640 800 960 1120 1280 1440 1600 1760 1920 2080 2240 2400 2560 2720 2880 3040 3200 3360 3364"
+  echo "==> Starting tmux session $session"
+  tmux new-session -d -s "$session" "K8_ROLLOUT_CHECKPOINT_INTERVAL=320 K8_CHECKPOINT_ROLLOUTS='$rollout_steps' K8_MAX_STEPS=3364 K8_LR_SCHEDULE_STEPS=3364 K8_WARMUP_STEPS=336.4 K8_CHECKPOINT_STEPS='$checkpoint_steps' K8_MAX_TO_KEEP=30 K8_SAVE_INTERVAL_STEPS=160 K8_EVAL_EVERY_N_STEPS=160 K8_OBS_TRACE_EVERY_N_STEPS=1 K8_OBS_TRACE_MAX_ROWS=8192 K8_NUM_GENERATIONS=2 K8_BETA=0.08 K8_LEARNING_RATE=3e-6 K8_RANK=32 K8_ALPHA=32 K8_EPSILON=0.2 K8_GRPO_ADVANTAGE_ESTIMATOR=grpo bash '$RUN_DIR/run_k8_pilot.sh' 2>&1 | tee -a '$RUN_DIR/pipeline.log'; status=\${PIPESTATUS[0]}; echo; echo \"--- R6 LoRA rank32 rollout320 full exited (\$status) ---\"; exec bash"
+  echo "Started R6 LoRA rank32 rollout320 full run. Attach with: tmux attach -t $session"
+  echo "Rollout checkpoints: $rollout_steps"
+  echo "Checkpoint steps: $checkpoint_steps"
+  echo "LoRA rank/alpha: 32/32"
+  echo "Log: $RUN_DIR/pipeline.log"
+}
+
 submit_r12_rollout320_lr1e6_full() {
   require_run_id
   unpack_bundle
@@ -3944,6 +3996,12 @@ case "$COMMAND" in
     ;;
   submit-r3-loo-advantage-rollout320-full)
     submit_r3_loo_advantage_rollout320_full
+    ;;
+  submit-r5-lora-r16-rollout320-full)
+    submit_r5_lora_r16_rollout320_full
+    ;;
+  submit-r6-lora-r32-rollout320-full)
+    submit_r6_lora_r32_rollout320_full
     ;;
   submit-r12-rollout320-lr1e6-full)
     submit_r12_rollout320_lr1e6_full
