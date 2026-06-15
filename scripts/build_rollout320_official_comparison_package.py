@@ -1,7 +1,7 @@
-"""Package rollout320 official lines plus R4 alternatives.
+"""Package the final rollout320 official GRPO lines.
 
-This keeps the original three-line package immutable while adding the official
-R2/R3/LoRA-rank lines and side-by-side R4 alternatives for final selection.
+The final evidence package contains only R0-R6. Historical exploration runs are
+kept outside this submission-facing package.
 """
 
 from __future__ import annotations
@@ -75,21 +75,7 @@ RUNS = [
         advantage_estimator="rloo",
     ),
     base.OfficialRun(
-        key="R4_lr1e6",
-        run_id="r4-r12-full-rollout320-lr1e6-001",
-        branch="R4_r12_full_lr1e-6_rollout320",
-        legend="R4 full-from-zero lr1e-6 dense32-rollout",
-        reward_mode="gsm8k_verifiable_simple",
-        num_generations=8,
-        max_steps=841,
-        checkpoint_steps=base.EXPECTED_K8_STEPS,
-        learning_rate="1e-6",
-        beta="0.04",
-        rank="64",
-        alpha="64",
-    ),
-    base.OfficialRun(
-        key="R4_format_lr3e6",
+        key="R4",
         run_id="r4-r12-format-rollout320-lr3e6-001",
         branch="R4_r12_format_lr3e-6_rollout320",
         legend="R4 format-aware full-from-zero lr3e-6 dense32-rollout",
@@ -137,8 +123,7 @@ SERIES_COLORS = {
     "R1": "#CC6F47",
     "R2": "#4B9A62",
     "R3": "#BD569B",
-    "R4_lr1e6": "#5477C4",
-    "R4_format_lr3e6": "#8B6BBE",
+    "R4": "#3B6EDB",
     "R5": "#2AA198",
     "R6": "#D97706",
 }
@@ -215,6 +200,23 @@ def compact_official_scalar_rows(rows: list[dict[str, Any]]) -> list[dict[str, A
     return [row for row in rows if row.get("metric") in OFFICIAL_SCALAR_METRICS]
 
 
+def build_clean_report_if_unlocked(
+    run: base.OfficialRun,
+    report_dir: Path,
+    status: dict[str, Any],
+    ckpt_rows: list[dict[str, Any]],
+    scalar_rows: list[dict[str, Any]],
+) -> None:
+    try:
+        base.build_clean_report(run, report_dir, status, ckpt_rows, scalar_rows)
+    except PermissionError as exc:
+        if not report_dir.exists():
+            raise
+        status.setdefault("warnings", []).append(
+            f"kept existing clean report because Windows could not replace {report_dir}: {exc}"
+        )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cloud-root", type=Path, default=Path("artifacts/cloud"))
@@ -273,7 +275,7 @@ def build_official_comparison_package(
         ckpt_rows,
         "accuracy",
         "Checkpoint exact accuracy by aligned rollouts",
-        "R0/R1/R2/R3/R5/R6 official lines plus R4 alternatives; x-axis is generated rollouts.",
+        "Final R0-R6 official lines; x-axis is generated rollouts.",
         output_dir / "figures" / "01_checkpoint_exact_accuracy_by_rollouts.png",
     )
     base.plot_checkpoint_metric(
@@ -330,12 +332,12 @@ def build_official_comparison_package(
 
     manifest = {
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "purpose": "Rollout-aligned official comparison package for R0/R1/R2/R3/R5/R6 and R4 alternatives.",
+        "purpose": "Rollout-aligned official comparison package for the final R0-R6 lines.",
         "rollout_axis": "rollouts_seen = step * num_generations",
         "expected_rollouts": base.EXPECTED_ROLLOUTS,
         "r1_status": "new R1 uses the current format-aware reward; old simple R1 is superseded and kept only as historical evidence.",
         "r3_status": "R3 changes only the Tunix GRPO advantage estimator from grpo to rloo.",
-        "r4_selection_status": "R4_lr1e6 is the accuracy reference; format-aware R4 alternatives repair strict format reward before final R4 selection.",
+        "r4_selection_status": "Final R4 is the format-aware full-from-zero lr3e-6 run; the older lr1e-6 simple-reward run is excluded from this package.",
         "lora_rank_status": "R5 and R6 compare against R0 by changing only LoRA rank/alpha to 16/16 and 32/32 respectively.",
         "reward_score_policy": {
             "report_primary_reward_values_are_rewritten": True,
@@ -352,14 +354,8 @@ def build_official_comparison_package(
         "lines": [
             {
                 "key": run.key,
-                "slot": "R4" if run.key.startswith("R4_") else run.key,
-                "selection_status": (
-                    "current_r4_reference"
-                    if run.key == "R4_lr1e6"
-                    else "r4_candidate"
-                    if run.key.startswith("R4_format_")
-                    else "official_fixed"
-                ),
+                "slot": run.key,
+                "selection_status": "official_fixed",
                 "run_id": run.run_id,
                 "branch": run.branch,
                 "legend": run.legend,
@@ -383,11 +379,11 @@ def build_official_comparison_package(
     (output_dir / "manifest_rollout320_official_comparison.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     (output_dir / "README.md").write_text(
         "# GRPO Rollout320 Official Comparison\n\n"
-        "This package compares fixed official R0/R1/R2/R3/R5/R6 lines and the R4 slot. "
+        "This package compares the final official R0-R6 lines. "
         "R1 now uses the current format-aware reward, while the earlier simple-reward R1 is superseded. "
         "R3 changes only the advantage estimator from Tunix GRPO to RLOO. "
         "R5 and R6 change only LoRA rank/alpha relative to R0 baseline. "
-        "R4 currently has the lr1e-6 reference plus format-aware full-from-zero alternatives until final selection. "
+        "R4 is the selected format-aware K=8 full-from-zero run with lr=3e-6. "
         "The primary reward scalar values in `tables/scalar_long_rollout_aligned.csv` are already on the shared baseline 0-10 scale; "
         "native TensorBoard reward values are retained as `value_native`. "
         "The official scalar long table is intentionally compact; full per-run scalar pivots live in the report-figures package. "
@@ -429,7 +425,13 @@ def main() -> int:
         all_ckpt_rows.extend(ckpt_rows)
         all_scalar_rows.extend(compact_official_scalar_rows(scalar_rows))
         if status["passed"]:
-            base.build_clean_report(run, args.reports_root / f"{run.run_id}-clean", status, ckpt_rows, scalar_rows)
+            build_clean_report_if_unlocked(
+                run,
+                args.reports_root / f"{run.run_id}-clean",
+                status,
+                ckpt_rows,
+                scalar_rows,
+            )
 
     args.output_dir.parent.mkdir(parents=True, exist_ok=True)
     verification_path = args.output_dir.parent / "grpo-rollout320-official-comparison-verification.json"

@@ -21,6 +21,8 @@ dist/
 
 # datasets (downloaded by the notebook from kaggle/tfds at runtime)
 data/
+!artifacts/reports/grpo-rollout320-report-figures-001/data/
+!artifacts/reports/grpo-rollout320-report-figures-001/data/**
 
 # run artifacts (checkpoints, wandb local cache, log files)
 ckpts_backup/
@@ -34,6 +36,9 @@ artifacts/checkpoint_eval/
 artifacts/analysis/
 artifacts/*.txt
 artifacts/_archive_noncanonical_*/
+artifacts/reports/*-clean/
+images/
+_unused_local_archive/
 
 # local cloud orchestration config
 cloud/tpu_config.local.ps1

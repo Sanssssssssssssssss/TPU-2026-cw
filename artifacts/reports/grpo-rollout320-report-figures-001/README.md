@@ -31,8 +31,8 @@ Figures:
 - `figures\per_run\R2_health_answer_quality.png` - R2 rollout health and answer quality. Per-run numeric exact, format, empty response, and no-answer rates.
 - `figures\per_run\R3_reward_and_kl.png` - R3 reward and KL over GRPO training. Per-run total reward and KL with train/eval traces where available.
 - `figures\per_run\R3_health_answer_quality.png` - R3 rollout health and answer quality. Per-run numeric exact, format, empty response, and no-answer rates.
-- `figures\per_run\R4_format_lr3e6_reward_and_kl.png` - R4_format_lr3e6 reward and KL over GRPO training. Per-run total reward and KL with train/eval traces where available.
-- `figures\per_run\R4_format_lr3e6_health_answer_quality.png` - R4_format_lr3e6 rollout health and answer quality. Per-run numeric exact, format, empty response, and no-answer rates.
+- `figures\per_run\R4_reward_and_kl.png` - R4 reward and KL over GRPO training. Per-run total reward and KL with train/eval traces where available.
+- `figures\per_run\R4_health_answer_quality.png` - R4 rollout health and answer quality. Per-run numeric exact, format, empty response, and no-answer rates.
 - `figures\per_run\R5_reward_and_kl.png` - R5 reward and KL over GRPO training. Per-run total reward and KL with train/eval traces where available.
 - `figures\per_run\R5_health_answer_quality.png` - R5 rollout health and answer quality. Per-run numeric exact, format, empty response, and no-answer rates.
 - `figures\per_run\R6_reward_and_kl.png` - R6 reward and KL over GRPO training. Per-run total reward and KL with train/eval traces where available.

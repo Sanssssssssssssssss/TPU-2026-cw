@@ -1,6 +1,6 @@
 {
-  "created_at": "2026-06-14T23:07:08.692889+00:00",
-  "purpose": "Rollout-aligned official comparison package for R0/R1/R2/R3/R5/R6 and R4 alternatives.",
+  "created_at": "2026-06-15T00:23:32.848322+00:00",
+  "purpose": "Rollout-aligned official comparison package for the final R0-R6 lines.",
   "rollout_axis": "rollouts_seen = step * num_generations",
   "expected_rollouts": [
     320,
@@ -28,7 +28,7 @@
   ],
   "r1_status": "new R1 uses the current format-aware reward; old simple R1 is superseded and kept only as historical evidence.",
   "r3_status": "R3 changes only the Tunix GRPO advantage estimator from grpo to rloo.",
-  "r4_selection_status": "R4_lr1e6 is the accuracy reference; format-aware R4 alternatives repair strict format reward before final R4 selection.",
+  "r4_selection_status": "Final R4 is the format-aware full-from-zero lr3e-6 run; the older lr1e-6 simple-reward run is excluded from this package.",
   "lora_rank_status": "R5 and R6 compare against R0 by changing only LoRA rank/alpha to 16/16 and 32/32 respectively.",
   "reward_score_policy": {
     "report_primary_reward_values_are_rewritten": true,
@@ -342,74 +342,9 @@
       "source_checkpoint": null
     },
     {
-      "key": "R4_lr1e6",
+      "key": "R4",
       "slot": "R4",
-      "selection_status": "current_r4_reference",
-      "run_id": "r4-r12-full-rollout320-lr1e6-001",
-      "branch": "R4_r12_full_lr1e-6_rollout320",
-      "legend": "R4 full-from-zero lr1e-6 dense32-rollout",
-      "reward_mode": "gsm8k_verifiable_simple",
-      "num_generations": 8,
-      "max_steps": 841,
-      "checkpoint_steps": [
-        40,
-        80,
-        120,
-        160,
-        200,
-        240,
-        280,
-        320,
-        360,
-        400,
-        440,
-        480,
-        520,
-        560,
-        600,
-        640,
-        680,
-        720,
-        760,
-        800,
-        840,
-        841
-      ],
-      "checkpoint_rollouts": [
-        320,
-        640,
-        960,
-        1280,
-        1600,
-        1920,
-        2240,
-        2560,
-        2880,
-        3200,
-        3520,
-        3840,
-        4160,
-        4480,
-        4800,
-        5120,
-        5440,
-        5760,
-        6080,
-        6400,
-        6720,
-        6728
-      ],
-      "learning_rate": "1e-6",
-      "beta": "0.04",
-      "rank": "64",
-      "alpha": "64",
-      "advantage_estimator": "grpo",
-      "source_checkpoint": null
-    },
-    {
-      "key": "R4_format_lr3e6",
-      "slot": "R4",
-      "selection_status": "r4_candidate",
+      "selection_status": "official_fixed",
       "run_id": "r4-r12-format-rollout320-lr3e6-001",
       "branch": "R4_r12_format_lr3e-6_rollout320",
       "legend": "R4 format-aware full-from-zero lr3e-6 dense32-rollout",
@@ -672,24 +607,7 @@
       "passed": true
     },
     {
-      "line": "R4_lr1e6",
-      "run_id": "r4-r12-full-rollout320-lr1e6-001",
-      "branch": "R4_r12_full_lr1e-6_rollout320",
-      "raw_dir": "artifacts\\cloud\\r4-r12-full-rollout320-lr1e6-001",
-      "manifest": "artifacts\\cloud\\r4-r12-full-rollout320-lr1e6-001\\artifacts\\reward_k8_pilot_manifest.json",
-      "run_env": "artifacts\\cloud\\r4-r12-full-rollout320-lr1e6-001\\runs\\R4_r12_full_lr1e-6_rollout320\\run_env.txt",
-      "checkpoint_eval_csv": "artifacts\\cloud\\r4-r12-full-rollout320-lr1e6-001\\runs\\R4_r12_full_lr1e-6_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
-      "checkpoint_eval_rows": 22,
-      "checkpoint_archive_count": 23,
-      "final_checkpoint_step": 841,
-      "final_checkpoint_exists": true,
-      "scalar_rows": 719725,
-      "errors": [],
-      "warnings": [],
-      "passed": true
-    },
-    {
-      "line": "R4_format_lr3e6",
+      "line": "R4",
       "run_id": "r4-r12-format-rollout320-lr3e6-001",
       "branch": "R4_r12_format_lr3e-6_rollout320",
       "raw_dir": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001",
@@ -770,7 +688,7 @@
       "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R0\\checkpoint_eval_summary.json"
     },
     {
-      "source": "artifacts\\reports\\_tmp_rollout320_official_clean\\baseline-rollout320-full-001-clean\\manifest_clean_plots.json",
+      "source": "artifacts\\reports\\baseline-rollout320-full-001-clean\\manifest_clean_plots.json",
       "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R0\\manifest_clean_plots.json"
     },
     {
@@ -798,7 +716,7 @@
       "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R1\\checkpoint_eval_summary.json"
     },
     {
-      "source": "artifacts\\reports\\_tmp_rollout320_official_clean\\r1-format-rollout320-full-001-clean\\manifest_clean_plots.json",
+      "source": "artifacts\\reports\\r1-format-rollout320-full-001-clean\\manifest_clean_plots.json",
       "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R1\\manifest_clean_plots.json"
     },
     {
@@ -826,7 +744,7 @@
       "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R2\\checkpoint_eval_summary.json"
     },
     {
-      "source": "artifacts\\reports\\_tmp_rollout320_official_clean\\r2-k8-beta004-rollout320-full-001-clean\\manifest_clean_plots.json",
+      "source": "artifacts\\reports\\r2-k8-beta004-rollout320-full-001-clean\\manifest_clean_plots.json",
       "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R2\\manifest_clean_plots.json"
     },
     {
@@ -854,64 +772,36 @@
       "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R3\\checkpoint_eval_summary.json"
     },
     {
-      "source": "artifacts\\reports\\_tmp_rollout320_official_clean\\r3-loo-advantage-rollout320-full-001-clean\\manifest_clean_plots.json",
+      "source": "artifacts\\reports\\r3-loo-advantage-rollout320-full-001-clean\\manifest_clean_plots.json",
       "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R3\\manifest_clean_plots.json"
     },
     {
-      "source": "artifacts\\cloud\\r4-r12-full-rollout320-lr1e6-001\\pipeline.log",
-      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4_lr1e6\\pipeline.log"
-    },
-    {
-      "source": "artifacts\\cloud\\r4-r12-full-rollout320-lr1e6-001\\checkpoint_archives.txt",
-      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4_lr1e6\\checkpoint_archives.txt"
-    },
-    {
-      "source": "artifacts\\cloud\\r4-r12-full-rollout320-lr1e6-001\\artifacts\\reward_k8_pilot_manifest.json",
-      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4_lr1e6\\reward_k8_pilot_manifest.json"
-    },
-    {
-      "source": "artifacts\\cloud\\r4-r12-full-rollout320-lr1e6-001\\runs\\R4_r12_full_lr1e-6_rollout320\\run_env.txt",
-      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4_lr1e6\\run_env.txt"
-    },
-    {
-      "source": "artifacts\\cloud\\r4-r12-full-rollout320-lr1e6-001\\runs\\R4_r12_full_lr1e-6_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
-      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4_lr1e6\\checkpoint_eval_summary.csv"
-    },
-    {
-      "source": "artifacts\\cloud\\r4-r12-full-rollout320-lr1e6-001\\runs\\R4_r12_full_lr1e-6_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.json",
-      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4_lr1e6\\checkpoint_eval_summary.json"
-    },
-    {
-      "source": "artifacts\\reports\\_tmp_rollout320_official_clean\\r4-r12-full-rollout320-lr1e6-001-clean\\manifest_clean_plots.json",
-      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4_lr1e6\\manifest_clean_plots.json"
-    },
-    {
       "source": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001\\pipeline.log",
-      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4_format_lr3e6\\pipeline.log"
+      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4\\pipeline.log"
     },
     {
       "source": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001\\checkpoint_archives.txt",
-      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4_format_lr3e6\\checkpoint_archives.txt"
+      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4\\checkpoint_archives.txt"
     },
     {
       "source": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001\\artifacts\\reward_k8_pilot_manifest.json",
-      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4_format_lr3e6\\reward_k8_pilot_manifest.json"
+      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4\\reward_k8_pilot_manifest.json"
     },
     {
       "source": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001\\runs\\R4_r12_format_lr3e-6_rollout320\\run_env.txt",
-      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4_format_lr3e6\\run_env.txt"
+      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4\\run_env.txt"
     },
     {
       "source": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001\\runs\\R4_r12_format_lr3e-6_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
-      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4_format_lr3e6\\checkpoint_eval_summary.csv"
+      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4\\checkpoint_eval_summary.csv"
     },
     {
       "source": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001\\runs\\R4_r12_format_lr3e-6_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.json",
-      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4_format_lr3e6\\checkpoint_eval_summary.json"
+      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4\\checkpoint_eval_summary.json"
     },
     {
-      "source": "artifacts\\reports\\_tmp_rollout320_official_clean\\r4-r12-format-rollout320-lr3e6-001-clean\\manifest_clean_plots.json",
-      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4_format_lr3e6\\manifest_clean_plots.json"
+      "source": "artifacts\\reports\\r4-r12-format-rollout320-lr3e6-001-clean\\manifest_clean_plots.json",
+      "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R4\\manifest_clean_plots.json"
     },
     {
       "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\pipeline.log",
@@ -938,7 +828,7 @@
       "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R5\\checkpoint_eval_summary.json"
     },
     {
-      "source": "artifacts\\reports\\_tmp_rollout320_official_clean\\r5-lora-r16-rollout320-full-001-clean\\manifest_clean_plots.json",
+      "source": "artifacts\\reports\\r5-lora-r16-rollout320-full-001-clean\\manifest_clean_plots.json",
       "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R5\\manifest_clean_plots.json"
     },
     {
@@ -966,7 +856,7 @@
       "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R6\\checkpoint_eval_summary.json"
     },
     {
-      "source": "artifacts\\reports\\_tmp_rollout320_official_clean\\r6-lora-r32-rollout320-full-002-clean\\manifest_clean_plots.json",
+      "source": "artifacts\\reports\\r6-lora-r32-rollout320-full-002-clean\\manifest_clean_plots.json",
       "output": "artifacts\\reports\\grpo-rollout320-official-comparison-001\\raw_refs\\R6\\manifest_clean_plots.json"
     }
   ]

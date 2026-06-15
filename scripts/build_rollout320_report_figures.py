@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import math
 import shutil
@@ -41,8 +42,7 @@ COLORS = {
     "R1": "#CC6F47",
     "R2": "#4B9A62",
     "R3": "#BD569B",
-    "R4_lr1e6": "#5477C4",
-    "R4_format_lr3e6": "#3B6EDB",
+    "R4": "#3B6EDB",
     "R5": "#2AA198",
     "R6": "#D97706",
     "reward": "#F0A21A",
@@ -153,7 +153,7 @@ RUNS = [
         reward_mode="baseline",
     ),
     RunSpec(
-        key="R4_format_lr3e6",
+        key="R4",
         run_id="r4-r12-format-rollout320-lr3e6-001",
         branch="R4_r12_format_lr3e-6_rollout320",
         label="R4 format-aware K=8, lr=3e-6",
@@ -750,7 +750,7 @@ def figure_reward_components(scalars: dict[str, pd.DataFrame], manifest: list[di
         ("train_rewards_gsm8k_simple_format", "format", "--"),
         ("train_rewards_reasoning_structure_format", "reasoning format", ":"),
     ]
-    for run in [by_key[key] for key in ["R4_format_lr3e6"] if key in by_key]:
+    for run in [by_key[key] for key in ["R4"] if key in by_key]:
         for metric, comp, ls in simple:
             data = metric_series(scalars[run.key], metric, run)
             if not data.empty:
@@ -1036,14 +1036,19 @@ def collect_omitted_large_sources(run: RunSpec) -> list[dict[str, str]]:
     for pattern in patterns:
         for path in run.cloud_dir.glob(pattern):
             if path.is_file():
-                rows.append(
-                    {
-                        "run": run.key,
-                        "source": str(path.relative_to(REPO)),
-                        "size_mb": f"{path.stat().st_size / 1024 / 1024:.2f}",
-                        "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud",
-                    }
-                )
+                row = {
+                    "run": run.key,
+                    "source": str(path.relative_to(REPO)),
+                    "size_mb": f"{path.stat().st_size / 1024 / 1024:.2f}",
+                    "reason": "omitted from Git package because it is large; local raw artifact remains under artifacts/cloud",
+                }
+                if "checkpoints" not in path.parts:
+                    digest = hashlib.sha256()
+                    with path.open("rb") as handle:
+                        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                            digest.update(chunk)
+                    row["sha256"] = digest.hexdigest()
+                rows.append(row)
     return rows
 
 
