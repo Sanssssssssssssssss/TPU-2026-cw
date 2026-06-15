@@ -23,8 +23,8 @@ import pandas as pd
 
 
 REPO = Path(__file__).resolve().parents[1]
-PACKAGE_DIR = REPO / "artifacts" / "reports" / "grpo-rollout320-official-comparison-001"
-OUT_DIR = REPO / "artifacts" / "reports" / "grpo-rollout320-report-figures-001"
+PACKAGE_DIR = REPO / "artifacts" / "reports" / "final-comparison"
+OUT_DIR = REPO / "artifacts" / "reports" / "final-figures"
 FIG_DIR = OUT_DIR / "figures"
 TABLE_DIR = OUT_DIR / "tables"
 

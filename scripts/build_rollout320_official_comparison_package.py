@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import build_rollout320_three_line_package as base
+import rollout320_report_utils as base
 
 
 RUNS = [
@@ -200,43 +200,24 @@ def compact_official_scalar_rows(rows: list[dict[str, Any]]) -> list[dict[str, A
     return [row for row in rows if row.get("metric") in OFFICIAL_SCALAR_METRICS]
 
 
-def build_clean_report_if_unlocked(
-    run: base.OfficialRun,
-    report_dir: Path,
-    status: dict[str, Any],
-    ckpt_rows: list[dict[str, Any]],
-    scalar_rows: list[dict[str, Any]],
-) -> None:
-    try:
-        base.build_clean_report(run, report_dir, status, ckpt_rows, scalar_rows)
-    except PermissionError as exc:
-        if not report_dir.exists():
-            raise
-        status.setdefault("warnings", []).append(
-            f"kept existing clean report because Windows could not replace {report_dir}: {exc}"
-        )
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cloud-root", type=Path, default=Path("artifacts/cloud"))
-    parser.add_argument("--reports-root", type=Path, default=Path("artifacts/reports"))
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("artifacts/reports/grpo-rollout320-official-comparison-001"),
+        default=Path("artifacts/reports/final-comparison"),
     )
     parser.add_argument("--allow-missing", action="store_true", help="Build from available fetched runs.")
     parser.add_argument("--no-zip", action="store_true", help="Do not create the final .zip package.")
     return parser.parse_args()
 
 
-def copy_raw_refs(output_dir: Path, cloud_root: Path, reports_root: Path) -> list[dict[str, str]]:
+def copy_raw_refs(output_dir: Path, cloud_root: Path) -> list[dict[str, str]]:
     copied: list[dict[str, str]] = []
     for run in RUNS:
         run_dir = cloud_root / run.run_id
         branch_dir = run_dir / "runs" / run.branch
-        report_dir = reports_root / f"{run.run_id}-clean"
         for src, dst in [
             (run_dir / "pipeline.log", output_dir / "raw_refs" / run.key / "pipeline.log"),
             (run_dir / "checkpoint_archives.txt", output_dir / "raw_refs" / run.key / "checkpoint_archives.txt"),
@@ -245,7 +226,6 @@ def copy_raw_refs(output_dir: Path, cloud_root: Path, reports_root: Path) -> lis
             (branch_dir / "run_env.txt", output_dir / "raw_refs" / run.key / "run_env.txt"),
             (branch_dir / "artifacts" / "checkpoint_eval" / "checkpoint_eval_summary.csv", output_dir / "raw_refs" / run.key / "checkpoint_eval_summary.csv"),
             (branch_dir / "artifacts" / "checkpoint_eval" / "checkpoint_eval_summary.json", output_dir / "raw_refs" / run.key / "checkpoint_eval_summary.json"),
-            (report_dir / "manifest_clean_plots.json", output_dir / "raw_refs" / run.key / "manifest_clean_plots.json"),
         ]:
             item = base.copy_ref(src, dst)
             if item:
@@ -259,7 +239,6 @@ def build_official_comparison_package(
     ckpt_rows: list[dict[str, Any]],
     scalar_rows: list[dict[str, Any]],
     cloud_root: Path,
-    reports_root: Path,
     make_zip: bool,
 ) -> None:
     if output_dir.exists():
@@ -348,7 +327,7 @@ def build_official_comparison_package(
         },
         "scalar_table_policy": {
             "tables/scalar_long_rollout_aligned.csv": "Compact long table with core metrics used by the official comparison figures.",
-            "full_width_scalar_tables": "See artifacts/reports/grpo-rollout320-report-figures-001/data/<line>/tensorboard_derived/scalar_pivot.csv.",
+            "full_width_scalar_tables": "See artifacts/reports/final-figures/data/<line>/tensorboard_derived/scalar_pivot.csv.",
             "included_metrics": sorted(OFFICIAL_SCALAR_METRICS),
         },
         "lines": [
@@ -374,7 +353,7 @@ def build_official_comparison_package(
             for run in RUNS
         ],
         "verification": statuses,
-        "copied_files": copy_raw_refs(output_dir, cloud_root, reports_root),
+        "copied_files": copy_raw_refs(output_dir, cloud_root),
     }
     (output_dir / "manifest_rollout320_official_comparison.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     (output_dir / "README.md").write_text(
@@ -424,17 +403,9 @@ def main() -> int:
         statuses.append(status)
         all_ckpt_rows.extend(ckpt_rows)
         all_scalar_rows.extend(compact_official_scalar_rows(scalar_rows))
-        if status["passed"]:
-            build_clean_report_if_unlocked(
-                run,
-                args.reports_root / f"{run.run_id}-clean",
-                status,
-                ckpt_rows,
-                scalar_rows,
-            )
 
     args.output_dir.parent.mkdir(parents=True, exist_ok=True)
-    verification_path = args.output_dir.parent / "grpo-rollout320-official-comparison-verification.json"
+    verification_path = args.output_dir.parent / "final-verification.json"
     verification_path.write_text(json.dumps({"created_at": datetime.now(timezone.utc).isoformat(), "runs": statuses}, indent=2), encoding="utf-8")
 
     failed = [status for status in statuses if not status.get("passed")]
@@ -466,7 +437,6 @@ def main() -> int:
         all_ckpt_rows,
         all_scalar_rows,
         args.cloud_root,
-        args.reports_root,
         make_zip=not args.no_zip,
     )
     print(f"Wrote rollout320 official comparison package to {args.output_dir}")

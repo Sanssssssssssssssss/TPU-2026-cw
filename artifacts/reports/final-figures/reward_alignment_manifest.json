@@ -1,0 +1,39 @@
+{
+  "target": "baseline_0_10",
+  "formula": "reward_score_report = reward_score_native / reward_native_max * 10.0",
+  "report_primary_reward_columns_are_rewritten": true,
+  "raw_native_values_are_retained_as": [
+    "train_reward_score_native",
+    "eval_reward_score_native",
+    "tensorboard_derived/scalar_pivot_raw.csv"
+  ],
+  "native_mechanisms": {
+    "baseline": {
+      "native_max": 10.0,
+      "components": {
+        "match_format_exactly": 3.0,
+        "match_format_approximately": 2.5,
+        "check_answer": 3.0,
+        "check_numbers": 1.5
+      },
+      "notes": "Original course reward: strict full-template format, approximate tag format, bracketed answer correctness, and numeric fallback."
+    },
+    "gsm8k_verifiable_simple": {
+      "native_max": 1.2,
+      "components": {
+        "gsm8k_simple_numeric": 1.0,
+        "gsm8k_simple_format": 0.2
+      },
+      "notes": "Numeric GSM8K-style correctness plus a small answer-tag helper."
+    },
+    "gsm8k_verifiable_format": {
+      "native_max": 1.8,
+      "components": {
+        "gsm8k_simple_numeric": 1.0,
+        "gsm8k_simple_format": 0.2,
+        "reasoning_structure_format": 0.6
+      },
+      "notes": "Current R1/R4 reward: numeric correctness, answer-tag helper, and explicit reasoning/answer envelope reward."
+    }
+  }
+}

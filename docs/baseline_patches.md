@@ -18,4 +18,4 @@ This file records implementation and packaging patches that affect reproducibili
 
 ## Non-Baseline Exclusions
 
-Historical R12 tail continuation, old simple-reward R4, reward-only completion, and autotune exploration runs are excluded from the final comparison. They were moved to `_unused_local_archive/` and are not submission artifacts.
+Historical R12 tail continuation, old simple-reward R4, reward-only completion, and autotune exploration runs are excluded from the final comparison. They were moved to `archive_local/` and are not submission artifacts.

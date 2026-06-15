@@ -37,7 +37,7 @@ All final runs use the same GSM8K data/evaluation split and a shared rollout bud
 
 ## Artifact Locations
 
-- Official comparison manifest: `artifacts/reports/grpo-rollout320-official-comparison-001/manifest_rollout320_official_comparison.json`
-- Checkpoint evaluation table: `artifacts/reports/grpo-rollout320-official-comparison-001/tables/checkpoint_eval_rollout_aligned.csv`
-- Scalar table: `artifacts/reports/grpo-rollout320-official-comparison-001/tables/scalar_long_rollout_aligned.csv`
-- Report figures and compact logs: `artifacts/reports/grpo-rollout320-report-figures-001/`
+- Official comparison manifest: `artifacts/reports/final-comparison/manifest_rollout320_official_comparison.json`
+- Checkpoint evaluation table: `artifacts/reports/final-comparison/tables/checkpoint_eval_rollout_aligned.csv`
+- Scalar table: `artifacts/reports/final-comparison/tables/scalar_long_rollout_aligned.csv`
+- Report figures and compact logs: `artifacts/reports/final-figures/`

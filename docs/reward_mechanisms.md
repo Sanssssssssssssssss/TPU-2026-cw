@@ -41,6 +41,6 @@ This scaling is applied only to copied report tables and figures. It does not mo
 
 Native values remain available in:
 
-- `value_native` in `artifacts/reports/grpo-rollout320-official-comparison-001/tables/scalar_long_rollout_aligned.csv`
+- `value_native` in `artifacts/reports/final-comparison/tables/scalar_long_rollout_aligned.csv`
 - `train_reward_score_native` and `eval_reward_score_native` in each run's `tensorboard_derived/scalar_pivot.csv`
 - `tensorboard_derived/scalar_pivot_raw.csv` for the unmodified scalar pivot

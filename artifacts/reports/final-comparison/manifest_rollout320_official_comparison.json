@@ -1,0 +1,835 @@
+{
+  "created_at": "2026-06-15T01:07:24.567608+00:00",
+  "purpose": "Rollout-aligned official comparison package for the final R0-R6 lines.",
+  "rollout_axis": "rollouts_seen = step * num_generations",
+  "expected_rollouts": [
+    320,
+    640,
+    960,
+    1280,
+    1600,
+    1920,
+    2240,
+    2560,
+    2880,
+    3200,
+    3520,
+    3840,
+    4160,
+    4480,
+    4800,
+    5120,
+    5440,
+    5760,
+    6080,
+    6400,
+    6720,
+    6728
+  ],
+  "r1_status": "new R1 uses the current format-aware reward; old simple R1 is superseded and kept only as historical evidence.",
+  "r3_status": "R3 changes only the Tunix GRPO advantage estimator from grpo to rloo.",
+  "r4_selection_status": "Final R4 is the format-aware full-from-zero lr3e-6 run; the older lr1e-6 simple-reward run is excluded from this package.",
+  "lora_rank_status": "R5 and R6 compare against R0 by changing only LoRA rank/alpha to 16/16 and 32/32 respectively.",
+  "reward_score_policy": {
+    "report_primary_reward_values_are_rewritten": true,
+    "target_scale": "baseline_0_10",
+    "formula": "value = value_native / reward_native_max * 10.0 for train_reward_score and eval_reward_score rows",
+    "native_values_retained_as": "value_native",
+    "native_mechanisms": {
+      "baseline": {
+        "native_max": 10.0,
+        "components": {
+          "match_format_exactly": 3.0,
+          "match_format_approximately": 2.5,
+          "check_answer": 3.0,
+          "check_numbers": 1.5
+        }
+      },
+      "gsm8k_verifiable_simple": {
+        "native_max": 1.2,
+        "components": {
+          "gsm8k_simple_numeric": 1.0,
+          "gsm8k_simple_format": 0.2
+        }
+      },
+      "gsm8k_verifiable_format": {
+        "native_max": 1.8,
+        "components": {
+          "gsm8k_simple_numeric": 1.0,
+          "gsm8k_simple_format": 0.2,
+          "reasoning_structure_format": 0.6
+        }
+      }
+    }
+  },
+  "scalar_table_policy": {
+    "tables/scalar_long_rollout_aligned.csv": "Compact long table with core metrics used by the official comparison figures.",
+    "full_width_scalar_tables": "See artifacts/reports/final-figures/data/<line>/tensorboard_derived/scalar_pivot.csv.",
+    "included_metrics": [
+      "eval_kl",
+      "eval_loss",
+      "eval_reward_score",
+      "train_format_accuracy",
+      "train_grpo_frac_reward_zero_std",
+      "train_grpo_group_reward_std_mean",
+      "train_kl",
+      "train_loss",
+      "train_official_numeric_exact_rate",
+      "train_reward_score",
+      "train_rollout_empty_response_rate",
+      "train_rollout_extracted_none_rate"
+    ]
+  },
+  "lines": [
+    {
+      "key": "R0",
+      "slot": "R0",
+      "selection_status": "official_fixed",
+      "run_id": "baseline-rollout320-full-001",
+      "branch": "R0_baseline_rollout320",
+      "legend": "R0 baseline dense32-rollout",
+      "reward_mode": "baseline",
+      "num_generations": 2,
+      "max_steps": 3364,
+      "checkpoint_steps": [
+        160,
+        320,
+        480,
+        640,
+        800,
+        960,
+        1120,
+        1280,
+        1440,
+        1600,
+        1760,
+        1920,
+        2080,
+        2240,
+        2400,
+        2560,
+        2720,
+        2880,
+        3040,
+        3200,
+        3360,
+        3364
+      ],
+      "checkpoint_rollouts": [
+        320,
+        640,
+        960,
+        1280,
+        1600,
+        1920,
+        2240,
+        2560,
+        2880,
+        3200,
+        3520,
+        3840,
+        4160,
+        4480,
+        4800,
+        5120,
+        5440,
+        5760,
+        6080,
+        6400,
+        6720,
+        6728
+      ],
+      "learning_rate": "3e-6",
+      "beta": "0.08",
+      "rank": "64",
+      "alpha": "64",
+      "advantage_estimator": "grpo",
+      "source_checkpoint": null
+    },
+    {
+      "key": "R1",
+      "slot": "R1",
+      "selection_status": "official_fixed",
+      "run_id": "r1-format-rollout320-full-001",
+      "branch": "R1_format_reward_rollout320",
+      "legend": "R1 format-aware reward-only dense32-rollout",
+      "reward_mode": "gsm8k_verifiable_format",
+      "num_generations": 2,
+      "max_steps": 3364,
+      "checkpoint_steps": [
+        160,
+        320,
+        480,
+        640,
+        800,
+        960,
+        1120,
+        1280,
+        1440,
+        1600,
+        1760,
+        1920,
+        2080,
+        2240,
+        2400,
+        2560,
+        2720,
+        2880,
+        3040,
+        3200,
+        3360,
+        3364
+      ],
+      "checkpoint_rollouts": [
+        320,
+        640,
+        960,
+        1280,
+        1600,
+        1920,
+        2240,
+        2560,
+        2880,
+        3200,
+        3520,
+        3840,
+        4160,
+        4480,
+        4800,
+        5120,
+        5440,
+        5760,
+        6080,
+        6400,
+        6720,
+        6728
+      ],
+      "learning_rate": "3e-6",
+      "beta": "0.08",
+      "rank": "64",
+      "alpha": "64",
+      "advantage_estimator": "grpo",
+      "source_checkpoint": null
+    },
+    {
+      "key": "R2",
+      "slot": "R2",
+      "selection_status": "official_fixed",
+      "run_id": "r2-k8-beta004-rollout320-full-001",
+      "branch": "R2_k8_beta004_rollout320",
+      "legend": "R2 baseline K=8 beta=0.04 dense32-rollout",
+      "reward_mode": "baseline",
+      "num_generations": 8,
+      "max_steps": 841,
+      "checkpoint_steps": [
+        40,
+        80,
+        120,
+        160,
+        200,
+        240,
+        280,
+        320,
+        360,
+        400,
+        440,
+        480,
+        520,
+        560,
+        600,
+        640,
+        680,
+        720,
+        760,
+        800,
+        840,
+        841
+      ],
+      "checkpoint_rollouts": [
+        320,
+        640,
+        960,
+        1280,
+        1600,
+        1920,
+        2240,
+        2560,
+        2880,
+        3200,
+        3520,
+        3840,
+        4160,
+        4480,
+        4800,
+        5120,
+        5440,
+        5760,
+        6080,
+        6400,
+        6720,
+        6728
+      ],
+      "learning_rate": "3e-6",
+      "beta": "0.04",
+      "rank": "64",
+      "alpha": "64",
+      "advantage_estimator": "grpo",
+      "source_checkpoint": null
+    },
+    {
+      "key": "R3",
+      "slot": "R3",
+      "selection_status": "official_fixed",
+      "run_id": "r3-loo-advantage-rollout320-full-001",
+      "branch": "R3_loo_advantage_rollout320",
+      "legend": "R3 baseline reward + RLOO advantage dense32-rollout",
+      "reward_mode": "baseline",
+      "num_generations": 2,
+      "max_steps": 3364,
+      "checkpoint_steps": [
+        160,
+        320,
+        480,
+        640,
+        800,
+        960,
+        1120,
+        1280,
+        1440,
+        1600,
+        1760,
+        1920,
+        2080,
+        2240,
+        2400,
+        2560,
+        2720,
+        2880,
+        3040,
+        3200,
+        3360,
+        3364
+      ],
+      "checkpoint_rollouts": [
+        320,
+        640,
+        960,
+        1280,
+        1600,
+        1920,
+        2240,
+        2560,
+        2880,
+        3200,
+        3520,
+        3840,
+        4160,
+        4480,
+        4800,
+        5120,
+        5440,
+        5760,
+        6080,
+        6400,
+        6720,
+        6728
+      ],
+      "learning_rate": "3e-6",
+      "beta": "0.08",
+      "rank": "64",
+      "alpha": "64",
+      "advantage_estimator": "rloo",
+      "source_checkpoint": null
+    },
+    {
+      "key": "R4",
+      "slot": "R4",
+      "selection_status": "official_fixed",
+      "run_id": "r4-r12-format-rollout320-lr3e6-001",
+      "branch": "R4_r12_format_lr3e-6_rollout320",
+      "legend": "R4 format-aware full-from-zero lr3e-6 dense32-rollout",
+      "reward_mode": "gsm8k_verifiable_format",
+      "num_generations": 8,
+      "max_steps": 841,
+      "checkpoint_steps": [
+        40,
+        80,
+        120,
+        160,
+        200,
+        240,
+        280,
+        320,
+        360,
+        400,
+        440,
+        480,
+        520,
+        560,
+        600,
+        640,
+        680,
+        720,
+        760,
+        800,
+        840,
+        841
+      ],
+      "checkpoint_rollouts": [
+        320,
+        640,
+        960,
+        1280,
+        1600,
+        1920,
+        2240,
+        2560,
+        2880,
+        3200,
+        3520,
+        3840,
+        4160,
+        4480,
+        4800,
+        5120,
+        5440,
+        5760,
+        6080,
+        6400,
+        6720,
+        6728
+      ],
+      "learning_rate": "3e-6",
+      "beta": "0.04",
+      "rank": "64",
+      "alpha": "64",
+      "advantage_estimator": "grpo",
+      "source_checkpoint": null
+    },
+    {
+      "key": "R5",
+      "slot": "R5",
+      "selection_status": "official_fixed",
+      "run_id": "r5-lora-r16-rollout320-full-001",
+      "branch": "R5_lora_r16_rollout320",
+      "legend": "R5 LoRA rank16 baseline dense32-rollout",
+      "reward_mode": "baseline",
+      "num_generations": 2,
+      "max_steps": 3364,
+      "checkpoint_steps": [
+        160,
+        320,
+        480,
+        640,
+        800,
+        960,
+        1120,
+        1280,
+        1440,
+        1600,
+        1760,
+        1920,
+        2080,
+        2240,
+        2400,
+        2560,
+        2720,
+        2880,
+        3040,
+        3200,
+        3360,
+        3364
+      ],
+      "checkpoint_rollouts": [
+        320,
+        640,
+        960,
+        1280,
+        1600,
+        1920,
+        2240,
+        2560,
+        2880,
+        3200,
+        3520,
+        3840,
+        4160,
+        4480,
+        4800,
+        5120,
+        5440,
+        5760,
+        6080,
+        6400,
+        6720,
+        6728
+      ],
+      "learning_rate": "3e-6",
+      "beta": "0.08",
+      "rank": "16",
+      "alpha": "16",
+      "advantage_estimator": "grpo",
+      "source_checkpoint": null
+    },
+    {
+      "key": "R6",
+      "slot": "R6",
+      "selection_status": "official_fixed",
+      "run_id": "r6-lora-r32-rollout320-full-002",
+      "branch": "R6_lora_r32_rollout320",
+      "legend": "R6 LoRA rank32 baseline dense32-rollout",
+      "reward_mode": "baseline",
+      "num_generations": 2,
+      "max_steps": 3364,
+      "checkpoint_steps": [
+        160,
+        320,
+        480,
+        640,
+        800,
+        960,
+        1120,
+        1280,
+        1440,
+        1600,
+        1760,
+        1920,
+        2080,
+        2240,
+        2400,
+        2560,
+        2720,
+        2880,
+        3040,
+        3200,
+        3360,
+        3364
+      ],
+      "checkpoint_rollouts": [
+        320,
+        640,
+        960,
+        1280,
+        1600,
+        1920,
+        2240,
+        2560,
+        2880,
+        3200,
+        3520,
+        3840,
+        4160,
+        4480,
+        4800,
+        5120,
+        5440,
+        5760,
+        6080,
+        6400,
+        6720,
+        6728
+      ],
+      "learning_rate": "3e-6",
+      "beta": "0.08",
+      "rank": "32",
+      "alpha": "32",
+      "advantage_estimator": "grpo",
+      "source_checkpoint": null
+    }
+  ],
+  "verification": [
+    {
+      "line": "R0",
+      "run_id": "baseline-rollout320-full-001",
+      "branch": "R0_baseline_rollout320",
+      "raw_dir": "artifacts\\cloud\\baseline-rollout320-full-001",
+      "manifest": "artifacts\\cloud\\baseline-rollout320-full-001\\artifacts\\reward_k8_pilot_manifest.json",
+      "run_env": "artifacts\\cloud\\baseline-rollout320-full-001\\runs\\R0_baseline_rollout320\\run_env.txt",
+      "checkpoint_eval_csv": "artifacts\\cloud\\baseline-rollout320-full-001\\runs\\R0_baseline_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "checkpoint_eval_rows": 22,
+      "checkpoint_archive_count": 23,
+      "final_checkpoint_step": 3364,
+      "final_checkpoint_exists": true,
+      "scalar_rows": 1127654,
+      "errors": [],
+      "warnings": [],
+      "passed": true
+    },
+    {
+      "line": "R1",
+      "run_id": "r1-format-rollout320-full-001",
+      "branch": "R1_format_reward_rollout320",
+      "raw_dir": "artifacts\\cloud\\r1-format-rollout320-full-001",
+      "manifest": "artifacts\\cloud\\r1-format-rollout320-full-001\\artifacts\\reward_k8_pilot_manifest.json",
+      "run_env": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\run_env.txt",
+      "checkpoint_eval_csv": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "checkpoint_eval_rows": 22,
+      "checkpoint_archive_count": 23,
+      "final_checkpoint_step": 3364,
+      "final_checkpoint_exists": true,
+      "scalar_rows": 1139246,
+      "errors": [],
+      "warnings": [],
+      "passed": true
+    },
+    {
+      "line": "R2",
+      "run_id": "r2-k8-beta004-rollout320-full-001",
+      "branch": "R2_k8_beta004_rollout320",
+      "raw_dir": "artifacts\\cloud\\r2-k8-beta004-rollout320-full-001",
+      "manifest": "artifacts\\cloud\\r2-k8-beta004-rollout320-full-001\\artifacts\\reward_k8_pilot_manifest.json",
+      "run_env": "artifacts\\cloud\\r2-k8-beta004-rollout320-full-001\\runs\\R2_k8_beta004_rollout320\\run_env.txt",
+      "checkpoint_eval_csv": "artifacts\\cloud\\r2-k8-beta004-rollout320-full-001\\runs\\R2_k8_beta004_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "checkpoint_eval_rows": 22,
+      "checkpoint_archive_count": 23,
+      "final_checkpoint_step": 841,
+      "final_checkpoint_exists": true,
+      "scalar_rows": 721451,
+      "errors": [],
+      "warnings": [],
+      "passed": true
+    },
+    {
+      "line": "R3",
+      "run_id": "r3-loo-advantage-rollout320-full-001",
+      "branch": "R3_loo_advantage_rollout320",
+      "raw_dir": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001",
+      "manifest": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\artifacts\\reward_k8_pilot_manifest.json",
+      "run_env": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\run_env.txt",
+      "checkpoint_eval_csv": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "checkpoint_eval_rows": 22,
+      "checkpoint_archive_count": 23,
+      "final_checkpoint_step": 3364,
+      "final_checkpoint_exists": true,
+      "scalar_rows": 1142632,
+      "errors": [],
+      "warnings": [],
+      "passed": true
+    },
+    {
+      "line": "R4",
+      "run_id": "r4-r12-format-rollout320-lr3e6-001",
+      "branch": "R4_r12_format_lr3e-6_rollout320",
+      "raw_dir": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001",
+      "manifest": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001\\artifacts\\reward_k8_pilot_manifest.json",
+      "run_env": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001\\runs\\R4_r12_format_lr3e-6_rollout320\\run_env.txt",
+      "checkpoint_eval_csv": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001\\runs\\R4_r12_format_lr3e-6_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "checkpoint_eval_rows": 22,
+      "checkpoint_archive_count": 23,
+      "final_checkpoint_step": 841,
+      "final_checkpoint_exists": true,
+      "scalar_rows": 730520,
+      "errors": [],
+      "warnings": [],
+      "passed": true
+    },
+    {
+      "line": "R5",
+      "run_id": "r5-lora-r16-rollout320-full-001",
+      "branch": "R5_lora_r16_rollout320",
+      "raw_dir": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001",
+      "manifest": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\artifacts\\reward_k8_pilot_manifest.json",
+      "run_env": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\run_env.txt",
+      "checkpoint_eval_csv": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "checkpoint_eval_rows": 22,
+      "checkpoint_archive_count": 23,
+      "final_checkpoint_step": 3364,
+      "final_checkpoint_exists": true,
+      "scalar_rows": 1142632,
+      "errors": [],
+      "warnings": [],
+      "passed": true
+    },
+    {
+      "line": "R6",
+      "run_id": "r6-lora-r32-rollout320-full-002",
+      "branch": "R6_lora_r32_rollout320",
+      "raw_dir": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002",
+      "manifest": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\artifacts\\reward_k8_pilot_manifest.json",
+      "run_env": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\run_env.txt",
+      "checkpoint_eval_csv": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "checkpoint_eval_rows": 22,
+      "checkpoint_archive_count": 23,
+      "final_checkpoint_step": 3364,
+      "final_checkpoint_exists": true,
+      "scalar_rows": 1142632,
+      "errors": [],
+      "warnings": [],
+      "passed": true
+    }
+  ],
+  "copied_files": [
+    {
+      "source": "artifacts\\cloud\\baseline-rollout320-full-001\\pipeline.log",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R0\\pipeline.log"
+    },
+    {
+      "source": "artifacts\\cloud\\baseline-rollout320-full-001\\checkpoint_archives.txt",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R0\\checkpoint_archives.txt"
+    },
+    {
+      "source": "artifacts\\cloud\\baseline-rollout320-full-001\\artifacts\\reward_k8_pilot_manifest.json",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R0\\reward_k8_pilot_manifest.json"
+    },
+    {
+      "source": "artifacts\\cloud\\baseline-rollout320-full-001\\artifacts\\reward_k8_pilot_manifest.json.pre_repair",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R0\\reward_k8_pilot_manifest.json.pre_repair"
+    },
+    {
+      "source": "artifacts\\cloud\\baseline-rollout320-full-001\\runs\\R0_baseline_rollout320\\run_env.txt",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R0\\run_env.txt"
+    },
+    {
+      "source": "artifacts\\cloud\\baseline-rollout320-full-001\\runs\\R0_baseline_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R0\\checkpoint_eval_summary.csv"
+    },
+    {
+      "source": "artifacts\\cloud\\baseline-rollout320-full-001\\runs\\R0_baseline_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.json",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R0\\checkpoint_eval_summary.json"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\pipeline.log",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R1\\pipeline.log"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\checkpoint_archives.txt",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R1\\checkpoint_archives.txt"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\artifacts\\reward_k8_pilot_manifest.json",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R1\\reward_k8_pilot_manifest.json"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\run_env.txt",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R1\\run_env.txt"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R1\\checkpoint_eval_summary.csv"
+    },
+    {
+      "source": "artifacts\\cloud\\r1-format-rollout320-full-001\\runs\\R1_format_reward_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.json",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R1\\checkpoint_eval_summary.json"
+    },
+    {
+      "source": "artifacts\\cloud\\r2-k8-beta004-rollout320-full-001\\pipeline.log",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R2\\pipeline.log"
+    },
+    {
+      "source": "artifacts\\cloud\\r2-k8-beta004-rollout320-full-001\\checkpoint_archives.txt",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R2\\checkpoint_archives.txt"
+    },
+    {
+      "source": "artifacts\\cloud\\r2-k8-beta004-rollout320-full-001\\artifacts\\reward_k8_pilot_manifest.json",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R2\\reward_k8_pilot_manifest.json"
+    },
+    {
+      "source": "artifacts\\cloud\\r2-k8-beta004-rollout320-full-001\\runs\\R2_k8_beta004_rollout320\\run_env.txt",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R2\\run_env.txt"
+    },
+    {
+      "source": "artifacts\\cloud\\r2-k8-beta004-rollout320-full-001\\runs\\R2_k8_beta004_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R2\\checkpoint_eval_summary.csv"
+    },
+    {
+      "source": "artifacts\\cloud\\r2-k8-beta004-rollout320-full-001\\runs\\R2_k8_beta004_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.json",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R2\\checkpoint_eval_summary.json"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\pipeline.log",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R3\\pipeline.log"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\checkpoint_archives.txt",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R3\\checkpoint_archives.txt"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\artifacts\\reward_k8_pilot_manifest.json",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R3\\reward_k8_pilot_manifest.json"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\run_env.txt",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R3\\run_env.txt"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R3\\checkpoint_eval_summary.csv"
+    },
+    {
+      "source": "artifacts\\cloud\\r3-loo-advantage-rollout320-full-001\\runs\\R3_loo_advantage_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.json",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R3\\checkpoint_eval_summary.json"
+    },
+    {
+      "source": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001\\pipeline.log",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R4\\pipeline.log"
+    },
+    {
+      "source": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001\\checkpoint_archives.txt",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R4\\checkpoint_archives.txt"
+    },
+    {
+      "source": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001\\artifacts\\reward_k8_pilot_manifest.json",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R4\\reward_k8_pilot_manifest.json"
+    },
+    {
+      "source": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001\\runs\\R4_r12_format_lr3e-6_rollout320\\run_env.txt",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R4\\run_env.txt"
+    },
+    {
+      "source": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001\\runs\\R4_r12_format_lr3e-6_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R4\\checkpoint_eval_summary.csv"
+    },
+    {
+      "source": "artifacts\\cloud\\r4-r12-format-rollout320-lr3e6-001\\runs\\R4_r12_format_lr3e-6_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.json",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R4\\checkpoint_eval_summary.json"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\pipeline.log",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R5\\pipeline.log"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\checkpoint_archives.txt",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R5\\checkpoint_archives.txt"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\artifacts\\reward_k8_pilot_manifest.json",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R5\\reward_k8_pilot_manifest.json"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\run_env.txt",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R5\\run_env.txt"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R5\\checkpoint_eval_summary.csv"
+    },
+    {
+      "source": "artifacts\\cloud\\r5-lora-r16-rollout320-full-001\\runs\\R5_lora_r16_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.json",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R5\\checkpoint_eval_summary.json"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\pipeline.log",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R6\\pipeline.log"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\checkpoint_archives.txt",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R6\\checkpoint_archives.txt"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\artifacts\\reward_k8_pilot_manifest.json",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R6\\reward_k8_pilot_manifest.json"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\run_env.txt",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R6\\run_env.txt"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.csv",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R6\\checkpoint_eval_summary.csv"
+    },
+    {
+      "source": "artifacts\\cloud\\r6-lora-r32-rollout320-full-002\\runs\\R6_lora_r32_rollout320\\artifacts\\checkpoint_eval\\checkpoint_eval_summary.json",
+      "output": "artifacts\\reports\\final-comparison\\raw_refs\\R6\\checkpoint_eval_summary.json"
+    }
+  ]
+}

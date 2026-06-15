@@ -18,10 +18,10 @@ The older simple-reward `R4` and historical R12/tail/autotune exploration runs a
 
 ## Evidence Packages
 
-- `artifacts/reports/grpo-rollout320-official-comparison-001/`: final aligned comparison tables, figures, raw refs, and manifest.
-- `artifacts/reports/grpo-rollout320-report-figures-001/`: report-ready figures plus web-readable data for each final run.
-- `artifacts/reports/grpo-rollout320-report-figures-001/data/<R*>/`: compact TensorBoard-derived scalar CSVs, checkpoint eval JSON/CSV, trace summaries, run manifests, and run environments.
-- `artifacts/reports/grpo-rollout320-report-figures-001/data_manifest.json`: file-level index for included compact logs and omitted large local raw files.
+- `artifacts/reports/final-comparison/`: final aligned comparison tables, figures, raw refs, and manifest.
+- `artifacts/reports/final-figures/`: report-ready figures plus web-readable data for each final run.
+- `artifacts/reports/final-figures/data/<R*>/`: compact TensorBoard-derived scalar CSVs, checkpoint eval JSON/CSV, trace summaries, run manifests, and run environments.
+- `artifacts/reports/final-figures/data_manifest.json`: file-level index for included compact logs and omitted large local raw files.
 
 Raw checkpoint archives and full TensorBoard event files remain under local `artifacts/cloud/` and are intentionally not committed to ordinary Git. The report package includes TensorBoard-equivalent scalar CSVs and SHA256-indexed references for omitted large raw sources.
 
@@ -57,4 +57,4 @@ Expected invariants:
 
 ## Submission Notes
 
-The final PDF report should cite the exact Git commit used for submission and link the GitLab mirror of this repository. The local `_unused_local_archive/` and `images/` folders are ignored and are not part of the submitted repository.
+The final PDF report should cite the exact Git commit used for submission and link the GitLab mirror of this repository. The local `archive_local/` folder is ignored and is not part of the submitted repository.

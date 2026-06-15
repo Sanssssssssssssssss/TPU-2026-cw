@@ -1,0 +1,26 @@
+{
+  "run_id": "r4-r12-format-rollout320-lr3e6-001",
+  "runs": [
+    {"run_id": "R4_r12_format_lr3e-6_rollout320", "reward_mode": "gsm8k_verifiable_format", "beta_override": "0.04", "learning_rate_override": "3e-6", "rank_override": "64", "alpha_override": "64", "epsilon_override": "0.2"}
+  ],
+  "max_steps": "841",
+  "lr_schedule_steps": "1682",
+  "warmup_steps": "0",
+  "save_interval_steps": "40",
+  "max_to_keep": "30",
+  "eval_every_n_steps": "40",
+  "num_generations": "8",
+  "total_generation_steps": "768",
+  "learning_rate": "3e-6",
+  "beta": "0.04",
+  "epsilon": "0.2",
+  "rank": "64",
+  "alpha": "64",
+  "rollout_checkpoint_interval": "320",
+  "checkpoint_steps": "40 80 120 160 200 240 280 320 360 400 440 480 520 560 600 640 680 720 760 800 840 841",
+  "checkpoint_eval_steps": "40 80 120 160 200 240 280 320 360 400 440 480 520 560 600 640 680 720 760 800 840 841",
+  "checkpoint_rollouts": "320 640 960 1280 1600 1920 2240 2560 2880 3200 3520 3840 4160 4480 4800 5120 5440 5760 6080 6400 6720 6728",
+  "source_checkpoint": null,
+  "run_specs": "R4_r12_format_lr3e-6_rollout320:gsm8k_verifiable_format:0.04:3e-6:64:64:0.2",
+  "run_spec_format": "run_id:reward_mode[:beta_override[:learning_rate_override[:rank_override[:alpha_override[:epsilon_override]]]]]"
+}

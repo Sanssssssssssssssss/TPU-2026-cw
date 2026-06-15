@@ -1,120 +1,60 @@
-# Cloud TPU orchestration
+# Cloud TPU Orchestration
 
-This folder lets a local Windows machine submit the GRPO baseline workflow to a
-Google TPU VM. Local code is bundled and uploaded; training and evaluation run
-remotely in `tmux`; artifacts are fetched back under `artifacts/cloud/<RUN_ID>/`.
+This folder contains the Windows and TPU-VM helpers used to submit, monitor,
+stop, and fetch GRPO runs. The final coursework evidence is already fetched and
+packaged under `artifacts/reports/`; these commands are here for reproducibility
+and audit.
 
-## 1. Local prerequisites
-
-Install Google Cloud CLI, then authenticate:
+## Local Setup
 
 ```powershell
 gcloud auth login
 gcloud config set project tpu-2026
-```
-
-Create a local config only if you need to override defaults:
-
-```powershell
 Copy-Item cloud\tpu_config.example.ps1 cloud\tpu_config.local.ps1
 ```
 
-Put secrets in a local `.env` file at the repo root. This file is ignored by
-git and is uploaded only to the TPU VM run directory:
+Put private tokens in a local root `.env` file. That file is ignored by Git.
 
-```text
-WANDB_API_KEY=...
-WANDB_PROJECT=grpo-tpu-2026
-WANDB_ENTITY=...   # optional; omit to use the authenticated default entity
-HF_TOKEN=...
-KAGGLE_USERNAME=...
-KAGGLE_KEY=...
-```
+## Official Final Runs
 
-## 2. First-time TPU setup
+The final submission uses only these lines:
 
-```powershell
-.\cloud\submit_tpu_job.ps1 preflight
-.\cloud\submit_tpu_job.ps1 ensure-tpu
-.\cloud\submit_tpu_job.ps1 ensure-storage
-.\cloud\submit_tpu_job.ps1 bootstrap -RunId setup-001
-```
+| Line | Submit action | Run id |
+|---|---|---|
+| R0 | `submit-baseline-rollout320-full` | `baseline-rollout320-full-001` |
+| R1 | `submit-r1-format-rollout320-full` | `r1-format-rollout320-full-001` |
+| R2 | `submit-r2-k8-beta004-rollout320-full` | `r2-k8-beta004-rollout320-full-001` |
+| R3 | `submit-r3-loo-advantage-rollout320-full` | `r3-loo-advantage-rollout320-full-001` |
+| R4 | `submit-r4-rollout320-lr3e6-format-full` | `r4-r12-format-rollout320-lr3e6-001` |
+| R5 | `submit-r5-lora-r16-rollout320-full` | `r5-lora-r16-rollout320-full-001` |
+| R6 | `submit-r6-lora-r32-rollout320-full` | `r6-lora-r32-rollout320-full-002` |
 
-Use `-DryRun` on any command to print the `gcloud` calls without touching cloud
-resources.
-
-## 3. Submit baseline
-
-For a tiny smoke test:
+Submit one run at a time:
 
 ```powershell
-.\cloud\submit_tpu_job.ps1 submit-baseline -RunId smoke-001 -TinySmoke
+.\cloud\submit_tpu_job.ps1 <submit-action> -RunId <run-id>
 ```
 
-For the real baseline run:
+Monitor and fetch:
 
 ```powershell
-.\cloud\submit_tpu_job.ps1 submit-baseline -RunId baseline-001
+.\cloud\submit_tpu_job.ps1 status-k8-pilot -RunId <run-id>
+$env:SKIP_CHECKPOINT_EXTRACT='1'
+.\cloud\submit_tpu_job.ps1 fetch-k8-pilot -RunId <run-id>
 ```
 
-The remote pipeline writes observability outputs under
-`~/tpu-runs/<RUN_ID>/artifacts`: `run_manifest.json`, `rollout_traces/*.jsonl`,
-W&B/TensorBoard metrics, checkpoint eval summaries, and report-ready plots.
+## Final Packaging
 
-To evaluate existing checkpoints without re-training, start the TPU and submit
-only the checkpoint eval pipeline:
+After fetching, verify and rebuild:
 
 ```powershell
-.\cloud\submit_tpu_job.ps1 start-tpu
-.\cloud\submit_tpu_job.ps1 eval-checkpoints -RunId baseline-full-001
+py -3 scripts\verify_experiment_package.py artifacts\cloud\<run-id>
+py -3 scripts\build_rollout320_official_comparison_package.py
+py -3 scripts\build_rollout320_report_figures.py
 ```
 
-## 4. Monitor and fetch
+Final submission-facing outputs:
 
-```powershell
-.\cloud\submit_tpu_job.ps1 status -RunId baseline-001
-.\cloud\submit_tpu_job.ps1 fetch -RunId baseline-001
-```
-
-Fetched outputs include evaluation JSON, baseline plots, logs, and git metadata.
-Checkpoints remain on the TPU VM under `~/tpu-runs/<RUN_ID>/ckpts` until you
-sync them to Cloud Storage or delete the VM.
-
-## 5. Back up to Cloud Storage
-
-Use the project-local bucket for durable run outputs and model cache:
-
-```powershell
-.\cloud\submit_tpu_job.ps1 ensure-storage
-.\cloud\submit_tpu_job.ps1 sync-storage -RunId baseline-001
-```
-
-This syncs report artifacts, TensorBoard events, checkpoints, logs, and the
-Hugging Face `google/gemma-3-1b-it` model cache. It intentionally does not sync
-`.env`, Hugging Face token files, or the full source tree.
-
-If you recreate the TPU VM later, restore the cached model before submitting:
-
-```powershell
-.\cloud\submit_tpu_job.ps1 restore-cache
-```
-
-## 6. Stop or delete TPU when done
-
-Stop the TPU to stop TPU charges while keeping the VM configuration/software:
-
-```powershell
-.\cloud\submit_tpu_job.ps1 stop-tpu
-```
-
-Start it again later:
-
-```powershell
-.\cloud\submit_tpu_job.ps1 start-tpu
-```
-
-Delete the TPU VM when you no longer need it:
-
-```powershell
-.\cloud\submit_tpu_job.ps1 delete-tpu
-```
+- `artifacts/reports/final-comparison`
+- `artifacts/reports/final-figures`
+- `artifacts/reports/final-verification.json`
